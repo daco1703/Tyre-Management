@@ -31,6 +31,10 @@ const server = spawn(process.execPath, ["server/index.js"], {
     ...process.env,
     NODE_ENV: "production",
     PORT: "3120",
+    RENDER: "true",
+    RENDER_EXTERNAL_URL: "https://tyre-management.onrender.com/",
+    PUBLIC_ORIGIN: "",
+    TRUST_PROXY: "0",
     DATABASE_PATH: path.join(temp, "test.sqlite"),
   },
   stdio: "pipe",
@@ -54,6 +58,55 @@ async function main() {
       : {}),
     args: ["--no-sandbox"],
   });
+  // Exercise the browser form with Render's public HTTPS Origin and an
+  // internal HTTP Host, through the actual server/index.js environment wiring.
+  const proxyContext = await browser.newContext({ serviceWorkers: "block" });
+  await proxyContext.route("**/api/**", async (route) => {
+    const req = route.request();
+    const url = new URL(req.url());
+    try {
+      const response = await proxyContext.request.fetch(
+        base + url.pathname + url.search,
+        {
+          method: req.method(),
+          headers: {
+            ...req.headers(),
+            host: "internal-render-service:10000",
+            origin: "https://tyre-management.onrender.com",
+            "x-forwarded-proto": "https",
+          },
+          ...(req.postData() ? { data: req.postData() } : {}),
+        },
+      );
+      await route.fulfill({ response });
+    } catch {
+      await route.abort().catch(() => {});
+    }
+  });
+  const proxyPage = await proxyContext.newPage();
+  await proxyPage.goto(base);
+  await proxyPage.locator("input[name=password]").fill("test-admin-password");
+  await proxyPage
+    .getByRole("button", { name: "Open my garage", exact: true })
+    .click();
+  await proxyPage
+    .getByRole("heading", { name: "Your fleet, at a glance" })
+    .waitFor();
+  await proxyPage.reload();
+  await proxyPage
+    .getByRole("heading", { name: "Your fleet, at a glance" })
+    .waitFor();
+  await proxyPage
+    .getByRole("button", { name: "Team & settings", exact: true })
+    .click();
+  await proxyPage
+    .getByRole("button", { name: "Sign out", exact: true })
+    .click();
+  await proxyPage.locator("input[name=password]").waitFor();
+  await proxyContext.close();
+  console.log(
+    "PASS: browser login, reload and logout behind Render's HTTPS-to-HTTP proxy using automatic public-URL configuration",
+  );
   const context = await browser.newContext({ serviceWorkers: "block" });
   const page = await context.newPage();
   page.setDefaultTimeout(8000);

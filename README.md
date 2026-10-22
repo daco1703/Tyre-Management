@@ -61,6 +61,8 @@ Output: `android/app/build/outputs/apk/debug/app-debug.apk`. Keep the same signi
 
 The fleet's live address is **https://tyre-management.onrender.com/**. The server and Android build must both be updated to 1.4 for admin-created staff and live updates. Deploy the repository's `main` branch using the Render service's existing settings; if automatic deployments are disabled, use **Manual Deploy → Deploy latest commit**. The public `GET /api/health` response includes `ok` and the running version; it contains no fleet records. Existing users, inventory and logs stay in the persistent database.
 
+Server patch **1.4.1** fixes browser login behind Render's HTTPS proxy. The server reads Render's built-in `RENDER_EXTERNAL_URL` as its allowed public website origin and detects the standard Render proxy automatically; no Android update is needed. For a custom domain or another host, set `PUBLIC_ORIGIN` to the exact HTTPS origin (for example `https://tyres.example.com`, without a path). An explicit `TRUST_PROXY=0/1` overrides automatic proxy detection. Foreign website origins remain rejected. After deploying, `/api/health` should report version `1.4.1`.
+
 Use one instance with persistent storage and HTTPS. The supplied `render.yaml` prepares a Node 24 service and 1 GB persistent disk; new deployments require the owner's Render account and review of current charges. Build with `npm ci --include=dev && npm test && npm run build && npm prune --omit=dev`, start with `npm start`. On Render set `DATABASE_PATH=/var/data/tyresaathi.sqlite`, `NODE_ENV=production`, `TRUST_PROXY=1`, and retain the disk mounted at `/var/data`.
 
 For a VPS, Docker Compose and Caddy configuration are included:

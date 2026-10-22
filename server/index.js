@@ -1,12 +1,13 @@
 import { createApp } from "./app.js";
 import express from "express";
 import path from "node:path";
+import { deploymentOptions } from "./config.js";
 const production = process.env.NODE_ENV === "production";
 const dbPath = process.env.DATABASE_PATH || "./data/tyresaathi.sqlite";
 const { app, db } = createApp({
   dbPath,
   production,
-  trustProxy: process.env.TRUST_PROXY === "1",
+  ...deploymentOptions(process.env),
 });
 if (production) {
   app.use(express.static(path.resolve("dist"), { index: false }));

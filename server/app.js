@@ -10,6 +10,7 @@ import {
 } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
+import { normalizePublicOrigin } from "./config.js";
 import { emptyState, applyAction, AppError } from "../shared/model.js";
 
 const digest = (value) => createHash("sha256").update(value).digest("hex");
@@ -25,7 +26,9 @@ export function createApp({
   dbPath = "./data/tyresaathi.sqlite",
   production = false,
   trustProxy = false,
+  publicOrigin = "",
 } = {}) {
+  const websiteOrigin = normalizePublicOrigin(publicOrigin);
   if (dbPath !== ":memory:")
     mkdirSync(path.dirname(dbPath), { recursive: true });
   const db = new DatabaseSync(dbPath);
@@ -90,6 +93,7 @@ export function createApp({
         req.method === "POST" &&
         origin &&
         !native &&
+        origin !== websiteOrigin &&
         origin !== `${req.protocol}://${req.get("host")}`
       )
         return res.status(403).json({ error: "originDenied" });
@@ -167,7 +171,7 @@ export function createApp({
       ? next()
       : res.status(403).json({ error: "ownerOnly" });
   app.get("/api/health", (req, res) =>
-    res.json({ ok: true, version: "1.4.0" }),
+    res.json({ ok: true, version: "1.4.1" }),
   );
   app.get("/api/bootstrap", (req, res) => res.json({ setupRequired: false }));
   app.post("/api/login", authLimit, (req, res) => {

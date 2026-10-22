@@ -652,3 +652,55 @@ test("live updates deliver committed staff entries to concurrent users and revok
   await req("/team/deactivate", { id: staff.data.user.id }, owner.cookie);
   assert.equal((await removedWaiting).status, 401);
 });
+
+test("Render HTTPS browser login uses the public origin despite the internal HTTP host", async (t) => {
+  const { req } = await fixture(t, {
+    production: true,
+    publicOrigin: "https://tyre-management.onrender.com/",
+  });
+  const logged = await req(
+    "/login",
+    { username: "owner", password: "correct-password-123" },
+    undefined,
+    {
+      Origin: "https://tyre-management.onrender.com",
+      Host: "internal-render-service:10000",
+      "X-Forwarded-Proto": "https",
+    },
+  );
+  assert.equal(logged.status, 200);
+  assert.match(logged.headers.get("set-cookie"), /Secure/);
+  assert.equal(logged.data.token, undefined);
+  assert.equal((await req("/me", undefined, logged.cookie)).status, 200);
+  assert.equal(
+    (
+      await req("/logout", {}, logged.cookie, {
+        Origin: "https://tyre-management.onrender.com",
+        Host: "internal-render-service:10000",
+      })
+    ).status,
+    200,
+  );
+});
+
+test("configured public origin still rejects foreign sites and forged forwarding headers", async (t) => {
+  const { req, owner } = await fixture(t, {
+    publicOrigin: "https://tyre-management.onrender.com",
+  });
+  for (const origin of [
+    "https://evil.example",
+    "https://tyre-management.onrender.com.evil.example",
+    "http://tyre-management.onrender.com",
+    "null",
+  ]) {
+    const result = await req("/logout", {}, owner.cookie, {
+      Origin: origin,
+      Host: "internal-render-service:10000",
+      "X-Forwarded-Host": origin.replace(/^https?:\/\//, ""),
+      "X-Forwarded-Proto": "https",
+    });
+    assert.equal(result.status, 403);
+    assert.equal(result.data.error, "originDenied");
+  }
+  assert.equal((await req("/me", undefined, owner.cookie)).status, 200);
+});
