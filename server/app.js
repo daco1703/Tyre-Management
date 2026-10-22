@@ -1,4 +1,6 @@
 import express from "express";
+import { defaultOwner } from "./default-owner.js";
+import { defaultFleetName } from "../shared/defaults.js";
 import { DatabaseSync } from "node:sqlite";
 import {
   randomBytes,
@@ -23,7 +25,6 @@ export function createApp({
   dbPath = "./data/tyresaathi.sqlite",
   production = false,
   trustProxy = false,
-  setupKey = "",
 } = {}) {
   if (dbPath !== ":memory:")
     mkdirSync(path.dirname(dbPath), { recursive: true });
@@ -41,6 +42,26 @@ export function createApp({
     db.prepare("SELECT value FROM settings WHERE key=?").get(key)?.value;
   const save = (key, value) =>
     db.prepare("INSERT OR REPLACE INTO settings VALUES (?,?)").run(key, value);
+  // Seed exactly once. Never reset a changed password or replace existing owners.
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    if (db.prepare("SELECT COUNT(*) AS n FROM users").get().n === 0) {
+      db.prepare(
+        "INSERT INTO users (username,salt,hash,role) VALUES (?,?,?,?)",
+      ).run(
+        defaultOwner.username,
+        defaultOwner.salt,
+        defaultOwner.hash,
+        "owner",
+      );
+      if (!setting("fleetName")) save("fleetName", defaultFleetName);
+    }
+    db.exec("COMMIT");
+  } catch (error) {
+    db.exec("ROLLBACK");
+    db.close();
+    throw error;
+  }
   const app = express();
   app.disable("x-powered-by");
   if (trustProxy) app.set("trust proxy", 1);
@@ -146,57 +167,29 @@ export function createApp({
       ? next()
       : res.status(403).json({ error: "ownerOnly" });
   app.get("/api/health", (req, res) => res.json({ ok: true }));
-  app.get("/api/bootstrap", (req, res) =>
-    res.json({
-      setupRequired:
-        db.prepare("SELECT COUNT(*) AS n FROM users").get().n === 0,
-      setupKeyRequired: !!setupKey,
-    }),
-  );
+  app.get("/api/bootstrap", (req, res) => res.json({ setupRequired: false }));
   app.post("/api/register", authLimit, (req, res) => {
     const name = username(req.body.username),
       password = req.body.password;
     if (!/^[a-z0-9_.-]{3,40}$/.test(name) || !validPassword(password))
       throw new AppError("invalidCredentials");
-    const first = db.prepare("SELECT COUNT(*) AS n FROM users").get().n === 0;
     if (
-      first &&
-      setupKey &&
-      digest(String(req.body.setupKey || "")) !== digest(setupKey)
-    )
-      throw new AppError("invalidSetupKey", 403);
-    if (first && !String(req.body.fleetName || "").trim())
-      throw new AppError("required");
-    if (
-      !first &&
-      (!req.body.invite ||
-        digest(String(req.body.invite).trim().toUpperCase()) !==
-          setting("inviteHash"))
+      !req.body.invite ||
+      digest(String(req.body.invite).trim().toUpperCase()) !==
+        setting("inviteHash")
     )
       throw new AppError("invalidInvite", 403);
     if (db.prepare("SELECT id FROM users WHERE username=?").get(name))
       throw new AppError("usernameTaken", 409);
     const salt = randomBytes(16).toString("hex");
-    const hash = passwordHash(password, salt);
     const result = db
       .prepare("INSERT INTO users (username,salt,hash,role) VALUES (?,?,?,?)")
-      .run(name, salt, hash, first ? "owner" : "staff");
-    let invite;
-    if (first) {
-      save("fleetName", String(req.body.fleetName).trim().slice(0, 80));
-      invite = randomBytes(8).toString("hex").toUpperCase();
-      save("inviteHash", digest(invite));
-    }
-    issueSession(
-      req,
-      res,
-      {
-        id: Number(result.lastInsertRowid),
-        username: name,
-        role: first ? "owner" : "staff",
-      },
-      invite ? { invite } : {},
-    );
+      .run(name, salt, passwordHash(password, salt), "staff");
+    issueSession(req, res, {
+      id: Number(result.lastInsertRowid),
+      username: name,
+      role: "staff",
+    });
   });
   app.post("/api/login", authLimit, (req, res) => {
     const name = username(req.body.username),

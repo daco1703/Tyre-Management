@@ -1,5 +1,5 @@
 const { chromium } = require("playwright");
-const { spawn } = require("node:child_process");
+const { spawn, spawnSync } = require("node:child_process");
 const { mkdtempSync, rmSync, mkdirSync } = require("node:fs");
 const { tmpdir } = require("node:os");
 const path = require("node:path");
@@ -8,12 +8,32 @@ const root = path.resolve(__dirname, "..");
 const temp = mkdtempSync(path.join(tmpdir(), "tyresaathi-ui-"));
 const port = process.env.UI_TEST_PORT || "3100";
 const base = `http://127.0.0.1:${port}`;
+// Isolated test database, with a test-only owner password.
+const seeded = spawnSync(
+  process.execPath,
+  [
+    "--input-type=module",
+    "-e",
+    `
+  import { createApp } from './server/app.js';
+  import { scryptSync } from 'node:crypto';
+  const { db } = createApp({ dbPath: process.env.DATABASE_PATH });
+  db.prepare("UPDATE users SET username=?,salt=?,hash=? WHERE role='owner'").run('garage_owner', 'browser-test-salt', scryptSync('test-owner-password', 'browser-test-salt', 64).toString('hex'));
+  db.close();
+`,
+  ],
+  {
+    cwd: root,
+    env: { ...process.env, DATABASE_PATH: path.join(temp, "test.sqlite") },
+    encoding: "utf8",
+  },
+);
+assert.equal(seeded.status, 0, seeded.stderr);
 const server = spawn(process.execPath, ["server/index.js"], {
   cwd: root,
   env: {
     ...process.env,
     NODE_ENV: "production",
-    FLEET_SETUP_KEY: "test-only-bootstrap-key",
     PORT: port,
     DATABASE_PATH: path.join(temp, "test.sqlite"),
   },
@@ -45,17 +65,22 @@ async function main() {
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto(base);
-  await page.locator("input[name=fleetName]").fill("Sharma Transport · Sample");
-  await page.locator("input[name=setupKey]").fill("test-only-bootstrap-key");
+  assert.equal(
+    await page
+      .getByLabel("Fleet / business name", { exact: true })
+      .inputValue(),
+    "Shepards Shipping Services",
+  );
+  assert.equal(await page.locator("input[name=setupKey]").count(), 0);
+  await page
+    .getByRole("button", { name: "Forgot username/password?", exact: true })
+    .click();
+  await page.getByText("Contact the admin.", { exact: true }).waitFor();
   await page.locator("input[name=username]").fill("garage_owner");
   await page.locator("input[name=password]").fill("test-owner-password");
-  await page.locator("input[name=confirm]").fill("test-owner-password");
   await page
-    .getByRole("button", { name: "Create your fleet", exact: true })
+    .getByRole("button", { name: "Open my garage", exact: true })
     .click();
-  await page.locator("dialog .invite-code").waitFor();
-  const invite = await page.locator("dialog .invite-code").inputValue();
-  await page.getByRole("button", { name: "Got it", exact: true }).click();
   await page
     .getByRole("heading", { name: "Your fleet, at a glance" })
     .waitFor();
@@ -92,18 +117,53 @@ async function main() {
     .click();
   await page.getByRole("button", { name: /RJ14AB1234/ }).click();
   assert.equal(await page.locator(".wheel").count(), 19);
-  await page.getByRole("button", { name: "FL · Empty", exact: true }).click();
+  await page
+    .getByRole("heading", { name: "Tyre Location", exact: true })
+    .waitFor();
+  assert.deepEqual(
+    await page
+      .locator(".axle-row")
+      .evaluateAll((rows) =>
+        rows.map((row) =>
+          Array.from(
+            row.querySelectorAll(".wheel strong"),
+            (node) => node.textContent,
+          ),
+        ),
+      ),
+    [
+      ["2", "1"],
+      ["6", "5", "4", "3"],
+      ["10", "9", "8", "7"],
+      ["14", "13", "12", "11"],
+      ["18", "17", "16", "15"],
+    ],
+  );
+  const rowGaps = await page
+    .locator(".axle-row")
+    .evaluateAll((rows) =>
+      rows
+        .slice(1)
+        .map(
+          (row, i) =>
+            row.getBoundingClientRect().top -
+            rows[i].getBoundingClientRect().bottom,
+        ),
+    );
+  assert.ok(rowGaps[1] > rowGaps[0] + 10);
+  assert.ok(Math.abs(rowGaps[0] - rowGaps[2]) < 2);
+  assert.ok(Math.abs(rowGaps[2] - rowGaps[3]) < 2);
+
+  await page.getByRole("button", { name: "2 · Empty", exact: true }).click();
   await page
     .locator("dialog select[name=tyreId]")
     .selectOption({ label: "TYR-001 · MRF Steel Muscle · New" });
   await page.getByRole("button", { name: "Save record", exact: true }).click();
   await page.locator("dialog").waitFor({ state: "detached" });
   await record("Update odometer", { odometer: 1250 });
-  await page.getByRole("button", { name: "FL · TYR-001", exact: true }).click();
+  await page.getByRole("button", { name: "2 · TYR-001", exact: true }).click();
   assert.match(await page.locator("dialog .detail-stats").innerText(), /250/);
-  await page
-    .getByRole("button", { name: "Return to garage", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Remove tyre", exact: true }).click();
   await page.locator("dialog input[name=odometer]").fill("1300");
   await page.getByRole("button", { name: "Save record", exact: true }).click();
   await page.locator("dialog").waitFor({ state: "detached" });
@@ -111,8 +171,11 @@ async function main() {
   assert.equal(state.tyres[0].type, "used");
   assert.equal(state.tyres[0].distance, 300);
   console.log(
-    "PASS: owner setup, vehicle, all three tyre conditions, visual fitment, mileage and return",
+    "PASS: owner login, vehicle, all three tyre conditions, visual fitment, mileage and return",
   );
+  const { invite } = await (
+    await context.request.post(base + "/api/team/invite", { data: {} })
+  ).json();
   const staffContext = await browser.newContext({
     viewport: { width: 390, height: 844 },
     isMobile: true,
@@ -268,7 +331,9 @@ async function main() {
   await staff.evaluate(() => navigator.serviceWorker.ready);
   await staffContext.setOffline(true);
   await staff.reload();
-  await staff.getByRole("heading", { name: "आपके बेड़े का पूरा हिसाब" }).waitFor();
+  await staff
+    .getByRole("heading", { name: "आपके बेड़े का पूरा हिसाब" })
+    .waitFor();
   await staff
     .getByText("ऑफलाइन · पुराने रिकॉर्ड", { exact: true })
     .waitFor({ state: "attached" })

@@ -1385,7 +1385,6 @@ main {
 }
 .front-axle {
   padding: 0 15%;
-  margin-bottom: 23px;
 }
 .spare-position {
   display: flex;
@@ -3251,7 +3250,6 @@ main {
   }
   .auth-card > p {
     font-size: 13px;
-    margin-bottom: 23px;
   }
   .auth-card > .segmented {
     margin: 22px 0;
@@ -3300,4 +3298,37 @@ main {
     transition: none !important;
     animation: none !important;
   }
+}
+
+.login-help {
+  margin: 4px 0 16px;
+  font-size: 13px;
+}
+.login-help p {
+  margin-top: 8px;
+  color: #526159;
+}
+.daily-foot {
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+.tabs {
+  overflow-x: auto;
+}
+.tabs button {
+  flex-shrink: 0;
+}
+.brand-icon {
+  flex-shrink: 0;
+}
+
+/* Add extra separation only between the second and third tyre rows. */
+.truck-map .axle-row {
+  margin: 12px 0;
+}
+.truck-map .axle-row.axle-gap {
+  margin-top: 30px;
+}
+.axle-label {
+  visibility: hidden;
 }

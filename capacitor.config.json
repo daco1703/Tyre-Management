@@ -1,6 +1,6 @@
 {
   "appId": "in.tyresaathi.logbook",
-  "appName": "TyreSaathi",
+  "appName": "Shepards Tyre Management",
   "webDir": "dist",
   "android": {
     "backgroundColor": "#f6f7f2",

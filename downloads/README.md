@@ -1,17 +1,17 @@
-# Android offline test build
+# Android test build
 
-[Download TyreSaathi 1.2.0 APK with Excel import](https://github.com/daco1703/Tyre-Management/blob/main/downloads/TyreSaathi-1.2-excel-test.apk?raw=true)
+[Download Shepards Tyre Management 1.3.0](https://github.com/daco1703/Tyre-Management/blob/main/downloads/Shepards-Tyre-Management-1.3-test.apk?raw=true)
 
-This is a debug-signed test build for Android 6.0 or later with a current Android System WebView. Its package ID and signing certificate match the previous test builds, so install it as an update if you already installed version 1.0 or 1.1. Do not uninstall to update.
+Install this APK as an **update** over the earlier TyreSaathi build. Do not uninstall or clear storage; this keeps your offline records. The Android package ID and test signing certificate are unchanged.
 
-1. Download the APK on your Android phone. Open it from Downloads and choose Install. If Android requests it, allow your browser or file manager to install this app.
-2. Open TyreSaathi and tap **Use offline on this phone**. You can turn on airplane mode before the first launch.
-3. Enter your garage name and tap **Open offline garage**. No server, account or internet connection is needed.
-4. Add a vehicle, then some tyres. Open the vehicle and tap an empty wheel position to fit a tyre. Update the odometer or return a tyre to the garage to test the logbook and daily tally. Use the language button to try Hindi.
-5. Close and reopen the app to check persistence. Export your records from **Team & settings → Export records (JSON)**.
+Open **Use offline on this phone**, sign in as **admin** with the initial password supplied by the fleet owner. A new garage defaults to **Shepards Shipping Services**. Existing garage records and names are preserved. Offline login is required after reopening the app. **Forgot username/password** displays **Contact the admin.** Change the password under **Team & settings → Change password** if needed; offline and server passwords are separate.
 
-To add vehicles in bulk, open **Vehicles → Import from Excel**. Download the [blank Excel template](https://github.com/daco1703/Tyre-Management/blob/main/downloads/TyreSaathi-vehicle-template.xlsx?raw=true), fill one vehicle per row, then select it in the app. Choose a worksheet if necessary, review the preview and confirm the ready rows. Duplicate/invalid rows are skipped. The columns are Vehicle Registration, Vehicle Name / Driver, Odometer (km), and Has Spare (Yes/No). Only registration is mandatory. Import up to 200 rows per worksheet in a `.xlsx` file up to 2 MB. This works offline.
+**Tyre Location** numbers positions 1–18 from right to left on each row, with an extra gap between rows 2 and 3. Existing positions are preserved. The spare remains SP.
 
-Records are stored only on this phone. Clearing app storage or uninstalling removes them; install updates without uninstalling. Exports are record files; this build does not have a restore/import screen. Offline records stay separate from a shared server and do not merge automatically when you switch modes.
+To remove a fitted tyre, open its vehicle, tap the tyre, then **Remove tyre**. Enter the current vehicle odometer and choose **Return to stock**, **Send for remolding**, or **Scrap tyre**. Scrap requires a reason; select **Other** to enter a different reason. Every removal saves kilometres since fitting and lifetime tyre kilometres. Spares accrue zero running kilometres. Remolding tyres have a separate inventory tab and daily tally; **Record remolding** returns a completed remold to stock without losing mileage.
 
-The repository includes `SHA256SUMS.txt` for the APK checksum. Automated browser checks cover offline writes, persistence, Hindi and export; the installed APK still needs testing on your physical phone. This is not a Play Store release.
+To add vehicles in bulk, open **Vehicles → Import from Excel**. Download the [blank Excel template](https://github.com/daco1703/Tyre-Management/blob/main/downloads/TyreSaathi-vehicle-template.xlsx?raw=true), fill one vehicle per row, select the file, review the preview and confirm. Duplicate/invalid rows are skipped. Only registration is mandatory; name/driver, odometer and spare are optional. Import up to 200 rows in a `.xlsx` workbook up to 2 MB. This works offline.
+
+Export records regularly. Uninstalling the app or clearing storage deletes the phone's records. This debug-signed build is for testing; Android file choosing, sharing and installation should also be checked on your phone. No public server is included.
+
+SHA-256 checksums for downloads are in `SHA256SUMS.txt`. Older APKs remain available for reference; install 1.3 as the update.

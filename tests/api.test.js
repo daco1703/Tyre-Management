@@ -4,9 +4,19 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createApp } from "../server/app.js";
+import { randomBytes, scryptSync } from "node:crypto";
 import { spawnSync } from "node:child_process";
 async function fixture(t, options = {}) {
   const { app, db } = createApp({ dbPath: ":memory:", ...options });
+  // Test account only: exercise login using an already seeded owner.
+  const salt = randomBytes(16).toString("hex");
+  db.prepare(
+    "UPDATE users SET username=?,salt=?,hash=? WHERE role='owner'",
+  ).run(
+    "owner",
+    salt,
+    scryptSync("correct-password-123", salt, 64).toString("hex"),
+  );
   const srv = await new Promise((resolve) => {
     const s = app.listen(0, "127.0.0.1", () => resolve(s));
   });
@@ -37,12 +47,12 @@ async function fixture(t, options = {}) {
       headers: response.headers,
     };
   };
-  const owner = await req("/register", {
+  const owner = await req("/login", {
     username: "owner",
     password: "correct-password-123",
-    fleetName: "Test Fleet",
-    setupKey: options.setupKey,
   });
+  const invitation = await req("/team/invite", {}, owner.cookie);
+  owner.data.invite = invitation.data.invite;
   assert.equal(owner.status, 200);
   return { req, owner };
 }
@@ -324,14 +334,22 @@ test("persistent database survives process/app restart", async (t) => {
   );
   second.db.close();
 });
-test("production owner setup requires configured key and secure cookies", async (t) => {
+test("production login needs no owner setup key and uses secure cookies", async (t) => {
   const { req, owner } = await fixture(t, {
     production: true,
-    setupKey: "test-only-key",
   });
   assert.match(owner.headers.get("set-cookie"), /Secure/);
   assert.match(owner.headers.get("set-cookie"), /HttpOnly/);
-  assert.equal((await req("/bootstrap")).data.setupKeyRequired, true);
+  assert.deepEqual((await req("/bootstrap")).data, { setupRequired: false });
+  assert.equal(
+    (
+      await req("/register", {
+        username: "hijack",
+        password: "a-valid-password",
+      })
+    ).status,
+    403,
+  );
 });
 test("JSON shape and body limits do not crash server", async (t) => {
   const { req, owner } = await fixture(t);
@@ -399,4 +417,93 @@ test("consistent full backup can restore accounts and fleet data; admin reset re
     ).status,
     200,
   );
+});
+
+test("new database seeds admin and fleet once; password changes survive restart", () => {
+  const dir = mkdtempSync(join(tmpdir(), "shepards-seed-"));
+  const dbPath = join(dir, "test.sqlite");
+  try {
+    const first = createApp({ dbPath });
+    const admin = first.db.prepare("SELECT * FROM users").get();
+    assert.equal(admin.username, "admin");
+    assert.equal(admin.role, "owner");
+    assert.equal(
+      first.db.prepare("SELECT value FROM settings WHERE key='fleetName'").get()
+        .value,
+      "Shepards Shipping Services",
+    );
+    first.db
+      .prepare("UPDATE users SET hash=? WHERE id=?")
+      .run("changed-hash", admin.id);
+    first.db.close();
+    const second = createApp({ dbPath });
+    assert.equal(
+      second.db.prepare("SELECT COUNT(*) AS n FROM users").get().n,
+      1,
+    );
+    assert.equal(
+      second.db.prepare("SELECT hash FROM users WHERE id=?").get(admin.id).hash,
+      "changed-hash",
+    );
+    second.db.close();
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("shared removal records mileage and scrap reason together; invalid reason rolls back odometer", async (t) => {
+  const { req, owner } = await fixture(t);
+  let state = (await req("/state", undefined, owner.cookie)).data;
+  async function act(kind, payload) {
+    const result = await req(
+      "/actions",
+      { kind, payload, revision: state.revision },
+      owner.cookie,
+    );
+    if (result.status === 200) state = result.data;
+    return result;
+  }
+  await act("addVehicle", {
+    registration: "MH01AB1234",
+    odometer: 1000,
+    hasSpare: false,
+  });
+  await act("addTyre", {
+    serial: "SCRAP-1",
+    brand: "MRF",
+    size: "R20",
+    type: "used",
+    distance: 5000,
+  });
+  const tyreId = state.tyres[0].id;
+  await act("fit", {
+    tyreId,
+    vehicleId: state.vehicles[0].id,
+    slot: "FL",
+    odometer: 1000,
+  });
+  const before = structuredClone(state);
+  assert.equal(
+    (await act("remove", { tyreId, destination: "scrapped", odometer: 1700 }))
+      .status,
+    400,
+  );
+  assert.deepEqual((await req("/state", undefined, owner.cookie)).data, before);
+  assert.equal(
+    (
+      await act("remove", {
+        tyreId,
+        destination: "scrapped",
+        odometer: 1700,
+        scrapReason: "other",
+        scrapDetail: "Inspection rejected casing",
+      })
+    ).status,
+    200,
+  );
+  assert.equal(state.tyres[0].status, "scrapped");
+  assert.equal(state.events.at(-1).runningKm, 700);
+  assert.equal(state.events.at(-1).totalKm, 5700);
+  assert.equal(state.events.at(-1).actor, "owner");
+  assert.equal(state.events.at(-1).scrapDetail, "Inspection rejected casing");
 });

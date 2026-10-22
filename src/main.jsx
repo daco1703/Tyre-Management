@@ -37,11 +37,25 @@ import {
   Menu,
   Upload,
 } from "lucide-react";
+import { defaultFleetName, defaultUsername } from "../shared/defaults.js";
 import { en, hi } from "./i18n";
-import { loadOffline, startOffline, offlineAction } from "./offline";
+import {
+  loadOffline,
+  startOffline,
+  offlineAction,
+  changeOfflinePassword,
+} from "./offline";
 import { previewVehicleImport } from "../shared/vehicle-import";
 import { readVehicleWorkbook, makeVehicleTemplate } from "./vehicle-workbook";
-import { slots, dayKey, tally, dailyTally, tyreKm } from "../shared/model";
+import {
+  numberedSlots,
+  positionLabel,
+  dayKey,
+  tally,
+  dailyTally,
+  tyreKm,
+  scrapReasons,
+} from "../shared/model";
 import "./style.css";
 import "@fontsource/inter/latin-400.css";
 import "@fontsource/inter/latin-500.css";
@@ -98,6 +112,7 @@ function App() {
   const [localMode, setLocalMode] = useState(read("ts-mode") === "local");
   const [showOfflineSetup, setShowOfflineSetup] = useState(false);
   const initVersion = useRef(0);
+  const localUnlocked = useRef(false);
   const localRef = useRef(localMode);
   localRef.current = localMode;
   const [lang, setLang] = useState(read("ts-lang", "en"));
@@ -170,7 +185,7 @@ function App() {
       try {
         const profile = await loadOffline();
         if (version !== initVersion.current) return;
-        if (profile) activateLocal(profile);
+        if (profile && localUnlocked.current) activateLocal(profile);
         else setShowOfflineSetup(true);
       } catch (e) {
         if (version === initVersion.current) setBootError(e.code);
@@ -215,7 +230,11 @@ function App() {
   function activateLocal(profile) {
     setSession({
       fleetName: profile.fleetName,
-      user: { id: "local", username: t("thisPhone"), role: "owner" },
+      user: {
+        id: "local",
+        username: profile.auth?.username || defaultUsername,
+        role: "owner",
+      },
     });
     setState(profile.state);
     setOffline(false);
@@ -224,8 +243,9 @@ function App() {
     setNeedsServer(false);
     setShowOfflineSetup(false);
   }
-  async function beginLocal(fleetName) {
-    const profile = await startOffline(fleetName);
+  async function beginLocal(fleetName, username, password) {
+    const profile = await startOffline(fleetName, username, password);
+    localUnlocked.current = true;
     try {
       localStorage.setItem("ts-mode", JSON.stringify("local"));
     } catch {
@@ -239,6 +259,7 @@ function App() {
     setVehicleId(null);
   }
   function leaveLocal() {
+    localUnlocked.current = false;
     ++initVersion.current;
     store("ts-mode", "server");
     localRef.current = false;
@@ -340,6 +361,12 @@ function App() {
     window.scrollTo(0, 0);
   }
   async function logout() {
+    if (localMode) {
+      localUnlocked.current = false;
+      resetSession();
+      setShowOfflineSetup(true);
+      return;
+    }
     try {
       await request("/logout", {});
       resetSession();
@@ -371,7 +398,10 @@ function App() {
       {showOfflineSetup ? (
         <OfflineSetup
           onStart={beginLocal}
-          onCancel={() => setShowOfflineSetup(false)}
+          onCancel={() => {
+            setShowOfflineSetup(false);
+            if (localMode && !session) leaveLocal();
+          }}
         />
       ) : needsServer ? (
         <ServerConnect
@@ -517,7 +547,7 @@ function App() {
             <footer className="page-footer">
               <CircleDot size={14} />
               {t("tagline")}
-              <span>TyreSaathi · v1.2</span>
+              <span>Shepards Tyre Management · v1.3</span>
             </footer>
           </div>
           <nav className="bottom-nav">
@@ -549,8 +579,8 @@ function Brand({ compact }) {
         <CircleDot size={25} />
       </span>
       <div>
-        Tyre<span>Saathi</span>
-        {!compact && <small>FLEET TYRE LOGBOOK</small>}
+        Shepards
+        <small>TYRE MANAGEMENT</small>
       </div>
     </div>
   );
@@ -684,9 +714,25 @@ function PasswordField({
     </Field>
   );
 }
+function ForgotLogin() {
+  const { t } = useApp();
+  const [show, setShow] = useState(false);
+  return (
+    <div className="login-help">
+      <button
+        type="button"
+        className="text-button"
+        onClick={() => setShow(!show)}
+      >
+        {t("forgotLogin")}
+      </button>
+      {show && <p role="status">{t("contactAdmin")}</p>}
+    </div>
+  );
+}
 function OfflineSetup({ onStart, onCancel }) {
   const { t } = useApp();
-  const [name, setName] = useState(t("offlineDefaultName"));
+  const [name, setName] = useState(defaultFleetName);
   const [existing, setExisting] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -711,7 +757,8 @@ function OfflineSetup({ onStart, onCancel }) {
     setBusy(true);
     setError("");
     try {
-      await onStart(name);
+      const p = Object.fromEntries(new FormData(e.currentTarget));
+      await onStart(name, p.username, p.password);
     } catch (e) {
       setError(e.code || "localStorageFailed");
     } finally {
@@ -744,6 +791,18 @@ function OfflineSetup({ onStart, onCancel }) {
               onChange={(e) => setName(e.target.value)}
             />
           </Field>
+          <Field label="username">
+            <input
+              name="username"
+              required
+              autoComplete="username"
+              autoCapitalize="none"
+              defaultValue={defaultUsername}
+              maxLength={40}
+            />
+          </Field>
+          <PasswordField />
+          <ForgotLogin />
           {error && (
             <div className="form-error" role="alert">
               {t(error)}
@@ -842,7 +901,7 @@ function ServerConnect({ onConnect }) {
 }
 function Auth({ boot, onAuth, changeServer }) {
   const { t, openOffline } = useApp();
-  const [mode, setMode] = useState(boot.setupRequired ? "create" : "login");
+  const [mode, setMode] = useState("login");
   const [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
   async function submit(e) {
@@ -892,7 +951,7 @@ function Auth({ boot, onAuth, changeServer }) {
             ))}
           </div>
         </div>
-        <small>TyreSaathi · {t("tagline")}</small>
+        <small>Shepards Tyre Management · {t("tagline")}</small>
       </section>
       <section className="auth-form-side">
         <div className="auth-top">
@@ -902,25 +961,9 @@ function Auth({ boot, onAuth, changeServer }) {
           <LanguageSwitch />
         </div>
         <div className="auth-card">
-          <span className="eyebrow">TYRESAATHI LOGBOOK</span>
-          <h1>
-            {t(
-              mode === "create"
-                ? "setupTitle"
-                : mode === "join"
-                  ? "joinTitle"
-                  : "loginTitle",
-            )}
-          </h1>
-          <p>
-            {t(
-              mode === "create"
-                ? "setupSub"
-                : mode === "join"
-                  ? "joinSub"
-                  : "loginSub",
-            )}
-          </p>
+          <span className="eyebrow">SHEPARDS TYRE MANAGEMENT</span>
+          <h1>{t(mode === "join" ? "joinTitle" : "loginTitle")}</h1>
+          <p>{t(mode === "join" ? "joinSub" : "loginSub")}</p>
           {!boot.setupRequired && (
             <div className="segmented">
               <button
@@ -944,29 +987,13 @@ function Auth({ boot, onAuth, changeServer }) {
             </div>
           )}
           <form onSubmit={submit} key={mode}>
-            {mode === "create" && (
-              <>
-                <Field label="fleetName">
-                  <input
-                    name="fleetName"
-                    required
-                    maxLength={80}
-                    autoComplete="organization"
-                    placeholder="Sharma Transport"
-                  />
-                </Field>
-                {boot.setupKeyRequired && (
-                  <Field label="setupKey" hint="setupKeyHint">
-                    <input
-                      name="setupKey"
-                      type="password"
-                      required
-                      autoComplete="off"
-                    />
-                  </Field>
-                )}
-              </>
-            )}
+            <Field label="fleetName">
+              <input
+                value={defaultFleetName}
+                readOnly
+                autoComplete="organization"
+              />
+            </Field>
             {mode === "join" && (
               <Field label="inviteCode">
                 <input
@@ -983,6 +1010,7 @@ function Auth({ boot, onAuth, changeServer }) {
             >
               <input
                 name="username"
+                defaultValue={mode === "login" ? defaultUsername : ""}
                 required
                 autoCapitalize="none"
                 autoCorrect="off"
@@ -1006,6 +1034,7 @@ function Auth({ boot, onAuth, changeServer }) {
                 autoComplete="new-password"
               />
             )}
+            {mode === "login" && <ForgotLogin />}
             {error && (
               <div role="alert" className="form-error">
                 <AlertCircle size={18} />
@@ -1016,11 +1045,9 @@ function Auth({ boot, onAuth, changeServer }) {
               {t(
                 busy
                   ? "loading"
-                  : mode === "create"
-                    ? "createFleet"
-                    : mode === "join"
-                      ? "submitJoin"
-                      : "submitLogin",
+                  : mode === "join"
+                    ? "submitJoin"
+                    : "submitLogin",
               )}
             </Button>
           </form>
@@ -1162,6 +1189,9 @@ function Dashboard() {
               <i />
               {n(state.events.filter((e) => e.date === day).length)}{" "}
               {t("dailyMovements")}
+            </span>
+            <span>
+              {t("remolding")}: {n(daily.remolding ?? 0)}
             </span>
             <span>
               {t("tallyScrapped")}: {n(daily.scrapped)}
@@ -1308,7 +1338,7 @@ function Dashboard() {
   );
 }
 function Activity({ event: e }) {
-  const { t, date } = useApp();
+  const { t, date, n } = useApp();
   const Icon =
     e.kind === "fit"
       ? ArrowUpRight
@@ -1330,10 +1360,37 @@ function Activity({ event: e }) {
       </span>
       <div>
         <strong>{t(`move_${e.kind}`)}</strong>
-        <span>{[e.tyre, e.vehicle, e.slot].filter(Boolean).join(" · ")}</span>
+        <span>
+          {[e.tyre, e.vehicle, positionLabel(e.slot)]
+            .filter(Boolean)
+            .join(" · ")}
+        </span>
         <small>
           {e.actor} · {date(e.timestamp, true)}
         </small>
+        {e.destination && (
+          <p className="activity-note">
+            {t("destination")}:{" "}
+            {t(e.destination === "stock" ? "garage" : e.destination)}
+          </p>
+        )}
+        {e.runningKm !== undefined && (
+          <p className="activity-note">
+            {t("runningKm")}: {n(e.runningKm)} {t("km")} · {t("currentKm")}:{" "}
+            {n(e.totalKm)} {t("km")}
+          </p>
+        )}
+        {e.odometer !== undefined && (
+          <p className="activity-note">
+            {t("odometer")}: {n(e.odometer)}
+          </p>
+        )}
+        {e.scrapReason && (
+          <p className="activity-note">
+            {t("scrapReason")}: {t(`reason_${e.scrapReason}`)}
+            {e.scrapDetail ? ` · ${e.scrapDetail}` : ""}
+          </p>
+        )}
         {e.note && <p className="activity-note">{e.note}</p>}
       </div>
     </div>
@@ -1451,7 +1508,7 @@ function VehicleDetail({ id }) {
     return (
       <button
         key={slot}
-        aria-label={`${slot} · ${tyre?.serial || t("empty")}`}
+        aria-label={`${positionLabel(slot)} · ${tyre?.serial || t("empty")}`}
         className={`wheel ${tyre ? `wheel-${tyre.type}` : "wheel-empty"}`}
         onClick={() =>
           setModal(
@@ -1464,7 +1521,7 @@ function VehicleDetail({ id }) {
       >
         <span className="tread-line" />
         <CircleDot size={22} />
-        <strong>{slot}</strong>
+        <strong>{positionLabel(slot)}</strong>
         <small>{tyre?.serial || "+"}</small>
       </button>
     );
@@ -1501,16 +1558,16 @@ function VehicleDetail({ id }) {
             </div>
             <div className="axle-row front-axle">
               {wheel("FL")}
-              <span className="axle-label">1</span>
+              <span className="axle-label" aria-hidden="true" />
               {wheel("FR")}
             </div>
             {[2, 3, 4, 5].map((a) => (
-              <div className="axle-row" key={a}>
+              <div className={`axle-row${a === 3 ? " axle-gap" : ""}`} key={a}>
                 <div>
                   {wheel(`${a}LO`)}
                   {wheel(`${a}LI`)}
                 </div>
-                <span className="axle-label">{a}</span>
+                <span className="axle-label" aria-hidden="true" />
                 <div>
                   {wheel(`${a}RI`)}
                   {wheel(`${a}RO`)}
@@ -1623,6 +1680,7 @@ function Inventory() {
             ["all", "all"],
             ["stock", "garage"],
             ["installed", "onRoad"],
+            ["remolding", "remolding"],
             ["scrapped", "scrapped"],
           ].map(([key, label]) => (
             <button
@@ -1682,8 +1740,8 @@ function Inventory() {
                     <Badge type={tyre.type} />
                     <small>
                       {v
-                        ? `${v.registration} · ${tyre.slot}`
-                        : t(tyre.status === "stock" ? "garage" : "scrapped")}
+                        ? `${v.registration} · ${positionLabel(tyre.slot)}`
+                        : t(tyre.status === "stock" ? "garage" : tyre.status)}
                     </small>
                   </span>
                   <span className="tyre-distance">
@@ -1738,7 +1796,7 @@ function Logbook() {
     .filter(
       (e) =>
         (!day || e.date === day) &&
-        `${e.tyre || ""} ${e.vehicle || ""} ${e.actor} ${e.note} ${t("move_" + e.kind)}`
+        `${e.tyre || ""} ${e.vehicle || ""} ${e.actor} ${e.note} ${e.scrapReason ? t(`reason_${e.scrapReason}`) : ""} ${e.scrapDetail || ""} ${t("move_" + e.kind)}`
           .toLowerCase()
           .includes(query.toLowerCase()),
     )
@@ -1757,6 +1815,12 @@ function Logbook() {
         "Vehicle",
         "Position",
         "Odometer",
+        "Fitted odometer",
+        "Km since fitting",
+        "Total tyre km",
+        "Destination",
+        "Scrap reason",
+        "Other reason",
         "Staff",
         "Note",
       ],
@@ -1766,14 +1830,22 @@ function Logbook() {
         t("move_" + e.kind),
         e.tyre,
         e.vehicle,
-        e.slot,
+        positionLabel(e.slot),
         e.odometer,
+        e.fittedOdometer,
+        e.runningKm,
+        e.totalKm,
+        e.destination
+          ? t(e.destination === "stock" ? "garage" : e.destination)
+          : "",
+        e.scrapReason ? t(`reason_${e.scrapReason}`) : "",
+        e.scrapDetail,
         e.actor,
         e.note,
       ]),
     ];
     await download(
-      `TyreSaathi-log-${day || dayKey()}.csv`,
+      `Shepards Tyre Management-log-${day || dayKey()}.csv`,
       "\uFEFF" + rows.map((row) => row.map(cell).join(",")).join("\r\n"),
       "text/csv;charset=utf-8",
     );
@@ -1978,16 +2050,14 @@ function SettingsPage({ onChangeServer }) {
                 </button>
               </div>
             </div>
-            {!localMode && (
-              <button
-                className="setting-button"
-                disabled={offline}
-                onClick={() => setModal({ type: "password" })}
-              >
-                {t("changePassword")}
-                <ChevronRight size={17} />
-              </button>
-            )}
+            <button
+              className="setting-button"
+              disabled={offline}
+              onClick={() => setModal({ type: "password" })}
+            >
+              {t("changePassword")}
+              <ChevronRight size={17} />
+            </button>
             {!localMode && native && (
               <button className="setting-button" onClick={onChangeServer}>
                 {t("changeServer")}
@@ -2000,19 +2070,17 @@ function SettingsPage({ onChangeServer }) {
                 <ChevronRight size={17} />
               </button>
             )}
-            {!localMode && (
-              <button
-                className="setting-button danger"
-                onClick={logout}
-                disabled={offline}
-              >
-                <span>
-                  <LogOut size={17} />
-                  {t("signOut")}
-                </span>
-                <ChevronRight size={17} />
-              </button>
-            )}
+            <button
+              className="setting-button danger"
+              onClick={logout}
+              disabled={offline}
+            >
+              <span>
+                <LogOut size={17} />
+                {t("signOut")}
+              </span>
+              <ChevronRight size={17} />
+            </button>
           </section>
           <section className="card settings-card">
             <h2>
@@ -2026,7 +2094,7 @@ function SettingsPage({ onChangeServer }) {
               onClick={async () => {
                 try {
                   await download(
-                    `TyreSaathi-records-${dayKey()}.json`,
+                    `Shepards Tyre Management-records-${dayKey()}.json`,
                     JSON.stringify(
                       {
                         fleetName: session.fleetName,
@@ -2131,7 +2199,7 @@ function ModalContent({ modal, onClose }) {
   return <RecordForm modal={modal} onClose={onClose} />;
 }
 function VehicleImport({ onClose }) {
-  const { t, n, state, action, setToast, offline } = useApp();
+  const { t, n, state, action, setToast, offline, localMode } = useApp();
   const [sheets, setSheets] = useState([]);
   const [selected, setSelected] = useState(0);
   const [fileName, setFileName] = useState("");
@@ -2166,7 +2234,7 @@ function VehicleImport({ onClose }) {
     setError("");
     try {
       await downloadBlob(
-        "TyreSaathi-vehicle-template.xlsx",
+        "Shepards Tyre Management-vehicle-template.xlsx",
         await makeVehicleTemplate(),
       );
     } catch {
@@ -2423,7 +2491,7 @@ function TyreDetails({ id, onClose }) {
               ? "garage"
               : tyre.status === "installed"
                 ? "onRoad"
-                : "scrapped",
+                : tyre.status,
           )}
         </Badge>
       </div>
@@ -2449,7 +2517,7 @@ function TyreDetails({ id, onClose }) {
             <div>
               <dt>{t("vehicle")}</dt>
               <dd>
-                {vehicle.registration} · {tyre.slot}
+                {vehicle.registration} · {positionLabel(tyre.slot)}
               </dd>
             </div>
             <div>
@@ -2462,17 +2530,52 @@ function TyreDetails({ id, onClose }) {
         )}
       </dl>
       <p className="small muted">{t("distanceHint")}</p>
+      {tyre.scrapReason && (
+        <p className="form-info">
+          {t("scrapReason")}: {t(`reason_${tyre.scrapReason}`)}
+          {tyre.scrapDetail ? ` · ${tyre.scrapDetail}` : ""}
+        </p>
+      )}
       {tyre.status !== "scrapped" && (
         <div className="tyre-actions">
-          {tyre.status === "stock" ? (
+          {tyre.status === "installed" ? (
+            <Button
+              icon={ArrowDownLeft}
+              disabled={offline}
+              onClick={() =>
+                setModal({ type: "remove", tyreId: id, vehicleId: vehicle.id })
+              }
+            >
+              {t("remove")}
+            </Button>
+          ) : (
             <>
-              <Button
-                icon={ArrowUpRight}
-                disabled={offline || !state.vehicles.length}
-                onClick={() => setModal({ type: "fit", tyreId: id })}
-              >
-                {t("fit")}
-              </Button>
+              {tyre.status === "stock" && (
+                <>
+                  <Button
+                    icon={ArrowUpRight}
+                    disabled={offline || !state.vehicles.length}
+                    onClick={() => setModal({ type: "fit", tyreId: id })}
+                  >
+                    {t("fit")}
+                  </Button>
+                  <Button
+                    secondary
+                    icon={Wrench}
+                    disabled={offline}
+                    onClick={() =>
+                      setModal({
+                        type: "confirm",
+                        title: "sendRemold",
+                        text: "confirmSendRemold",
+                        run: () => action("sendRemold", { tyreId: id }),
+                      })
+                    }
+                  >
+                    {t("sendRemold")}
+                  </Button>
+                </>
+              )}
               <Button
                 secondary
                 icon={RefreshCw}
@@ -2491,29 +2594,12 @@ function TyreDetails({ id, onClose }) {
               <button
                 className="text-button danger"
                 disabled={offline}
-                onClick={() =>
-                  setModal({
-                    type: "confirm",
-                    title: "scrapAction",
-                    text: "confirmScrap",
-                    run: () => action("scrap", { tyreId: id }),
-                  })
-                }
+                onClick={() => setModal({ type: "scrap", tyreId: id })}
               >
                 <Trash2 size={16} />
                 {t("scrapAction")}
               </button>
             </>
-          ) : (
-            <Button
-              icon={ArrowDownLeft}
-              disabled={offline}
-              onClick={() =>
-                setModal({ type: "remove", tyreId: id, vehicleId: vehicle.id })
-              }
-            >
-              {t("remove")}
-            </Button>
           )}
         </div>
       )}
@@ -2529,14 +2615,20 @@ function TyreDetails({ id, onClose }) {
   );
 }
 function RecordForm({ modal: m, onClose }) {
-  const { t, n, state, action, setToast, offline } = useApp();
+  const { t, n, state, action, setToast, offline, localMode } = useApp();
   const [busy, setBusy] = useState(false),
     [error, setError] = useState("");
+  const [destination, setDestination] = useState("stock");
+  const [scrapReason, setScrapReason] = useState("");
+  const [removalOdo, setRemovalOdo] = useState(null);
   const [vehicleId, setVehicleId] = useState(m.vehicleId || ""),
     [slot, setSlot] = useState(m.slot || "");
   const vehicle = state.vehicles.find((v) => v.id === vehicleId),
     tyre = state.tyres.find((t) => t.id === m.tyreId);
-  const available = [...slots, ...(vehicle?.hasSpare ? ["SP"] : [])].filter(
+  const available = [
+    ...numberedSlots,
+    ...(vehicle?.hasSpare ? ["SP"] : []),
+  ].filter(
     (s) =>
       !state.tyres.some(
         (t) =>
@@ -2548,7 +2640,9 @@ function RecordForm({ modal: m, onClose }) {
       ? "remove"
       : m.type === "password"
         ? "changePassword"
-        : m.type;
+        : m.type === "scrap"
+          ? "scrapAction"
+          : m.type;
   async function submit(e) {
     e.preventDefault();
     if (offline) return setError("offlineHint");
@@ -2559,8 +2653,12 @@ function RecordForm({ modal: m, onClose }) {
       if (m.type === "addVehicle") p.hasSpare = p.hasSpare === "on";
       if (m.type === "password") {
         if (p.password !== p.confirm) throw { code: "passwordsDiffer" };
-        await request("/password", p);
-        setToast({ text: t("passwordChanged") });
+        if (localMode)
+          await changeOfflinePassword(p.currentPassword, p.password);
+        else await request("/password", p);
+        setToast({
+          text: t(localMode ? "localPasswordChanged" : "passwordChanged"),
+        });
       } else
         await action(m.type, {
           ...p,
@@ -2577,6 +2675,13 @@ function RecordForm({ modal: m, onClose }) {
   return (
     <Dialog title={t(title)} onClose={onClose} busy={busy}>
       <form onSubmit={submit}>
+        {m.type === "scrap" && tyre && (
+          <div className="selected-record">
+            <CircleDot size={20} />
+            <strong>{tyre.serial}</strong>
+            <Badge type={tyre.type} />
+          </div>
+        )}
         {m.type === "addTyre" && (
           <>
             <Field label="serial">
@@ -2700,7 +2805,7 @@ function RecordForm({ modal: m, onClose }) {
                 </option>
                 {available.map((s) => (
                   <option key={s} value={s}>
-                    {s === "SP" ? `${s} · ${t("spare")}` : s}
+                    {s === "SP" ? `${s} · ${t("spare")}` : positionLabel(s)}
                   </option>
                 ))}
               </select>
@@ -2725,7 +2830,7 @@ function RecordForm({ modal: m, onClose }) {
               <strong>{vehicle?.registration}</strong>
               {tyre && (
                 <span>
-                  {tyre.serial} · {tyre.slot}
+                  {tyre.serial} · {positionLabel(tyre.slot)}
                 </span>
               )}
             </div>
@@ -2733,7 +2838,80 @@ function RecordForm({ modal: m, onClose }) {
               name="odometer"
               value={vehicle?.odometer}
               min={vehicle?.odometer}
+              onChange={(e) => setRemovalOdo(e.target.value)}
             />
+          </>
+        )}
+        {m.type === "remove" && (
+          <>
+            <Field label="destination">
+              <select
+                name="destination"
+                value={destination}
+                onChange={(e) => setDestination(e.target.value)}
+              >
+                <option value="stock">{t("returnStock")}</option>
+                <option value="remolding">{t("sendRemold")}</option>
+                <option value="scrapped">{t("scrapAction")}</option>
+              </select>
+            </Field>
+            <p className="form-info">
+              {t("runningKm")}:{" "}
+              {n(
+                tyre?.slot === "SP"
+                  ? 0
+                  : Math.max(
+                      0,
+                      Number(removalOdo ?? vehicle?.odometer) -
+                        (tyre?.fittedAt ?? 0),
+                    ),
+              )}{" "}
+              {t("km")} · {t("currentKm")}:{" "}
+              {n(
+                (tyre?.distance ?? 0) +
+                  (tyre?.slot === "SP"
+                    ? 0
+                    : Math.max(
+                        0,
+                        Number(removalOdo ?? vehicle?.odometer) -
+                          (tyre?.fittedAt ?? 0),
+                      )),
+              )}{" "}
+              {t("km")}
+            </p>
+          </>
+        )}
+        {(m.type === "scrap" ||
+          (m.type === "remove" && destination === "scrapped")) && (
+          <>
+            <p className="form-info">{t("confirmScrap")}</p>
+            <Field label="scrapReason">
+              <select
+                name="scrapReason"
+                required
+                value={scrapReason}
+                onChange={(e) => setScrapReason(e.target.value)}
+              >
+                <option value="" disabled>
+                  {t("chooseReason")}
+                </option>
+                {scrapReasons.map((reason) => (
+                  <option key={reason} value={reason}>
+                    {t(`reason_${reason}`)}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            {scrapReason === "other" && (
+              <Field label="scrapDetail">
+                <textarea
+                  name="scrapDetail"
+                  rows={2}
+                  maxLength={300}
+                  required
+                />
+              </Field>
+            )}
           </>
         )}
         {m.type === "password" ? (
@@ -2775,7 +2953,7 @@ function RecordForm({ modal: m, onClose }) {
     </Dialog>
   );
 }
-function KmInput({ name, value, min = 0, label = "odometer" }) {
+function KmInput({ name, value, min = 0, label = "odometer", onChange }) {
   return (
     <Field label={label}>
       <input
@@ -2787,6 +2965,7 @@ function KmInput({ name, value, min = 0, label = "odometer" }) {
         max={99999999}
         step={1}
         defaultValue={value}
+        onChange={onChange}
       />
     </Field>
   );

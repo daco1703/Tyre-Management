@@ -8,6 +8,8 @@ import {
   tyreKm,
   dayKey,
   slots,
+  numberedSlots,
+  positionLabel,
 } from "../shared/model.js";
 const at = (date) => new Date(date + "T10:00:00+05:30");
 const run = (s, kind, payload, date = "2026-10-22") =>
@@ -111,11 +113,14 @@ test("remolding and scrapping are stock-only and preserve history", () => {
   s = run(s, "remold", { tyreId });
   assert.equal(s.tyres[0].remolds, 1);
   assert.equal(s.tyres[0].type, "remold");
-  s = run(s, "scrap", { tyreId });
+  s = run(s, "scrap", { tyreId, scrapReason: "burst" });
   assert.equal(tally(s).total, 1);
   assert.equal(tally(s).scrapped, 1);
   assert.throws(() => run(s, "remold", { tyreId }), /notInStock/);
-  assert.throws(() => run(s, "scrap", { tyreId }), /notInStock/);
+  assert.throws(
+    () => run(s, "scrap", { tyreId, scrapReason: "burst" }),
+    /notInStock/,
+  );
   assert.throws(
     () =>
       run(s, "addTyre", {
@@ -174,7 +179,12 @@ test("closing tally carries forward on days with no movement", () => {
     { serial: "A", brand: "CEAT", size: "R20", type: "new" },
     "2026-10-20",
   );
-  s = run(s, "scrap", { tyreId: s.tyres[0].id }, "2026-10-22");
+  s = run(
+    s,
+    "scrap",
+    { tyreId: s.tyres[0].id, scrapReason: "wornTread" },
+    "2026-10-22",
+  );
   assert.equal(dailyTally(s, "2026-10-19").total, 0);
   assert.equal(dailyTally(s, "2026-10-21").stock, 1);
   assert.equal(dailyTally(s, "2026-10-22").scrapped, 1);
@@ -212,4 +222,138 @@ test("a full vehicle takes exactly 18 road tyres and one spare", () => {
     s = run(s, "fit", { tyreId: ids[i], vehicleId, slot, odometer: 1000 });
   assert.equal(tally(s).installed, 19);
   assert.equal(tally(s).stock, 0);
+});
+
+test("each removal destination records cycle and lifetime km atomically", () => {
+  for (const destination of ["stock", "remolding", "scrapped"]) {
+    let s = fixture();
+    const tyreId = s.tyres[1].id,
+      vehicleId = s.vehicles[0].id;
+    s = run(s, "fit", { tyreId, vehicleId, slot: "FL", odometer: 1000 });
+    const before = structuredClone(s);
+    s = run(s, "remove", {
+      tyreId,
+      odometer: 1500,
+      destination,
+      scrapReason: "burst",
+    });
+    const t = s.tyres[1],
+      e = s.events.at(-1);
+    assert.equal(t.status, destination);
+    assert.equal(t.distance, 900);
+    assert.equal(e.runningKm, 500);
+    assert.equal(e.totalKm, 900);
+    assert.equal(e.fittedOdometer, 1000);
+    assert.equal(e.odometer, 1500);
+    assert.equal(e.destination, destination);
+    assert.equal(e.slot, "FL");
+    assert.equal(e.tyre, "T-2");
+    assert.equal(e.vehicle, "RJ14AB1234");
+    assert.equal(e.tally.installed, 0);
+    assert.equal(
+      e.tally.total,
+      e.tally.stock + e.tally.installed + e.tally.remolding,
+    );
+    assert.equal(before.tyres[1].status, "installed");
+    if (destination === "remolding") {
+      assert.equal(tally(s).remolding, 1);
+      assert.throws(
+        () => run(s, "fit", { tyreId, vehicleId, slot: "FR", odometer: 1500 }),
+        /notInStock/,
+      );
+      s = run(s, "remold", { tyreId });
+      assert.equal(s.tyres[1].status, "stock");
+      assert.equal(s.tyres[1].remolds, 2);
+      assert.equal(s.tyres[1].distance, 900);
+      assert.equal(tally(s).remolding, 0);
+    }
+  }
+});
+test("scrap reasons are mandatory, custom reasons validated and invalid removals leave everything unchanged", () => {
+  let s = fixture();
+  const tyreId = s.tyres[0].id;
+  assert.throws(() => run(s, "scrap", { tyreId }), /scrapReasonRequired/);
+  assert.throws(
+    () => run(s, "scrap", { tyreId, scrapReason: "unknown" }),
+    /scrapReasonRequired/,
+  );
+  assert.throws(
+    () => run(s, "scrap", { tyreId, scrapReason: "other", scrapDetail: "  " }),
+    /scrapDetailRequired/,
+  );
+  s = run(s, "fit", {
+    tyreId,
+    vehicleId: s.vehicles[0].id,
+    slot: "FL",
+    odometer: 1000,
+  });
+  const before = structuredClone(s);
+  assert.throws(
+    () => run(s, "remove", { tyreId, odometer: 1600, destination: "scrapped" }),
+    /scrapReasonRequired/,
+  );
+  assert.throws(
+    () => run(s, "remove", { tyreId, odometer: 1600, destination: "unknown" }),
+    /invalidDestination/,
+  );
+  assert.deepEqual(s, before);
+  s = run(s, "remove", {
+    tyreId,
+    odometer: 1600,
+    destination: "scrapped",
+    scrapReason: "other",
+    scrapDetail: "  Casing rejected by inspector  ",
+  });
+  assert.equal(s.tyres[0].scrapDetail, "Casing rejected by inspector");
+  assert.equal(s.events.at(-1).scrapReason, "other");
+  assert.equal(s.events.at(-1).scrapDetail, "Casing rejected by inspector");
+  assert.equal(s.events.at(-1).runningKm, 600);
+});
+test("spare removal records zero running km; remolding stock can be scrapped with reason", () => {
+  let s = fixture();
+  const tyreId = s.tyres[1].id;
+  s = run(s, "fit", {
+    tyreId,
+    vehicleId: s.vehicles[0].id,
+    slot: "SP",
+    odometer: 1000,
+  });
+  s = run(s, "remove", { tyreId, odometer: 2500, destination: "remolding" });
+  assert.equal(s.events.at(-1).runningKm, 0);
+  assert.equal(s.events.at(-1).totalKm, 400);
+  s = run(s, "scrap", { tyreId, scrapReason: "failedRemold" });
+  assert.equal(tally(s).remolding, 0);
+  assert.equal(tally(s).scrapped, 1);
+  assert.equal(s.tyres[1].distance, 400);
+});
+
+test("positions number right to left on each row and preserve legacy slot assignments", () => {
+  assert.deepEqual(new Set(numberedSlots), new Set(slots));
+  assert.deepEqual(["FL", "FR"].map(positionLabel), ["2", "1"]);
+  assert.deepEqual(["2LO", "2LI", "2RI", "2RO"].map(positionLabel), [
+    "6",
+    "5",
+    "4",
+    "3",
+  ]);
+  assert.deepEqual(["3LO", "3LI", "3RI", "3RO"].map(positionLabel), [
+    "10",
+    "9",
+    "8",
+    "7",
+  ]);
+  assert.deepEqual(["4LO", "4LI", "4RI", "4RO"].map(positionLabel), [
+    "14",
+    "13",
+    "12",
+    "11",
+  ]);
+  assert.deepEqual(["5LO", "5LI", "5RI", "5RO"].map(positionLabel), [
+    "18",
+    "17",
+    "16",
+    "15",
+  ]);
+  assert.equal(positionLabel("SP"), "SP");
+  assert.equal(positionLabel(undefined), undefined);
 });

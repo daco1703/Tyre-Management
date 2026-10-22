@@ -12,7 +12,40 @@ export const slots = [
   "FR",
   ...[2, 3, 4, 5].flatMap((a) => [`${a}LO`, `${a}LI`, `${a}RI`, `${a}RO`]),
 ];
+// Display numbering runs from the right side to the left on each axle.
+// Retain stable slot IDs so older tyre assignments and history need no migration.
+export const numberedSlots = [
+  "FR",
+  "FL",
+  ...[2, 3, 4, 5].flatMap((a) => [`${a}RO`, `${a}RI`, `${a}LI`, `${a}LO`]),
+];
+export function positionLabel(slot) {
+  const index = numberedSlots.indexOf(slot);
+  return index >= 0 ? String(index + 1) : slot;
+}
 export const tyreTypes = ["new", "used", "remold"];
+export const scrapReasons = [
+  "burst",
+  "wornTread",
+  "sidewallDamage",
+  "cuts",
+  "beadDamage",
+  "treadSeparation",
+  "ageCracks",
+  "irreparablePuncture",
+  "failedRemold",
+  "other",
+];
+function recordScrap(tyre, payload, event) {
+  if (!scrapReasons.includes(payload.scrapReason))
+    throw new AppError("scrapReasonRequired");
+  const detail = text(payload.scrapDetail, 300);
+  if (payload.scrapReason === "other" && !detail)
+    throw new AppError("scrapDetailRequired");
+  tyre.scrapReason = event.scrapReason = payload.scrapReason;
+  tyre.scrapDetail = event.scrapDetail =
+    payload.scrapReason === "other" ? detail : "";
+}
 export const emptyState = () => ({
   version: 1,
   revision: 0,
@@ -55,6 +88,7 @@ export function tally(state) {
     installed: state.tyres.filter((t) => t.status === "installed").length,
     stock: state.tyres.filter((t) => t.status === "stock").length,
     scrapped: state.tyres.filter((t) => t.status === "scrapped").length,
+    remolding: state.tyres.filter((t) => t.status === "remolding").length,
     new: state.tyres.filter((t) => t.status === "stock" && t.type === "new")
       .length,
     used: state.tyres.filter((t) => t.status === "stock" && t.type === "used")
@@ -215,16 +249,25 @@ export function applyAction(previous, action, actor, now = new Date()) {
     case "remove": {
       const t = tyre();
       if (t.status !== "installed") throw new AppError("notInstalled");
+      const destination = p.destination ?? "stock";
+      if (!["stock", "remolding", "scrapped"].includes(destination))
+        throw new AppError("invalidDestination");
       const v = vehicle(t.vehicleId);
       setOdo(v);
+      const totalKm = tyreKm(t, state);
       Object.assign(event, {
         tyre: t.serial,
         vehicle: v.registration,
         slot: t.slot,
+        fittedOdometer: t.fittedAt,
+        runningKm: totalKm - t.distance,
+        totalKm,
+        destination,
       });
-      t.distance = tyreKm(t, state);
+      if (destination === "scrapped") recordScrap(t, p, event);
+      t.distance = totalKm;
       Object.assign(t, {
-        status: "stock",
+        status: destination,
         type: t.type === "new" ? "used" : t.type,
         vehicleId: null,
         slot: null,
@@ -232,9 +275,19 @@ export function applyAction(previous, action, actor, now = new Date()) {
       });
       break;
     }
-    case "remold": {
+    case "sendRemold": {
       const t = tyre();
       if (t.status !== "stock") throw new AppError("notInStock");
+      t.status = "remolding";
+      event.tyre = t.serial;
+      event.totalKm = t.distance;
+      break;
+    }
+    case "remold": {
+      const t = tyre();
+      if (!["stock", "remolding"].includes(t.status))
+        throw new AppError("notInStock");
+      t.status = "stock";
       t.type = "remold";
       t.remolds++;
       event.tyre = t.serial;
@@ -242,9 +295,12 @@ export function applyAction(previous, action, actor, now = new Date()) {
     }
     case "scrap": {
       const t = tyre();
-      if (t.status !== "stock") throw new AppError("notInStock");
+      if (!["stock", "remolding"].includes(t.status))
+        throw new AppError("notInStock");
+      recordScrap(t, p, event);
       t.status = "scrapped";
       event.tyre = t.serial;
+      event.totalKm = t.distance;
       break;
     }
     default:

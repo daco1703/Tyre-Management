@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: tyresaathi
+    name: shepards-tyre-management
     runtime: node
     plan: starter
     branch: main
@@ -17,8 +17,6 @@ services:
         value: "1"
       - key: DATABASE_PATH
         value: /var/data/tyresaathi.sqlite
-      - key: FLEET_SETUP_KEY
-        generateValue: true
     disk:
       name: fleet-data
       mountPath: /var/data

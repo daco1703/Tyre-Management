@@ -21,6 +21,20 @@ let logs = "";
 server.stdout.on("data", (d) => (logs += d));
 server.stderr.on("data", (d) => (logs += d));
 let browser;
+// Supply the configured initial password for a full new-install check. Otherwise
+// use an isolated local profile with a test-only verifier, never real records.
+let localPassword =
+  process.env.SHEPARDS_TEST_PASSWORD || "offline-test-password";
+async function login(page) {
+  await page.locator("input[name=password]").fill(localPassword);
+  await page
+    .getByRole("button", { name: "Open offline garage", exact: true })
+    .click();
+  await page
+    .getByRole("heading", { name: "Your fleet, at a glance" })
+    .waitFor();
+}
+
 async function record(page, label, fields) {
   await page.getByRole("button", { name: label, exact: true }).click();
   for (const [name, value] of Object.entries(fields)) {
@@ -78,7 +92,73 @@ async function main() {
   await page
     .getByRole("button", { name: "Use offline on this phone", exact: true })
     .click();
+  assert.equal(
+    await page.locator("input[name=fleetName]").inputValue(),
+    "Shepards Shipping Services",
+  );
+  assert.equal(
+    await page.locator("input[name=username]").inputValue(),
+    "admin",
+  );
+  await page
+    .getByRole("button", { name: "Forgot username/password?", exact: true })
+    .click();
+  await page.getByText("Contact the admin.", { exact: true }).waitFor();
+  if (!process.env.SHEPARDS_TEST_PASSWORD) {
+    const { pbkdf2Sync } = require("node:crypto");
+    const auth = {
+      username: "admin",
+      salt: "0123456789abcdef",
+      iterations: 210000,
+      hash: pbkdf2Sync(
+        localPassword,
+        Buffer.from("0123456789abcdef", "hex"),
+        210000,
+        32,
+        "sha256",
+      ).toString("hex"),
+    };
+    await page.evaluate(
+      (auth) =>
+        new Promise((resolve, reject) => {
+          const r = indexedDB.open("tyresaathi-offline-v1", 1);
+          r.onupgradeneeded = () => r.result.createObjectStore("garage");
+          r.onsuccess = () => {
+            const db = r.result;
+            const tx = db.transaction("garage", "readwrite");
+            tx.objectStore("garage").put(
+              {
+                fleetName: "Offline garage · Test",
+                auth,
+                state: {
+                  version: 1,
+                  revision: 0,
+                  vehicles: [],
+                  tyres: [],
+                  events: [],
+                },
+              },
+              "current",
+            );
+            tx.oncomplete = () => {
+              db.close();
+              resolve();
+            };
+            tx.onabort = () => reject(tx.error);
+          };
+        }),
+      auth,
+    );
+  }
   await page.locator("input[name=fleetName]").fill("Offline garage · Test");
+  await page.locator("input[name=password]").fill("wrong-password");
+  await page
+    .getByRole("button", { name: "Open offline garage", exact: true })
+    .click();
+  await page
+    .getByText("The username or password is incorrect.", { exact: true })
+    .waitFor();
+  await page.locator("input[name=password]").fill(localPassword);
   await page
     .getByRole("button", { name: "Open offline garage", exact: true })
     .click();
@@ -87,6 +167,7 @@ async function main() {
     .waitFor();
   await page.evaluate(() => navigator.serviceWorker.ready);
   await page.reload();
+  await login(page);
   await page
     .getByRole("heading", { name: "Your fleet, at a glance" })
     .waitFor();
@@ -113,7 +194,7 @@ async function main() {
     .click();
   await page.getByRole("button", { name: /RJ14OFF1234/ }).click();
   assert.equal(await page.locator(".wheel").count(), 19);
-  await page.getByRole("button", { name: "FL · Empty", exact: true }).click();
+  await page.getByRole("button", { name: "2 · Empty", exact: true }).click();
   await page
     .locator("dialog select[name=tyreId]")
     .selectOption({ label: "OFF-1 · MRF · New" });
@@ -126,10 +207,8 @@ async function main() {
   await page.getByRole("button", { name: "Save record", exact: true }).click();
   await page.locator("dialog").waitFor({ state: "detached" });
   await record(page, "Update odometer", { odometer: 1600 });
-  await page.getByRole("button", { name: "FL · OFF-1", exact: true }).click();
-  await page
-    .getByRole("button", { name: "Return to garage", exact: true })
-    .click();
+  await page.getByRole("button", { name: "2 · OFF-1", exact: true }).click();
+  await page.getByRole("button", { name: "Remove tyre", exact: true }).click();
   await page.getByRole("button", { name: "Save record", exact: true }).click();
   await page.locator("dialog").waitFor({ state: "detached" });
   let profile = await data(page);
@@ -138,9 +217,36 @@ async function main() {
   assert.equal(profile.state.tyres[1].slot, "SP");
   assert.equal(profile.state.tyres[1].distance, 0);
   console.log(
-    "PASS: first setup without API/account; vehicle, stock, fitment, spare, odometer and return all work with networking disabled",
+    "PASS: first setup without API; offline admin login; vehicle, stock, fitment, spare, odometer and return all work with networking disabled",
   );
+  if (process.env.SHEPARDS_TEST_PASSWORD) {
+    // Simulate a 1.2 profile: records exist but no login verifier yet.
+    await page.evaluate(
+      () =>
+        new Promise((resolve, reject) => {
+          const r = indexedDB.open("tyresaathi-offline-v1", 1);
+          r.onsuccess = () => {
+            const db = r.result;
+            const tx = db.transaction("garage", "readwrite");
+            const store = tx.objectStore("garage");
+            const q = store.get("current");
+            q.onsuccess = () => {
+              const value = q.result;
+              delete value.auth;
+              store.put(value, "current");
+            };
+            tx.oncomplete = () => {
+              db.close();
+              resolve();
+            };
+            tx.onabort = () => reject(tx.error);
+          };
+        }),
+    );
+  }
+
   await page.reload();
+  await login(page);
   await page
     .getByRole("heading", { name: "Your fleet, at a glance" })
     .waitFor();
@@ -168,7 +274,7 @@ async function main() {
     await page
       .getByRole("button", { name: "Change password", exact: true })
       .count(),
-    0,
+    1,
   );
   const pending = page.waitForEvent("download");
   await page
@@ -182,7 +288,7 @@ async function main() {
   assert.equal(apiCalls, 0);
   assert.deepEqual(errors, []);
   console.log(
-    "PASS: offline reload retains records; Hindi, account-free settings and JSON export work; zero API requests in offline mode",
+    "PASS: offline reload retains records; Hindi, offline account settings and JSON export work; zero API requests in offline mode",
   );
   mkdirSync(path.join(root, "artifacts"), { recursive: true });
   await page
@@ -196,6 +302,7 @@ async function main() {
   // A second window cannot overwrite a local transaction committed by the first.
   const second = await context.newPage();
   await second.goto(base);
+  await login(second);
   await second
     .getByRole("heading", { name: "Your fleet, at a glance" })
     .waitFor();
@@ -229,6 +336,7 @@ async function main() {
   await page.close();
   const reopened = await context.newPage();
   await reopened.goto(base);
+  await login(reopened);
   await reopened
     .getByRole("heading", { name: "Your fleet, at a glance" })
     .waitFor();
@@ -253,6 +361,7 @@ async function main() {
       { exact: true },
     )
     .waitFor();
+  await reopened.locator("input[name=password]").fill(localPassword);
   await reopened
     .getByRole("button", { name: "Open offline garage", exact: true })
     .click();
@@ -299,26 +408,22 @@ async function main() {
     .click();
   const template = await templatePending;
   assert.deepEqual(await readSheet(await template.path()), [VEHICLE_HEADERS]);
-  await reopened
-    .locator('dialog input[type="file"]')
-    .setInputFiles({
-      name: "not-excel.xls",
-      mimeType: "application/vnd.ms-excel",
-      buffer: Buffer.from("bad"),
-    });
+  await reopened.locator('dialog input[type="file"]').setInputFiles({
+    name: "not-excel.xls",
+    mimeType: "application/vnd.ms-excel",
+    buffer: Buffer.from("bad"),
+  });
   await reopened.locator("dialog [role=alert]").waitFor();
   assert.match(
     await reopened.locator("dialog [role=alert]").innerText(),
     /\.xlsx/,
   );
-  await reopened
-    .locator('dialog input[type="file"]')
-    .setInputFiles({
-      name: "broken.xlsx",
-      mimeType:
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      buffer: Buffer.from("not a workbook"),
-    });
+  await reopened.locator('dialog input[type="file"]').setInputFiles({
+    name: "broken.xlsx",
+    mimeType:
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    buffer: Buffer.from("not a workbook"),
+  });
   await reopened
     .getByText(
       "This workbook could not be read. Try saving it again as an unprotected .xlsx file.",
@@ -368,6 +473,7 @@ async function main() {
   assert.equal(profile.state.vehicles[2].hasSpare, false);
   assert.equal(profile.state.events.at(-1).note, "Excel import");
   await reopened.reload();
+  await login(reopened);
   await reopened
     .getByRole("heading", { name: "Your fleet, at a glance" })
     .waitFor();
@@ -397,6 +503,179 @@ async function main() {
   assert.deepEqual(errors, []);
   console.log(
     "PASS: offline Excel template, worksheet selection, invalid files, preview/cancel, duplicate skipping, atomic import, defaults, Hindi and persistence",
+  );
+  await reopened.getByRole("button", { name: "बंद करें", exact: true }).click();
+  await reopened.getByRole("button", { name: "भाषा", exact: true }).click();
+  async function inventory() {
+    await reopened
+      .locator(".mobile-nav-items")
+      .getByRole("button", { name: "Tyre inventory", exact: true })
+      .click();
+  }
+  async function fitTyre(serial, slot, odometer) {
+    await inventory();
+    await reopened.getByRole("button", { name: new RegExp(serial) }).click();
+    await reopened
+      .getByRole("button", { name: "Fit tyre", exact: true })
+      .click();
+    await reopened
+      .locator("dialog select[name=vehicleId]")
+      .selectOption({ label: "RJ14OFF1234" });
+    await reopened.locator("dialog select[name=slot]").selectOption(slot);
+    await reopened
+      .locator("dialog input[name=odometer]")
+      .fill(String(odometer));
+    await reopened
+      .getByRole("button", { name: "Save record", exact: true })
+      .click();
+    await reopened.locator("dialog").waitFor({ state: "detached" });
+  }
+  async function removeTyre(serial, destination, odometer) {
+    await inventory();
+    await reopened.getByRole("button", { name: new RegExp(serial) }).click();
+    await reopened
+      .getByRole("button", { name: "Remove tyre", exact: true })
+      .click();
+    await reopened
+      .locator("dialog select[name=destination]")
+      .selectOption(destination);
+    await reopened
+      .locator("dialog input[name=odometer]")
+      .fill(String(odometer));
+  }
+  async function saveRemoval() {
+    await reopened
+      .getByRole("button", { name: "Save record", exact: true })
+      .click();
+    await reopened.locator("dialog").waitFor({ state: "detached" });
+  }
+  await fitTyre("OFF-1", "FR", 1600);
+  await removeTyre("OFF-1", "remolding", 1900);
+  assert.match(
+    await reopened.locator("dialog").innerText(),
+    /Kilometres since fitting: 300 km/,
+  );
+  await saveRemoval();
+  profile = await data(reopened);
+  assert.equal(profile.state.tyres[0].status, "remolding");
+  assert.equal(profile.state.events.at(-1).runningKm, 300);
+  assert.equal(profile.state.events.at(-1).totalKm, 900);
+  await reopened
+    .getByRole("button", { name: "Out for remolding 1", exact: true })
+    .click();
+  await reopened.getByRole("button", { name: /OFF-1/ }).click();
+  assert.equal(
+    await reopened
+      .getByRole("button", { name: "Fit tyre", exact: true })
+      .count(),
+    0,
+  );
+  await reopened
+    .getByRole("button", { name: "Record remolding", exact: true })
+    .click();
+  await reopened
+    .getByRole("button", { name: "Record remolding", exact: true })
+    .click();
+  await reopened.locator("dialog").waitFor({ state: "detached" });
+  assert.equal((await data(reopened)).state.tyres[0].remolds, 1);
+  await reopened
+    .getByRole("button", { name: "All tyres 5", exact: true })
+    .click();
+  await fitTyre("OFF-1", "FR", 2000);
+  await removeTyre("OFF-1", "scrapped", 2300);
+  const beforeInvalid = (await data(reopened)).state.revision;
+  await reopened
+    .getByRole("button", { name: "Save record", exact: true })
+    .click();
+  assert.equal((await data(reopened)).state.revision, beforeInvalid);
+  await reopened
+    .locator("dialog select[name=scrapReason]")
+    .selectOption("other");
+  await reopened
+    .getByRole("button", { name: "Save record", exact: true })
+    .click();
+  assert.equal((await data(reopened)).state.revision, beforeInvalid);
+  await reopened
+    .locator("dialog textarea[name=scrapDetail]")
+    .fill("Casing rejected by workshop");
+  await saveRemoval();
+  profile = await data(reopened);
+  assert.equal(profile.state.tyres[0].status, "scrapped");
+  assert.equal(profile.state.tyres[0].distance, 1200);
+  assert.equal(profile.state.events.at(-1).runningKm, 300);
+  assert.equal(
+    profile.state.events.at(-1).scrapDetail,
+    "Casing rejected by workshop",
+  );
+  await removeTyre("OFF-2", "stock", 2400);
+  await saveRemoval();
+  profile = await data(reopened);
+  assert.equal(profile.state.events.at(-1).runningKm, 0);
+  assert.equal(profile.state.events.at(-1).totalKm, 0);
+  await inventory();
+  await reopened.getByRole("button", { name: "Language", exact: true }).click();
+  await reopened.getByRole("button", { name: /OFF-3/ }).click();
+  await reopened
+    .getByRole("button", { name: "स्क्रैप करें", exact: true })
+    .click();
+  await reopened
+    .locator("dialog select[name=scrapReason]")
+    .selectOption("wornTread");
+  assert.match(
+    await reopened.locator("dialog").innerText(),
+    /स्क्रैप करने का कारण/,
+  );
+  await reopened.screenshot({
+    path: path.join(root, "artifacts/scrap-reasons-hi.png"),
+    fullPage: true,
+  });
+  await reopened
+    .getByRole("button", { name: "रिकॉर्ड सेव करें", exact: true })
+    .click();
+  await reopened.locator("dialog").waitFor({ state: "detached" });
+  await reopened.getByRole("button", { name: "भाषा", exact: true }).click();
+  await reopened
+    .locator(".mobile-nav-items")
+    .getByRole("button", { name: "Logbook", exact: true })
+    .click();
+  const csvPending = reopened.waitForEvent("download");
+  await reopened
+    .getByRole("button", { name: "Export CSV", exact: true })
+    .click();
+  const csvStream = await (await csvPending).createReadStream();
+  let csv = "";
+  for await (const chunk of csvStream) csv += chunk;
+  assert.match(csv, /Km since fitting/);
+  assert.match(csv, /Casing rejected by workshop/);
+  assert.match(csv, /Tread worn out/);
+  assert.match(csv, /"300","1200"/);
+  const finalState = (await data(reopened)).state;
+  await reopened
+    .getByRole("button", { name: "Team & settings", exact: true })
+    .click();
+  await record(reopened, "Change password", {
+    currentPassword: localPassword,
+    password: "changed-offline-test-password",
+    confirm: "changed-offline-test-password",
+  });
+  const oldPassword = localPassword;
+  localPassword = "changed-offline-test-password";
+  await reopened.getByRole("button", { name: "Sign out", exact: true }).click();
+  await reopened.locator("input[name=password]").fill(oldPassword);
+  await reopened
+    .getByRole("button", { name: "Open offline garage", exact: true })
+    .click();
+  await reopened
+    .getByText("The username or password is incorrect.", { exact: true })
+    .waitFor();
+  await login(reopened);
+  await reopened.reload();
+  await login(reopened);
+  assert.deepEqual((await data(reopened)).state, finalState);
+  assert.deepEqual(errors, []);
+  assert.equal(apiCalls, beforeApi);
+  console.log(
+    "PASS: all removal destinations, remold completion, scrap validation/custom reasons, cycle/lifetime km, spare zero km, Hindi reasons, CSV, offline password change/logout/relogin and persistence",
   );
 }
 main()
