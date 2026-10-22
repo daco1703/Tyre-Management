@@ -166,31 +166,10 @@ export function createApp({
     req.user.role === "owner"
       ? next()
       : res.status(403).json({ error: "ownerOnly" });
-  app.get("/api/health", (req, res) => res.json({ ok: true }));
+  app.get("/api/health", (req, res) =>
+    res.json({ ok: true, version: "1.4.0" }),
+  );
   app.get("/api/bootstrap", (req, res) => res.json({ setupRequired: false }));
-  app.post("/api/register", authLimit, (req, res) => {
-    const name = username(req.body.username),
-      password = req.body.password;
-    if (!/^[a-z0-9_.-]{3,40}$/.test(name) || !validPassword(password))
-      throw new AppError("invalidCredentials");
-    if (
-      !req.body.invite ||
-      digest(String(req.body.invite).trim().toUpperCase()) !==
-        setting("inviteHash")
-    )
-      throw new AppError("invalidInvite", 403);
-    if (db.prepare("SELECT id FROM users WHERE username=?").get(name))
-      throw new AppError("usernameTaken", 409);
-    const salt = randomBytes(16).toString("hex");
-    const result = db
-      .prepare("INSERT INTO users (username,salt,hash,role) VALUES (?,?,?,?)")
-      .run(name, salt, passwordHash(password, salt), "staff");
-    issueSession(req, res, {
-      id: Number(result.lastInsertRowid),
-      username: name,
-      role: "staff",
-    });
-  });
   app.post("/api/login", authLimit, (req, res) => {
     const name = username(req.body.username),
       password = req.body.password;
@@ -230,6 +209,43 @@ export function createApp({
     });
     res.json({ ok: true });
   });
+  // Each connected phone waits for the next committed revision. Mutations wake
+  // all waiting clients immediately; timeouts re-check access and keep it live.
+  const waiting = new Set();
+  const stateNow = () => JSON.parse(setting("state"));
+  function finish(client) {
+    if (!waiting.delete(client)) return;
+    clearTimeout(client.timer);
+    if (client.res.destroyed) return;
+    const valid = db
+      .prepare(
+        "SELECT s.hash FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.hash=? AND s.expires>? AND u.active=1",
+      )
+      .get(client.req.user.hash, Date.now());
+    if (!valid) client.res.status(401).json({ error: "unauthorized" });
+    else client.res.json(stateNow());
+  }
+  function notify() {
+    for (const client of [...waiting]) finish(client);
+  }
+  app.get("/api/updates", auth, (req, res) => {
+    const revision = Number(req.query.revision);
+    if (
+      !Number.isSafeInteger(revision) ||
+      revision < 0 ||
+      !/^\d+$/.test(String(req.query.revision))
+    )
+      throw new AppError("invalidJson");
+    const state = stateNow();
+    if (revision !== state.revision) return res.json(state);
+    const client = { req, res, timer: null };
+    waiting.add(client);
+    client.timer = setTimeout(() => finish(client), 10000);
+    res.on("close", () => {
+      waiting.delete(client);
+      clearTimeout(client.timer);
+    });
+  });
   app.get("/api/state", auth, (req, res) =>
     res.json(JSON.parse(setting("state"))),
   );
@@ -242,6 +258,7 @@ export function createApp({
       const updated = applyAction(state, req.body, req.user.username);
       save("state", JSON.stringify(updated));
       db.exec("COMMIT");
+      notify();
       res.json(updated);
     } catch (error) {
       db.exec("ROLLBACK");
@@ -253,10 +270,23 @@ export function createApp({
       db.prepare("SELECT id,username,role,active FROM users ORDER BY id").all(),
     ),
   );
-  app.post("/api/team/invite", auth, owner, (req, res) => {
-    const invite = randomBytes(8).toString("hex").toUpperCase();
-    save("inviteHash", digest(invite));
-    res.json({ invite });
+  app.post("/api/team/create", auth, owner, authLimit, (req, res) => {
+    const name = username(req.body.username),
+      password = req.body.password;
+    if (!/^[a-z0-9_.-]{3,40}$/.test(name) || !validPassword(password))
+      throw new AppError("invalidCredentials");
+    if (db.prepare("SELECT id FROM users WHERE username=?").get(name))
+      throw new AppError("usernameTaken", 409);
+    const salt = randomBytes(16).toString("hex");
+    const result = db
+      .prepare("INSERT INTO users (username,salt,hash,role) VALUES (?,?,?,?)")
+      .run(name, salt, passwordHash(password, salt), "staff");
+    res.status(201).json({
+      id: Number(result.lastInsertRowid),
+      username: name,
+      role: "staff",
+      active: 1,
+    });
   });
   app.post("/api/team/deactivate", auth, owner, (req, res) => {
     const id = Number(req.body.id);
@@ -265,6 +295,7 @@ export function createApp({
       .run(id);
     if (!result.changes) throw new AppError("userMissing");
     db.prepare("DELETE FROM sessions WHERE user_id=?").run(id);
+    notify();
     res.json({ ok: true });
   });
   app.post("/api/password", auth, authLimit, (req, res) => {
@@ -290,6 +321,7 @@ export function createApp({
       user.id,
       req.user.hash,
     );
+    notify();
     res.json({ ok: true });
   });
   app.use("/api", (req, res) => res.status(404).json({ error: "notFound" }));

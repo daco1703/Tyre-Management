@@ -1,6 +1,6 @@
 {
   "name": "tyresaathi",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -14,8 +14,8 @@
     "android:sync": "npm run build && cap sync android",
     "android:build": "npm run android:sync && cd android && ./gradlew assembleDebug",
     "test:ui": "node tests/ui-smoke.cjs",
-    "test:offline": "node tests/offline-ui.cjs",
-    "backup": "node server/backup.js"
+    "backup": "node server/backup.js",
+    "test:login": "node tests/login-ui.cjs"
   },
   "dependencies": {
     "@capacitor/android": "7.6.9",

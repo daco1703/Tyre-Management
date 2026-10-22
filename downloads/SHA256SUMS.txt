@@ -1,4 +1,5 @@
 00c6ab7f0f2d7505450233edec751838c0d0b3af83d2cd6f039755d0518a52a8  Shepards-Tyre-Management-1.3-test.apk
+a7693f524b471ed82d51d000ca3248251c0de2afa3b1dff8b344ab80f2278ec7  Shepards-Tyre-Management-1.4-test.apk
 1af7b8001e0debcd6e47fc610e615fd0d00a555f96493d5563914adafc769fa3  TyreSaathi-1.1-offline-test.apk
 7fb72b647ccc6c74219ef666760d9814fe7048e4fbbca2bcf79fdd8900ab15e8  TyreSaathi-1.2-excel-test.apk
 7a9eb5a167059e2f4ec641f2cbfdee95e150c19ab515903891f722aba9479221  TyreSaathi-vehicle-template.xlsx

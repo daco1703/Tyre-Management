@@ -173,9 +173,9 @@ async function main() {
   console.log(
     "PASS: owner login, vehicle, all three tyre conditions, visual fitment, mileage and return",
   );
-  const { invite } = await (
-    await context.request.post(base + "/api/team/invite", { data: {} })
-  ).json();
+  await context.request.post(base + "/api/team/create", {
+    data: { username: "garage_staff", password: "test-staff-password" },
+  });
   const staffContext = await browser.newContext({
     viewport: { width: 390, height: 844 },
     isMobile: true,
@@ -184,13 +184,10 @@ async function main() {
   const staff = await staffContext.newPage();
   staff.on("pageerror", (e) => errors.push(e.message));
   await staff.goto(base);
-  await staff.getByRole("button", { name: "Join fleet", exact: true }).click();
-  await staff.locator("input[name=invite]").fill(invite);
   await staff.locator("input[name=username]").fill("garage_staff");
   await staff.locator("input[name=password]").fill("test-staff-password");
-  await staff.locator("input[name=confirm]").fill("test-staff-password");
   await staff
-    .getByRole("button", { name: "Create staff account", exact: true })
+    .getByRole("button", { name: "Open my garage", exact: true })
     .click();
   await staff
     .getByRole("heading", { name: "Your fleet, at a glance" })
@@ -330,24 +327,33 @@ async function main() {
   console.log("PASS: movement CSV and record JSON export");
   await staff.evaluate(() => navigator.serviceWorker.ready);
   await staffContext.setOffline(true);
+  await staff
+    .getByRole("heading", {
+      name: "आप ऑफलाइन हैं। कृपया इंटरनेट से कनेक्ट करें।",
+      exact: true,
+    })
+    .waitFor();
+  assert.equal(
+    await staff
+      .getByRole("button", { name: "टायर जोड़ें", exact: true })
+      .count(),
+    0,
+  );
   await staff.reload();
+  await staff
+    .getByRole("heading", {
+      name: "आप ऑफलाइन हैं। कृपया इंटरनेट से कनेक्ट करें।",
+      exact: true,
+    })
+    .waitFor();
+  assert.equal(await staff.locator("input[name=password]").count(), 0);
+  await staffContext.setOffline(false);
   await staff
     .getByRole("heading", { name: "आपके बेड़े का पूरा हिसाब" })
     .waitFor();
-  await staff
-    .getByText("ऑफलाइन · पुराने रिकॉर्ड", { exact: true })
-    .waitFor({ state: "attached" })
-    .catch(() => {});
-  // Offline navigation remains readable; write controls are disabled after browser offline event.
-  assert.ok(
-    await staff
-      .getByRole("button", { name: "टायर जोड़ें", exact: true })
-      .isDisabled(),
-  );
-  await staffContext.setOffline(false);
   assert.deepEqual(errors, []);
   console.log(
-    "PASS: production service-worker offline reload, cached viewing and blocked writes; no browser runtime errors",
+    "PASS: offline warning blocks access/entries, survives reload, and reconnect restores shared data; no runtime errors",
   );
 }
 main()

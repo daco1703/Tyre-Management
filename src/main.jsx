@@ -28,7 +28,6 @@ import {
   CalendarDays,
   CheckCircle2,
   AlertCircle,
-  Copy,
   Eye,
   EyeOff,
   Wrench,
@@ -39,12 +38,6 @@ import {
 } from "lucide-react";
 import { defaultFleetName, defaultUsername } from "../shared/defaults.js";
 import { en, hi } from "./i18n";
-import {
-  loadOffline,
-  startOffline,
-  offlineAction,
-  changeOfflinePassword,
-} from "./offline";
 import { previewVehicleImport } from "../shared/vehicle-import";
 import { readVehicleWorkbook, makeVehicleTemplate } from "./vehicle-workbook";
 import {
@@ -80,8 +73,10 @@ const store = (key, value) => {
     else localStorage.setItem(key, JSON.stringify(value));
   } catch {}
 };
-let server = native ? read("ts-server", "") : "";
-async function request(url, body) {
+let server = native
+  ? read("ts-server", "https://tyre-management.onrender.com")
+  : "";
+async function request(url, body, options = {}) {
   try {
     const token = native ? read("ts-token", "") : "";
     const res = await fetch(`${server}/api${url}`, {
@@ -92,7 +87,7 @@ async function request(url, body) {
       },
       credentials: native ? "omit" : "same-origin",
       ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
-      signal: AbortSignal.timeout(15000),
+      signal: options.signal || AbortSignal.timeout(15000),
     });
     const data = await res.json();
     if (!res.ok)
@@ -109,12 +104,8 @@ async function request(url, body) {
 const Context = React.createContext();
 const useApp = () => React.useContext(Context);
 function App() {
-  const [localMode, setLocalMode] = useState(read("ts-mode") === "local");
-  const [showOfflineSetup, setShowOfflineSetup] = useState(false);
   const initVersion = useRef(0);
-  const localUnlocked = useRef(false);
-  const localRef = useRef(localMode);
-  localRef.current = localMode;
+  const stateRef = useRef(null);
   const [lang, setLang] = useState(read("ts-lang", "en"));
   const [session, setSession] = useState(null),
     [state, setState] = useState(null);
@@ -125,7 +116,7 @@ function App() {
   const [modal, setModal] = useState(null),
     [toast, setToast] = useState(null);
   const [offline, setOffline] = useState(!navigator.onLine),
-    [needsServer, setNeedsServer] = useState(native && !server && !localMode);
+    [needsServer, setNeedsServer] = useState(native && !server);
   const dict = lang === "hi" ? hi : en;
   const t = (key) => dict[key] || en[key] || key;
   const n = (value) =>
@@ -170,43 +161,44 @@ function App() {
     }
   }, [toast]);
   function resetSession() {
+    ++initVersion.current;
     store("ts-session", null);
     store("ts-state", null);
     store("ts-token", null);
     setSession(null);
     setState(null);
+    stateRef.current = null;
     setModal(null);
     setPage("dashboard");
     setVehicleId(null);
   }
+  function configureServer() {
+    resetSession();
+    setOffline(false);
+    setBootError("");
+    setNeedsServer(true);
+  }
+  function receiveState(data) {
+    if (!stateRef.current || data.revision >= stateRef.current.revision) {
+      stateRef.current = data;
+      setState(data);
+    }
+  }
   async function initialize() {
     const version = ++initVersion.current;
-    if (localMode) {
-      try {
-        const profile = await loadOffline();
-        if (version !== initVersion.current) return;
-        if (profile && localUnlocked.current) activateLocal(profile);
-        else setShowOfflineSetup(true);
-      } catch (e) {
-        if (version === initVersion.current) setBootError(e.code);
-      }
-      return;
-    }
     if (native && !server) return;
     setBootError("");
     try {
       const config = await request("/bootstrap");
       if (version !== initVersion.current) return;
       setBoot(config);
+      setOffline(false);
       try {
         const s = await request("/me");
         const data = await request("/state");
         if (version !== initVersion.current) return;
         setSession(s);
-        store("ts-session", s);
-        setState(data);
-        store("ts-state", data);
-        setOffline(false);
+        receiveState(data);
       } catch (e) {
         if (version !== initVersion.current) return;
         if (e.status === 401) resetSession();
@@ -214,123 +206,96 @@ function App() {
       }
     } catch (e) {
       if (version !== initVersion.current) return;
-      const cached = read("ts-session"),
-        data = read("ts-state");
-      if (cached && data) {
-        setSession(cached);
-        setState(data);
-        setOffline(true);
-        setBoot({ setupRequired: false });
-      } else setBootError(e.code);
+      setBootError(e.code);
+      if (e.code === "notConnected") setOffline(true);
     }
   }
   useEffect(() => {
-    initialize();
-  }, [needsServer, localMode]);
-  function activateLocal(profile) {
-    setSession({
-      fleetName: profile.fleetName,
-      user: {
-        id: "local",
-        username: profile.auth?.username || defaultUsername,
-        role: "owner",
-      },
-    });
-    setState(profile.state);
-    setOffline(false);
-    setBoot({ setupRequired: false });
-    setBootError("");
-    setNeedsServer(false);
-    setShowOfflineSetup(false);
-  }
-  async function beginLocal(fleetName, username, password) {
-    const profile = await startOffline(fleetName, username, password);
-    localUnlocked.current = true;
-    try {
-      localStorage.setItem("ts-mode", JSON.stringify("local"));
-    } catch {
-      throw { code: "localStorageFailed" };
-    }
-    ++initVersion.current;
-    localRef.current = true;
-    setLocalMode(true);
-    activateLocal(profile);
-    setPage("dashboard");
-    setVehicleId(null);
-  }
-  function leaveLocal() {
-    localUnlocked.current = false;
-    ++initVersion.current;
-    store("ts-mode", "server");
-    localRef.current = false;
-    setLocalMode(false);
-    resetSession();
-    setBoot(null);
-    setBootError("");
-    setNeedsServer(native && !server);
-  }
+    if (!needsServer) initialize();
+  }, [needsServer]);
   async function refresh() {
-    if (localRef.current) {
-      try {
-        const profile = await loadOffline();
-        if (localRef.current && profile) setState(profile.state);
-        return profile?.state;
-      } catch {
-        return null;
-      }
-    }
+    const version = initVersion.current;
     try {
       const data = await request("/state");
-      if (localRef.current) return null;
-      setState(data);
-      store("ts-state", data);
+      if (version !== initVersion.current) return null;
+      receiveState(data);
       setOffline(false);
+      setBootError("");
       return data;
     } catch (e) {
-      if (localRef.current) return null;
+      if (version !== initVersion.current) return null;
       if (e.status === 401) {
         resetSession();
+        setOffline(false);
         setToast({ text: t("unauthorized"), error: true });
       } else setOffline(true);
       return null;
     }
   }
   useEffect(() => {
-    if (!session || localMode) return;
-    const id = setInterval(refresh, 10000);
-    const online = () => refresh();
-    const off = () => setOffline(true);
+    const online = () => {
+      if (session) refresh();
+      else initialize();
+    };
+    const off = () => {
+      setOffline(true);
+      setModal(null);
+    };
     window.addEventListener("online", online);
     window.addEventListener("offline", off);
     document.addEventListener("visibilitychange", online);
     return () => {
-      clearInterval(id);
       window.removeEventListener("online", online);
       window.removeEventListener("offline", off);
       document.removeEventListener("visibilitychange", online);
     };
-  }, [session, localMode]);
-  async function action(kind, payload) {
-    if (localMode) {
-      try {
-        const data = await offlineAction(kind, payload, state.revision);
-        setState(data);
-        setToast({ text: t("saved") });
-        return data;
-      } catch (e) {
-        if (e.code === "staleData") await refresh();
-        throw e;
+  }, [session]);
+  useEffect(() => {
+    if (!session || offline) return;
+    const controller = new AbortController();
+    const version = initVersion.current;
+    async function watch() {
+      while (!controller.signal.aborted && version === initVersion.current) {
+        try {
+          const data = await request(
+            `/updates?revision=${stateRef.current?.revision ?? 0}`,
+            undefined,
+            {
+              signal: AbortSignal.any([
+                controller.signal,
+                AbortSignal.timeout(15000),
+              ]),
+            },
+          );
+          if (controller.signal.aborted || version !== initVersion.current)
+            return;
+          receiveState(data);
+        } catch (e) {
+          if (controller.signal.aborted || version !== initVersion.current)
+            return;
+          if (e.status === 401) {
+            resetSession();
+            setToast({ text: t("unauthorized"), error: true });
+          } else {
+            setOffline(true);
+            setModal(null);
+          }
+          return;
+        }
       }
     }
+    watch();
+    return () => controller.abort();
+  }, [session, offline]);
+  async function action(kind, payload) {
     if (offline) throw { code: "offlineHint" };
     try {
       const data = await request("/actions", {
         kind,
         payload,
-        revision: state.revision,
+        revision: stateRef.current.revision,
       });
-      setState(data);
-      store("ts-state", data);
+      receiveState(data);
       setToast({ text: t("saved") });
       return data;
     } catch (e) {
@@ -344,16 +309,27 @@ function App() {
       throw e;
     }
   }
-  async function authenticated(data) {
+  function beginSharedAuth() {
+    // A startup /me response must never overwrite a newer login attempt.
+    return ++initVersion.current;
+  }
+  async function authenticated(data, version) {
+    if (version !== initVersion.current) return;
     if (data.token) store("ts-token", data.token);
+    let current;
+    try {
+      current = await request("/state");
+    } catch (error) {
+      if (version !== initVersion.current) return;
+      store("ts-token", null);
+      throw error;
+    }
+    if (version !== initVersion.current) return;
     const s = { user: data.user, fleetName: data.fleetName };
-    store("ts-session", s);
     setSession(s);
-    const current = await request("/state");
-    setState(current);
-    store("ts-state", current);
+    receiveState(current);
     setOffline(false);
-    if (data.invite) setModal({ type: "invite", invite: data.invite });
+    setBootError("");
   }
   function navigate(target, id = null) {
     setPage(target);
@@ -361,12 +337,6 @@ function App() {
     window.scrollTo(0, 0);
   }
   async function logout() {
-    if (localMode) {
-      localUnlocked.current = false;
-      resetSession();
-      setShowOfflineSetup(true);
-      return;
-    }
     try {
       await request("/logout", {});
       resetSession();
@@ -389,57 +359,44 @@ function App() {
     setModal,
     setToast,
     logout,
-    localMode,
-    openOffline: () => setShowOfflineSetup(true),
-    leaveLocal,
   };
   return (
     <Context.Provider value={value}>
-      {showOfflineSetup ? (
-        <OfflineSetup
-          onStart={beginLocal}
-          onCancel={() => {
-            setShowOfflineSetup(false);
-            if (localMode && !session) leaveLocal();
-          }}
-        />
-      ) : needsServer ? (
-        <ServerConnect
-          onConnect={() => {
-            setNeedsServer(false);
-          }}
-        />
-      ) : bootError ? (
+      {offline || bootError ? (
         <div className="connection-page">
           <Brand />
+          <LanguageSwitch />
           <WifiOff size={48} />
-          <h1>{t(localMode ? "localStorageFailed" : "notConnected")}</h1>
-          <button onClick={initialize}>{t("retry")}</button>
-          <Button secondary onClick={() => setShowOfflineSetup(true)}>
-            {t("useOffline")}
+          <h1>
+            {t(
+              offline || bootError === "notConnected"
+                ? "offlineHint"
+                : bootError,
+            )}
+          </h1>
+          <Button onClick={() => (session ? refresh() : initialize())}>
+            {t("retry")}
           </Button>
           {native && (
-            <button className="secondary" onClick={() => setNeedsServer(true)}>
+            <button className="text-button" onClick={configureServer}>
               {t("changeServer")}
             </button>
           )}
         </div>
+      ) : needsServer ? (
+        <ServerConnect onConnect={() => setNeedsServer(false)} />
       ) : !boot || (session && !state) ? (
         <div className="connection-page">
           <Brand />
           <RefreshCw className="spin" />
           <p>{t("reconnecting")}</p>
-          {!localMode && (
-            <Button secondary onClick={() => setShowOfflineSetup(true)}>
-              {t("useOffline")}
-            </Button>
-          )}
         </div>
       ) : !session ? (
         <Auth
           boot={boot}
           onAuth={authenticated}
-          changeServer={() => setNeedsServer(true)}
+          onBeginAuth={beginSharedAuth}
+          changeServer={configureServer}
         />
       ) : (
         <div className="app-shell">
@@ -450,7 +407,7 @@ function App() {
               <strong>{session.fleetName}</strong>
               <span className="workspace-dot">
                 <i />
-                {t(localMode ? "localMode" : "sync")}
+                {t("sync")}
               </span>
             </div>
             <Navigation page={page} navigate={navigate} />
@@ -468,9 +425,7 @@ function App() {
                 </span>
                 <span>
                   <strong>{session.user.username}</strong>
-                  <small>
-                    {t(localMode ? "localAccount" : session.user.role)}
-                  </small>
+                  <small>{t(session.user.role)}</small>
                 </span>
                 <Settings size={18} />
               </button>
@@ -493,9 +448,7 @@ function App() {
                   ) : (
                     <span className="live-dot" />
                   )}
-                  <span>
-                    {t(localMode ? "localMode" : offline ? "offline" : "sync")}
-                  </span>
+                  <span>{t(offline ? "offline" : "sync")}</span>
                 </span>
                 <LanguageSwitch />
                 <button
@@ -507,21 +460,6 @@ function App() {
                 </button>
               </div>
             </header>
-            {localMode && (
-              <div className="local-banner">
-                <CircleDot size={16} />
-                <span>{t("localMode")}</span>
-              </div>
-            )}
-            {offline && (
-              <div className="offline-banner">
-                <WifiOff size={16} />
-                <span>{t("offlineHint")}</span>
-                <button className="text-button" onClick={refresh}>
-                  {t("retry")}
-                </button>
-              </div>
-            )}
             <main>
               {page === "dashboard" ? (
                 <Dashboard />
@@ -536,18 +474,13 @@ function App() {
               ) : page === "logbook" ? (
                 <Logbook />
               ) : (
-                <SettingsPage
-                  onChangeServer={() => {
-                    resetSession();
-                    setNeedsServer(true);
-                  }}
-                />
+                <SettingsPage onChangeServer={configureServer} />
               )}
             </main>
             <footer className="page-footer">
               <CircleDot size={14} />
               {t("tagline")}
-              <span>Shepards Tyre Management · v1.3</span>
+              <span>Shepards Tyre Management · v1.4</span>
             </footer>
           </div>
           <nav className="bottom-nav">
@@ -555,7 +488,9 @@ function App() {
           </nav>
         </div>
       )}
-      {modal && <ModalContent modal={modal} onClose={() => setModal(null)} />}
+      {modal && !offline && !bootError && (
+        <ModalContent modal={modal} onClose={() => setModal(null)} />
+      )}
       {toast && (
         <div role="status" className={`toast ${toast.error ? "error" : ""}`}>
           {toast.error ? <AlertCircle size={18} /> : <CheckCircle2 size={18} />}
@@ -730,99 +665,8 @@ function ForgotLogin() {
     </div>
   );
 }
-function OfflineSetup({ onStart, onCancel }) {
-  const { t } = useApp();
-  const [name, setName] = useState(defaultFleetName);
-  const [existing, setExisting] = useState(false);
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-  useEffect(() => {
-    let active = true;
-    loadOffline()
-      .then((profile) => {
-        if (active && profile) {
-          setName(profile.fleetName);
-          setExisting(true);
-        }
-      })
-      .catch(() => {
-        if (active) setError("localStorageFailed");
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
-  async function submit(e) {
-    e.preventDefault();
-    setBusy(true);
-    setError("");
-    try {
-      const p = Object.fromEntries(new FormData(e.currentTarget));
-      await onStart(name, p.username, p.password);
-    } catch (e) {
-      setError(e.code || "localStorageFailed");
-    } finally {
-      setBusy(false);
-    }
-  }
-  return (
-    <div className="auth-page connect-page">
-      <section className="auth-card">
-        <div className="auth-top">
-          <Brand />
-          <LanguageSwitch />
-        </div>
-        <span className="empty-icon">
-          <CircleDot size={30} />
-        </span>
-        <h1>{t("offlineSetup")}</h1>
-        <p>{t("offlineSetupSub")}</p>
-        <form onSubmit={submit}>
-          <Field
-            label="fleetName"
-            hint={existing ? "localExisting" : undefined}
-          >
-            <input
-              name="fleetName"
-              required
-              maxLength={80}
-              value={name}
-              readOnly={existing}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </Field>
-          <Field label="username">
-            <input
-              name="username"
-              required
-              autoComplete="username"
-              autoCapitalize="none"
-              defaultValue={defaultUsername}
-              maxLength={40}
-            />
-          </Field>
-          <PasswordField />
-          <ForgotLogin />
-          {error && (
-            <div className="form-error" role="alert">
-              {t(error)}
-            </div>
-          )}
-          <Button disabled={busy} icon={ArrowRight}>
-            {t(busy ? "loading" : "offlineStart")}
-          </Button>
-          <Button secondary type="button" disabled={busy} onClick={onCancel}>
-            {t("cancel")}
-          </Button>
-        </form>
-        <p className="offline-disclosure">{t("localHint")}</p>
-        <p className="small muted">{t("localTeamHint")}</p>
-      </section>
-    </div>
-  );
-}
 function ServerConnect({ onConnect }) {
-  const { t, openOffline } = useApp();
+  const { t } = useApp();
   const [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
   async function submit(e) {
@@ -890,32 +734,25 @@ function ServerConnect({ onConnect }) {
             {t(busy ? "loading" : "connect")}
           </Button>
         </form>
-        <div className="offline-choice">
-          <Button secondary icon={CircleDot} onClick={openOffline}>
-            {t("useOffline")}
-          </Button>
-        </div>
       </section>
     </div>
   );
 }
-function Auth({ boot, onAuth, changeServer }) {
-  const { t, openOffline } = useApp();
-  const [mode, setMode] = useState("login");
+function Auth({ boot, onAuth, onBeginAuth, changeServer }) {
+  const { t } = useApp();
   const [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
   async function submit(e) {
     e.preventDefault();
     setError("");
     const p = Object.fromEntries(new FormData(e.currentTarget));
-    if (mode !== "login" && p.password !== p.confirm)
-      return setError("passwordsDiffer");
     setBusy(true);
     try {
-      const data = await request(mode === "login" ? "/login" : "/register", p);
-      await onAuth(data);
+      const version = onBeginAuth();
+      const data = await request("/login", p);
+      await onAuth(data, version);
     } catch (e) {
-      setError(e.code);
+      setError(e.code === "notConnected" ? "offlineHint" : e.code);
     } finally {
       setBusy(false);
     }
@@ -962,31 +799,9 @@ function Auth({ boot, onAuth, changeServer }) {
         </div>
         <div className="auth-card">
           <span className="eyebrow">SHEPARDS TYRE MANAGEMENT</span>
-          <h1>{t(mode === "join" ? "joinTitle" : "loginTitle")}</h1>
-          <p>{t(mode === "join" ? "joinSub" : "loginSub")}</p>
-          {!boot.setupRequired && (
-            <div className="segmented">
-              <button
-                className={mode === "login" ? "selected" : ""}
-                onClick={() => {
-                  setMode("login");
-                  setError("");
-                }}
-              >
-                {t("signIn")}
-              </button>
-              <button
-                className={mode === "join" ? "selected" : ""}
-                onClick={() => {
-                  setMode("join");
-                  setError("");
-                }}
-              >
-                {t("join")}
-              </button>
-            </div>
-          )}
-          <form onSubmit={submit} key={mode}>
+          <h1>{t("loginTitle")}</h1>
+          <p>{t("loginSub")}</p>
+          <form onSubmit={submit}>
             <Field label="fleetName">
               <input
                 value={defaultFleetName}
@@ -994,23 +809,10 @@ function Auth({ boot, onAuth, changeServer }) {
                 autoComplete="organization"
               />
             </Field>
-            {mode === "join" && (
-              <Field label="inviteCode">
-                <input
-                  name="invite"
-                  required
-                  autoComplete="off"
-                  spellCheck="false"
-                />
-              </Field>
-            )}
-            <Field
-              label="username"
-              hint={mode !== "login" ? "usernameHint" : undefined}
-            >
+            <Field label="username" hint="usernameHint">
               <input
                 name="username"
-                defaultValue={mode === "login" ? defaultUsername : ""}
+                defaultValue={defaultUsername}
                 required
                 autoCapitalize="none"
                 autoCorrect="off"
@@ -1020,21 +822,8 @@ function Auth({ boot, onAuth, changeServer }) {
                 maxLength={40}
               />
             </Field>
-            <PasswordField
-              hint={mode !== "login" ? "passwordHint" : undefined}
-              minLength={mode !== "login" ? 10 : undefined}
-              autoComplete={
-                mode === "login" ? "current-password" : "new-password"
-              }
-            />
-            {mode !== "login" && (
-              <PasswordField
-                name="confirm"
-                label="confirmPassword"
-                autoComplete="new-password"
-              />
-            )}
-            {mode === "login" && <ForgotLogin />}
+            <PasswordField />
+            <ForgotLogin />
             {error && (
               <div role="alert" className="form-error">
                 <AlertCircle size={18} />
@@ -1042,23 +831,12 @@ function Auth({ boot, onAuth, changeServer }) {
               </div>
             )}
             <Button icon={ArrowRight} disabled={busy}>
-              {t(
-                busy
-                  ? "loading"
-                  : mode === "join"
-                    ? "submitJoin"
-                    : "submitLogin",
-              )}
+              {t(busy ? "loading" : "submitLogin")}
             </Button>
           </form>
           <div className="auth-foot">
             <ShieldCheck size={15} />
             <span>{t("privacy")}</span>
-          </div>
-          <div className="offline-choice">
-            <Button secondary icon={CircleDot} onClick={openOffline}>
-              {t("useOffline")}
-            </Button>
           </div>
           {native && (
             <button className="text-button" onClick={changeServer}>
@@ -1926,9 +1704,6 @@ function SettingsPage({ onChangeServer }) {
     setLang,
     logout,
     offline,
-    localMode,
-    openOffline,
-    leaveLocal,
   } = useApp();
   const [team, setTeam] = useState([]),
     [error, setError] = useState("");
@@ -1941,27 +1716,16 @@ function SettingsPage({ onChangeServer }) {
     }
   }
   useEffect(() => {
-    if (!localMode && session.user.role === "owner") load();
+    if (session.user.role === "owner") load();
   }, []);
-  async function invite() {
-    try {
-      const data = await request("/team/invite", {});
-      setModal({ type: "invite", invite: data.invite });
-    } catch (e) {
-      setToast({ text: t(e.code), error: true });
-    }
-  }
   return (
     <>
-      <PageHeading
-        title={t("settings")}
-        sub={t(localMode ? "localTeamHint" : "teamSub")}
-      />
+      <PageHeading title={t("settings")} sub={t("teamSub")} />
       <div className="settings-grid">
         <section className="card settings-card">
           <h2>
             <Users size={20} />
-            {t(localMode ? "localAccount" : "team")}
+            {t("team")}
           </h2>
           <div className="business-info">
             <span className="avatar">
@@ -1970,22 +1734,11 @@ function SettingsPage({ onChangeServer }) {
             <div>
               <strong>{session.fleetName}</strong>
               <small>
-                {localMode
-                  ? t("thisPhone")
-                  : `${session.user.username} · ${t(session.user.role)}`}
+                {`${session.user.username} · ${t(session.user.role)}`}
               </small>
             </div>
           </div>
-          {localMode && (
-            <>
-              <p>{t("localHint")}</p>
-              <p className="small muted">{t("localTeamHint")}</p>
-              <Button secondary icon={Link} onClick={leaveLocal}>
-                {t("sharedMode")}
-              </Button>
-            </>
-          )}
-          {!localMode && session.user.role === "owner" && (
+          {session.user.role === "owner" && (
             <>
               {error && <p className="form-error">{t(error)}</p>}
               <div className="team-list">
@@ -2020,10 +1773,14 @@ function SettingsPage({ onChangeServer }) {
                   </div>
                 ))}
               </div>
-              <Button secondary icon={Plus} disabled={offline} onClick={invite}>
-                {t("rotateInvite")}
+              <Button
+                icon={Plus}
+                disabled={offline}
+                onClick={() => setModal({ type: "addStaff", onSaved: load })}
+              >
+                {t("addStaff")}
               </Button>
-              <p className="small muted">{t("inviteHint")}</p>
+              <p className="small muted">{t("staffHint")}</p>
             </>
           )}
         </section>
@@ -2058,15 +1815,9 @@ function SettingsPage({ onChangeServer }) {
               {t("changePassword")}
               <ChevronRight size={17} />
             </button>
-            {!localMode && native && (
+            {native && (
               <button className="setting-button" onClick={onChangeServer}>
                 {t("changeServer")}
-                <ChevronRight size={17} />
-              </button>
-            )}
-            {!localMode && (
-              <button className="setting-button" onClick={openOffline}>
-                {t("useOffline")}
                 <ChevronRight size={17} />
               </button>
             )}
@@ -2087,7 +1838,7 @@ function SettingsPage({ onChangeServer }) {
               <Download size={20} />
               {t("backup")}
             </h2>
-            <p>{t(localMode ? "localExportHint" : "exportHint")}</p>
+            <p>{t("exportHint")}</p>
             <Button
               secondary
               icon={Download}
@@ -2114,9 +1865,7 @@ function SettingsPage({ onChangeServer }) {
             >
               {t("exportBackup")}
             </Button>
-            <p className="small muted">
-              {t(localMode ? "localHint" : "privacy")}
-            </p>
+            <p className="small muted">{t("privacy")}</p>
           </section>
           {!native && (
             <section className="card settings-card">
@@ -2192,14 +1941,12 @@ function ModalContent({ modal, onClose }) {
     return <VehicleImport onClose={onClose} />;
   if (modal.type === "tyre")
     return <TyreDetails id={modal.id} onClose={onClose} />;
-  if (modal.type === "invite")
-    return <InviteModal invite={modal.invite} onClose={onClose} />;
   if (modal.type === "confirm")
     return <ConfirmModal {...modal} onClose={onClose} />;
   return <RecordForm modal={modal} onClose={onClose} />;
 }
 function VehicleImport({ onClose }) {
-  const { t, n, state, action, setToast, offline, localMode } = useApp();
+  const { t, n, state, action, setToast, offline } = useApp();
   const [sheets, setSheets] = useState([]);
   const [selected, setSelected] = useState(0);
   const [fileName, setFileName] = useState("");
@@ -2394,38 +2141,6 @@ function VehicleImport({ onClose }) {
     </Dialog>
   );
 }
-function InviteModal({ invite, onClose }) {
-  const { t, setToast } = useApp();
-  const ref = useRef();
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(invite);
-      setToast({ text: t("copied") });
-    } catch {
-      ref.current.select();
-    }
-  }
-  return (
-    <Dialog title={t("inviteCode")} onClose={onClose}>
-      <p>{t("inviteReadySub")}</p>
-      <input
-        ref={ref}
-        className="invite-code"
-        aria-label={t("inviteCode")}
-        readOnly
-        value={invite}
-        onFocus={(e) => e.target.select()}
-      />
-      <div className="form-actions">
-        <Button secondary icon={Copy} onClick={copy}>
-          {t("copy")}
-        </Button>
-        <Button onClick={onClose}>{t("done")}</Button>
-      </div>
-      <p className="small muted">{t("inviteHint")}</p>
-    </Dialog>
-  );
-}
 function ConfirmModal({ title, text, run, success = "saved", onClose }) {
   const { t, setToast } = useApp();
   const [busy, setBusy] = useState(false),
@@ -2615,7 +2330,7 @@ function TyreDetails({ id, onClose }) {
   );
 }
 function RecordForm({ modal: m, onClose }) {
-  const { t, n, state, action, setToast, offline, localMode } = useApp();
+  const { t, n, state, action, setToast, offline } = useApp();
   const [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   const [destination, setDestination] = useState("stock");
@@ -2653,12 +2368,18 @@ function RecordForm({ modal: m, onClose }) {
       if (m.type === "addVehicle") p.hasSpare = p.hasSpare === "on";
       if (m.type === "password") {
         if (p.password !== p.confirm) throw { code: "passwordsDiffer" };
-        if (localMode)
-          await changeOfflinePassword(p.currentPassword, p.password);
-        else await request("/password", p);
+        await request("/password", p);
         setToast({
-          text: t(localMode ? "localPasswordChanged" : "passwordChanged"),
+          text: t("passwordChanged"),
         });
+      } else if (m.type === "addStaff") {
+        if (p.password !== p.confirm) throw { code: "passwordsDiffer" };
+        await request("/team/create", {
+          username: p.username,
+          password: p.password,
+        });
+        await m.onSaved?.();
+        setToast({ text: t("staffCreated") });
       } else
         await action(m.type, {
           ...p,
@@ -2681,6 +2402,34 @@ function RecordForm({ modal: m, onClose }) {
             <strong>{tyre.serial}</strong>
             <Badge type={tyre.type} />
           </div>
+        )}
+        {m.type === "addStaff" && (
+          <>
+            <p className="form-info">{t("staffHint")}</p>
+            <Field label="username" hint="usernameHint">
+              <input
+                name="username"
+                required
+                autoComplete="off"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck="false"
+                pattern="[a-zA-Z0-9_.\-]{3,40}"
+                maxLength={40}
+              />
+            </Field>
+            <PasswordField
+              minLength={10}
+              hint="passwordHint"
+              autoComplete="new-password"
+            />
+            <PasswordField
+              label="confirmPassword"
+              name="confirm"
+              minLength={10}
+              autoComplete="new-password"
+            />
+          </>
         )}
         {m.type === "addTyre" && (
           <>
@@ -2931,9 +2680,11 @@ function RecordForm({ modal: m, onClose }) {
             />
           </>
         ) : (
-          <Field label="notes">
-            <textarea name="note" rows={3} maxLength={500} />
-          </Field>
+          m.type !== "addStaff" && (
+            <Field label="notes">
+              <textarea name="note" rows={3} maxLength={500} />
+            </Field>
+          )
         )}
         {error && (
           <div role="alert" className="form-error">

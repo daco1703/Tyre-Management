@@ -51,8 +51,6 @@ async function fixture(t, options = {}) {
     username: "owner",
     password: "correct-password-123",
   });
-  const invitation = await req("/team/invite", {}, owner.cookie);
-  owner.data.invite = invitation.data.invite;
   assert.equal(owner.status, 200);
   return { req, owner };
 }
@@ -139,13 +137,17 @@ test("a full 200-vehicle import with Hindi names fits the request limit", async 
   assert.equal(r.data.events.length, 200);
   assert.equal(r.data.vehicles[0].name, vehicles[0].name);
 });
-test("authenticated shared inventory, staff join and audit attribution", async (t) => {
+test("authenticated shared inventory, staff login and audit attribution", async (t) => {
   const { req, owner } = await fixture(t);
   assert.equal((await req("/state")).status, 401);
-  const staff = await req("/register", {
+  await req(
+    "/team/create",
+    { username: "staff", password: "staff-password-123" },
+    owner.cookie,
+  );
+  const staff = await req("/login", {
     username: "staff",
     password: "staff-password-123",
-    invite: owner.data.invite,
   });
   assert.equal(staff.status, 200);
   const added = await req(
@@ -153,7 +155,13 @@ test("authenticated shared inventory, staff join and audit attribution", async (
     {
       kind: "addTyre",
       revision: 0,
-      payload: { serial: "X1", brand: "CEAT", size: "R20", type: "new" },
+      payload: {
+        serial: "X1",
+        brand: "CEAT",
+        size: "R20",
+        type: "new",
+        actor: "owner",
+      },
     },
     staff.cookie,
   );
@@ -216,23 +224,25 @@ test("login, logout and session invalidation", async (t) => {
   assert.equal((await req("/logout", {}, logged.cookie)).status, 200);
   assert.equal((await req("/me", undefined, logged.cookie)).status, 401);
 });
-test("rotating invites expires old code; deactivation revokes staff sessions", async (t) => {
+test("public staff signup is disabled; removal revokes staff sessions", async (t) => {
   const { req, owner } = await fixture(t);
-  const staff = await req("/register", {
+  await req(
+    "/team/create",
+    { username: "staff", password: "staff-password-123" },
+    owner.cookie,
+  );
+  const staff = await req("/login", {
     username: "staff",
     password: "staff-password-123",
-    invite: owner.data.invite,
   });
-  await req("/team/invite", {}, owner.cookie);
   assert.equal(
     (
       await req("/register", {
         username: "staff2",
         password: "staff-password-123",
-        invite: owner.data.invite,
       })
     ).status,
-    403,
+    404,
   );
   assert.equal(
     (await req("/team/deactivate", { id: owner.data.user.id }, owner.cookie))
@@ -348,7 +358,7 @@ test("production login needs no owner setup key and uses secure cookies", async 
         password: "a-valid-password",
       })
     ).status,
-    403,
+    404,
   );
 });
 test("JSON shape and body limits do not crash server", async (t) => {
@@ -506,4 +516,139 @@ test("shared removal records mileage and scrap reason together; invalid reason r
   assert.equal(state.events.at(-1).totalKm, 5700);
   assert.equal(state.events.at(-1).actor, "owner");
   assert.equal(state.events.at(-1).scrapDetail, "Inspection rejected casing");
+});
+
+test("admin creates unique staff logins without replacing the admin session", async (t) => {
+  const { req, owner } = await fixture(t);
+  const account = {
+    username: " New_Staff ",
+    password: "individual-staff-password",
+    role: "owner",
+  };
+  assert.equal((await req("/team/create", account)).status, 401);
+  const created = await req("/team/create", account, owner.cookie);
+  assert.equal(created.status, 201);
+  assert.deepEqual(Object.keys(created.data).sort(), [
+    "active",
+    "id",
+    "role",
+    "username",
+  ]);
+  assert.equal(created.data.username, "new_staff");
+  assert.equal(created.data.role, "staff");
+  assert.equal(created.cookie, undefined);
+  assert.equal(
+    (await req("/me", undefined, owner.cookie)).data.user.role,
+    "owner",
+  );
+  assert.equal(
+    (
+      await req(
+        "/team/create",
+        { ...account, username: "NEW_STAFF" },
+        owner.cookie,
+      )
+    ).status,
+    409,
+  );
+  assert.equal(
+    (await req("/team/create", { ...account, username: "owner" }, owner.cookie))
+      .status,
+    409,
+  );
+  assert.equal(
+    (
+      await req(
+        "/team/create",
+        { ...account, username: "bad name" },
+        owner.cookie,
+      )
+    ).status,
+    400,
+  );
+  assert.equal(
+    (await req("/team/create", { ...account, password: "short" }, owner.cookie))
+      .status,
+    400,
+  );
+  const staff = await req("/login", {
+    username: "new_staff",
+    password: account.password,
+  });
+  assert.equal(staff.status, 200);
+  assert.equal(
+    (
+      await req(
+        "/team/create",
+        { username: "another_staff", password: account.password },
+        staff.cookie,
+      )
+    ).status,
+    403,
+  );
+  assert.equal(
+    (
+      await req("/login", {
+        username: "new_staff",
+        password: "incorrect-password",
+      })
+    ).status,
+    401,
+  );
+  assert.equal((await req("/team", undefined, owner.cookie)).data.length, 2);
+  assert.equal(
+    (await req("/team/deactivate", { id: created.data.id }, owner.cookie))
+      .status,
+    200,
+  );
+  assert.equal(
+    (await req("/login", { username: "new_staff", password: account.password }))
+      .status,
+    401,
+  );
+  assert.equal((await req("/state", undefined, staff.cookie)).status, 401);
+});
+
+test("live updates deliver committed staff entries to concurrent users and revoke removed staff", async (t) => {
+  const { req, owner } = await fixture(t);
+  await req(
+    "/team/create",
+    { username: "live_staff", password: "live-staff-password" },
+    owner.cookie,
+  );
+  const staff = await req("/login", {
+    username: "live_staff",
+    password: "live-staff-password",
+  });
+  assert.equal((await req("/updates?revision=0")).status, 401);
+  assert.equal(
+    (await req("/updates?revision=bad", undefined, owner.cookie)).status,
+    400,
+  );
+  const ownerWaiting = req("/updates?revision=0", undefined, owner.cookie);
+  const staffWaiting = req("/updates?revision=0", undefined, staff.cookie);
+  await new Promise((r) => setTimeout(r, 30));
+  const added = await req(
+    "/actions",
+    {
+      kind: "addTyre",
+      revision: 0,
+      payload: { serial: "LIVE-1", brand: "CEAT", size: "R20", type: "new" },
+    },
+    staff.cookie,
+  );
+  assert.equal(added.status, 200);
+  const [ownerUpdate, staffUpdate] = await Promise.all([
+    ownerWaiting,
+    staffWaiting,
+  ]);
+  assert.equal(ownerUpdate.status, 200);
+  assert.deepEqual(ownerUpdate.data, added.data);
+  assert.deepEqual(staffUpdate.data, added.data);
+  assert.equal(ownerUpdate.data.events.at(-1).actor, "live_staff");
+  assert.ok(ownerUpdate.data.events.at(-1).timestamp);
+  const removedWaiting = req("/updates?revision=1", undefined, staff.cookie);
+  await new Promise((r) => setTimeout(r, 30));
+  await req("/team/deactivate", { id: staff.data.user.id }, owner.cookie);
+  assert.equal((await removedWaiting).status, 401);
 });

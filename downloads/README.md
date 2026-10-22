@@ -1,17 +1,15 @@
-# Android test build
+# Android test update
 
-[Download Shepards Tyre Management 1.3.0](https://github.com/daco1703/Tyre-Management/blob/main/downloads/Shepards-Tyre-Management-1.3-test.apk?raw=true)
+[Download Shepards Tyre Management 1.4.0](https://github.com/daco1703/Tyre-Management/blob/main/downloads/Shepards-Tyre-Management-1.4-test.apk?raw=true)
 
-Install this APK as an **update** over the earlier TyreSaathi build. Do not uninstall or clear storage; this keeps your offline records. The Android package ID and test signing certificate are unchanged.
+Install over the earlier build without uninstalling. The package ID and test signing certificate are unchanged. The app opens the login for **https://tyre-management.onrender.com/** directly. Use admin or an assigned staff username/password. Forgot username/password displays Contact the admin.
 
-Open **Use offline on this phone**, sign in as **admin** with the initial password supplied by the fleet owner. A new garage defaults to **Shepards Shipping Services**. Existing garage records and names are preserved. Offline login is required after reopening the app. **Forgot username/password** displays **Contact the admin.** Change the password under **Team & settings → Change password** if needed; offline and server passwords are separate.
+**Admin:** Team & settings → Add staff → enter a unique username, password and confirmation. Only admin can add or remove staff. Removing access retains the employee's historical log entries.
 
-**Tyre Location** numbers positions 1–18 from right to left on each row, with an extra gap between rows 2 and 3. Existing positions are preserved. The spare remains SP.
+All accounts share live vehicle/tyre records. Each entry includes the authenticated username and timestamp. Losing internet displays **You are offline. Please connect to the internet.** and blocks entries until reconnection. Offline login and public staff signup have been removed. The server must also run version 1.4; deploy the latest main commit on Render if automatic deployment is disabled.
 
-To remove a fitted tyre, open its vehicle, tap the tyre, then **Remove tyre**. Enter the current vehicle odometer and choose **Return to stock**, **Send for remolding**, or **Scrap tyre**. Scrap requires a reason; select **Other** to enter a different reason. Every removal saves kilometres since fitting and lifetime tyre kilometres. Spares accrue zero running kilometres. Remolding tyres have a separate inventory tab and daily tally; **Record remolding** returns a completed remold to stock without losing mileage.
+Old phone-only records are not deleted or automatically uploaded to the server. Export any needed local records using the old version before upgrading. This version uses shared-server records only.
 
-To add vehicles in bulk, open **Vehicles → Import from Excel**. Download the [blank Excel template](https://github.com/daco1703/Tyre-Management/blob/main/downloads/TyreSaathi-vehicle-template.xlsx?raw=true), fill one vehicle per row, select the file, review the preview and confirm. Duplicate/invalid rows are skipped. Only registration is mandatory; name/driver, odometer and spare are optional. Import up to 200 rows in a `.xlsx` workbook up to 2 MB. This works offline.
+Tyre Location retains positions 1–18 from right to left per row and the extra gap between rows 2/3. Removal to stock/remolding/scrap, mileage, scrap reasons including Other, and Excel vehicle import are retained. [Blank Excel template](https://github.com/daco1703/Tyre-Management/blob/main/downloads/TyreSaathi-vehicle-template.xlsx?raw=true).
 
-Export records regularly. Uninstalling the app or clearing storage deletes the phone's records. This debug-signed build is for testing; Android file choosing, sharing and installation should also be checked on your phone. No public server is included.
-
-SHA-256 checksums for downloads are in `SHA256SUMS.txt`. Older APKs remain available for reference; install 1.3 as the update.
+This is a debug-signed APK for phone testing. SHA-256 checksums are in SHA256SUMS.txt. Older APKs remain for reference.
