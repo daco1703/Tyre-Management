@@ -46,6 +46,89 @@ async function fixture(t, options = {}) {
   assert.equal(owner.status, 200);
   return { req, owner };
 }
+test("vehicle import is authenticated, atomic and revision checked", async (t) => {
+  const { req, owner } = await fixture(t);
+  const payload = {
+    vehicles: [
+      { registration: "IMPORT1", odometer: 100, hasSpare: true, name: "राम" },
+      { registration: "IMPORT2", odometer: 0, hasSpare: false, name: "" },
+    ],
+  };
+  assert.equal(
+    (await req("/actions", { kind: "importVehicles", revision: 0, payload }))
+      .status,
+    401,
+  );
+  const bad = await req(
+    "/actions",
+    {
+      kind: "importVehicles",
+      revision: 0,
+      payload: {
+        vehicles: [
+          payload.vehicles[0],
+          { ...payload.vehicles[1], odometer: -1 },
+        ],
+      },
+    },
+    owner.cookie,
+  );
+  assert.equal(bad.status, 400);
+  assert.equal(
+    (await req("/state", undefined, owner.cookie)).data.vehicles.length,
+    0,
+  );
+  const ok = await req(
+    "/actions",
+    { kind: "importVehicles", revision: 0, payload },
+    owner.cookie,
+  );
+  assert.equal(ok.status, 200);
+  assert.equal(ok.data.vehicles.length, 2);
+  assert.equal(ok.data.events.length, 2);
+  assert.equal(
+    (
+      await req(
+        "/actions",
+        { kind: "importVehicles", revision: 0, payload },
+        owner.cookie,
+      )
+    ).status,
+    409,
+  );
+  assert.equal(
+    (
+      await req(
+        "/actions",
+        { kind: "importVehicles", revision: 2, payload },
+        owner.cookie,
+      )
+    ).status,
+    400,
+  );
+  assert.equal(
+    (await req("/state", undefined, owner.cookie)).data.vehicles.length,
+    2,
+  );
+});
+test("a full 200-vehicle import with Hindi names fits the request limit", async (t) => {
+  const { req, owner } = await fixture(t);
+  const vehicles = Array.from({ length: 200 }, (_, i) => ({
+    registration: "UTF" + i,
+    name: "राम".repeat(30),
+    odometer: 1000,
+    hasSpare: false,
+  }));
+  const r = await req(
+    "/actions",
+    { kind: "importVehicles", revision: 0, payload: { vehicles } },
+    owner.cookie,
+  );
+  assert.equal(r.status, 200);
+  assert.equal(r.data.vehicles.length, 200);
+  assert.equal(r.data.events.length, 200);
+  assert.equal(r.data.vehicles[0].name, vehicles[0].name);
+});
 test("authenticated shared inventory, staff join and audit attribution", async (t) => {
   const { req, owner } = await fixture(t);
   assert.equal((await req("/state")).status, 401);
@@ -254,7 +337,7 @@ test("JSON shape and body limits do not crash server", async (t) => {
   const { req, owner } = await fixture(t);
   assert.equal((await req("/actions", [], owner.cookie)).status, 400);
   assert.equal(
-    (await req("/actions", { note: "x".repeat(70000) }, owner.cookie)).status,
+    (await req("/actions", { note: "x".repeat(300000) }, owner.cookie)).status,
     413,
   );
   assert.equal((await req("/me", undefined, owner.cookie)).status, 200);

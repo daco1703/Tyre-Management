@@ -263,9 +263,153 @@ async function main() {
   console.log(
     "PASS: switching to shared mode and back preserves the separate offline garage",
   );
+  // Real Excel workbooks, preview validation, template output and import work offline.
+  const { default: writeExcelFile } = await import("write-excel-file/node");
+  const { readSheet } = await import("read-excel-file/node");
+  const { VEHICLE_HEADERS } = await import("../shared/vehicle-import.js");
+  const workbook = await writeExcelFile([
+    {
+      sheet: "Notes",
+      data: [["Import instructions"], ["Select the Vehicles worksheet"]],
+    },
+    {
+      sheet: "Vehicles",
+      data: [
+        VEHICLE_HEADERS,
+        ["RJ14OFF1234", "Do not overwrite", 99, "Yes"],
+        ["RJ14NEW01", "राम", "1,20,000", "हाँ"],
+        ["RJ14NEW02", null, null, null],
+        ["RJ14BAD01", null, -1, "No"],
+        ["rj 14 new01", null, 0, "No"],
+      ],
+    },
+  ]).toBuffer();
+  await context.setOffline(true);
+  const beforeApi = apiCalls;
+  await reopened
+    .locator(".mobile-nav-items")
+    .getByRole("button", { name: "Vehicles", exact: true })
+    .click();
+  await reopened
+    .getByRole("button", { name: "Import from Excel", exact: true })
+    .click();
+  const templatePending = reopened.waitForEvent("download");
+  await reopened
+    .getByRole("button", { name: "Download template", exact: true })
+    .click();
+  const template = await templatePending;
+  assert.deepEqual(await readSheet(await template.path()), [VEHICLE_HEADERS]);
+  await reopened
+    .locator('dialog input[type="file"]')
+    .setInputFiles({
+      name: "not-excel.xls",
+      mimeType: "application/vnd.ms-excel",
+      buffer: Buffer.from("bad"),
+    });
+  await reopened.locator("dialog [role=alert]").waitFor();
+  assert.match(
+    await reopened.locator("dialog [role=alert]").innerText(),
+    /\.xlsx/,
+  );
+  await reopened
+    .locator('dialog input[type="file"]')
+    .setInputFiles({
+      name: "broken.xlsx",
+      mimeType:
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      buffer: Buffer.from("not a workbook"),
+    });
+  await reopened
+    .getByText(
+      "This workbook could not be read. Try saving it again as an unprotected .xlsx file.",
+      { exact: true },
+    )
+    .waitFor();
+  const file = {
+    name: "vehicles.xlsx",
+    mimeType:
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    buffer: workbook,
+  };
+  await reopened.locator('dialog input[type="file"]').setInputFiles(file);
+  await reopened
+    .getByLabel("Worksheet", { exact: true })
+    .selectOption({ label: "Vehicles" });
+  await reopened
+    .getByRole("button", { name: "Import 2 vehicles", exact: true })
+    .waitFor();
+  assert.equal(await reopened.locator("dialog tbody tr").count(), 5);
+  assert.equal((await data(reopened)).state.vehicles.length, 1);
+  assert.ok(
+    await reopened.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  );
+  await reopened.getByRole("button", { name: "Cancel", exact: true }).click();
+  assert.equal((await data(reopened)).state.vehicles.length, 1);
+  await reopened
+    .getByRole("button", { name: "Import from Excel", exact: true })
+    .click();
+  await reopened.locator('dialog input[type="file"]').setInputFiles(file);
+  await reopened
+    .getByLabel("Worksheet", { exact: true })
+    .selectOption({ label: "Vehicles" });
+  await reopened
+    .getByRole("button", { name: "Import 2 vehicles", exact: true })
+    .click();
+  await reopened.locator("dialog").waitFor({ state: "detached" });
+  profile = await data(reopened);
+  assert.equal(profile.state.vehicles.length, 3);
+  assert.equal(profile.state.vehicles[0].registration, "RJ14OFF1234");
+  assert.equal(profile.state.vehicles[0].name, "");
+  assert.equal(profile.state.vehicles[1].odometer, 120000);
+  assert.equal(profile.state.vehicles[1].hasSpare, true);
+  assert.equal(profile.state.vehicles[2].odometer, 0);
+  assert.equal(profile.state.vehicles[2].hasSpare, false);
+  assert.equal(profile.state.events.at(-1).note, "Excel import");
+  await reopened.reload();
+  await reopened
+    .getByRole("heading", { name: "Your fleet, at a glance" })
+    .waitFor();
+  assert.equal((await data(reopened)).state.vehicles.length, 3);
+  await reopened.getByRole("button", { name: "Language", exact: true }).click();
+  await reopened
+    .locator(".mobile-nav-items")
+    .getByRole("button", { name: "वाहन", exact: true })
+    .click();
+  await reopened
+    .getByRole("button", { name: "Excel से वाहन जोड़ें", exact: true })
+    .click();
+  await reopened.locator('dialog input[type="file"]').setInputFiles(file);
+  await reopened
+    .getByLabel("वर्कशीट", { exact: true })
+    .selectOption({ label: "Vehicles" });
+  assert.ok(
+    await reopened
+      .getByRole("button", { name: "0 वाहन जोड़ें", exact: true })
+      .isDisabled(),
+  );
+  await reopened.screenshot({
+    path: path.join(root, "artifacts/import-vehicles-hi.png"),
+    fullPage: true,
+  });
+  assert.equal(apiCalls, beforeApi);
+  assert.deepEqual(errors, []);
+  console.log(
+    "PASS: offline Excel template, worksheet selection, invalid files, preview/cancel, duplicate skipping, atomic import, defaults, Hindi and persistence",
+  );
 }
 main()
-  .catch((e) => {
+  .catch(async (e) => {
+    if (browser) {
+      const pages = browser.contexts().flatMap((context) => context.pages());
+      const last = pages.at(-1);
+      if (last && (await last.locator("dialog").count()))
+        console.error(
+          "Import dialog at failure:",
+          await last.locator("dialog").innerText(),
+        );
+    }
     console.error(e);
     process.exitCode = 1;
   })

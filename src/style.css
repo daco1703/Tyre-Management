@@ -28,6 +28,150 @@
   color: #4d7038;
   font-size: 12px;
 }
+.dialog.wide {
+  max-width: 850px;
+}
+.dialog.wide[open] {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.dialog.wide .dialog-header {
+  flex-shrink: 0;
+}
+.dialog.wide .dialog-body {
+  overflow-y: auto;
+  min-height: 0;
+}
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-shrink: 0;
+  padding: 16px 23px;
+  border-top: 1px solid var(--border);
+  background: #fff;
+}
+.import-swipe {
+  display: none;
+}
+@media (max-width: 700px) {
+  .dialog-footer {
+    padding: 14px 18px;
+  }
+  .dialog-footer > button {
+    flex: 1;
+    font-size: 12px;
+  }
+  .import-swipe {
+    display: block;
+    margin-top: 8px;
+  }
+}
+.import-controls {
+  display: flex;
+  gap: 12px;
+  margin: 20px 0 12px;
+  flex-wrap: wrap;
+}
+.import-file {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #173f35;
+  color: white;
+  border-radius: 10px;
+  padding: 11px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 44px;
+}
+.import-file input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+.import-file:focus-within {
+  outline: 3px solid #90b95c;
+  outline-offset: 3px;
+}
+.import-file.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.import-filename {
+  margin: 16px 0;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+.import-summary {
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+  padding: 14px;
+  margin: 18px 0 10px;
+  background: #eef4e7;
+  border-radius: 9px;
+  font-size: 12px;
+}
+.import-summary span {
+  color: #947345;
+}
+.import-table-wrap {
+  max-height: 45dvh;
+  overflow: auto;
+  margin-top: 14px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+}
+.import-table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 650px;
+  font-size: 11px;
+  text-align: left;
+}
+.import-table th {
+  position: sticky;
+  top: 0;
+  background: #f1f5ea;
+  color: #576e45;
+  font-weight: 600;
+  z-index: 1;
+}
+.import-table th,
+.import-table td {
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.import-table td {
+  overflow-wrap: anywhere;
+}
+.import-table td:last-child {
+  min-width: 150px;
+  max-width: 240px;
+}
+.import-row-error {
+  background: #fff8ef;
+  color: #98734c;
+}
+@media (max-width: 700px) {
+  .import-controls > button,
+  .import-file {
+    flex: 1;
+    font-size: 11px;
+  }
+  .import-summary {
+    font-size: 11px;
+  }
+}
 .offline-choice {
   margin-top: 22px;
   padding-top: 18px;

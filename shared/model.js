@@ -1,3 +1,5 @@
+import { validateVehicleBatch } from "./vehicle-import.js";
+
 export class AppError extends Error {
   constructor(code, status = 400) {
     super(code);
@@ -78,6 +80,32 @@ export function tyreKm(tyre, state) {
   );
 }
 export function applyAction(previous, action, actor, now = new Date()) {
+  if (action.kind === "importVehicles") {
+    const result = validateVehicleBatch(
+      action.payload?.vehicles,
+      previous.vehicles,
+    );
+    if (result.error) throw new AppError(result.error);
+    const state = structuredClone(previous);
+    const timestamp = now.toISOString();
+    const counts = tally(state);
+    for (const vehicle of result.vehicles) {
+      const id = crypto.randomUUID();
+      state.vehicles.push({ id, ...vehicle, createdAt: timestamp });
+      state.events.push({
+        id,
+        timestamp,
+        date: dayKey(now),
+        kind: "addVehicle",
+        actor,
+        note: "Excel import",
+        vehicle: vehicle.registration,
+        tally: { ...counts },
+      });
+      state.revision++;
+    }
+    return state;
+  }
   const state = structuredClone(previous);
   const p = action.payload || {};
   const id = crypto.randomUUID();

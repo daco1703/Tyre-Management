@@ -35,9 +35,12 @@ import {
   Trash2,
   Link,
   Menu,
+  Upload,
 } from "lucide-react";
 import { en, hi } from "./i18n";
 import { loadOffline, startOffline, offlineAction } from "./offline";
+import { previewVehicleImport } from "../shared/vehicle-import";
+import { readVehicleWorkbook, makeVehicleTemplate } from "./vehicle-workbook";
 import { slots, dayKey, tally, dailyTally, tyreKm } from "../shared/model";
 import "./style.css";
 import "@fontsource/inter/latin-400.css";
@@ -514,7 +517,7 @@ function App() {
             <footer className="page-footer">
               <CircleDot size={14} />
               {t("tagline")}
-              <span>TyreSaathi · v1.1</span>
+              <span>TyreSaathi · v1.2</span>
             </footer>
           </div>
           <nav className="bottom-nav">
@@ -1346,6 +1349,14 @@ function Vehicles() {
     <>
       <PageHeading title={t("vehicles")} sub={t("noVehiclesSub")}>
         <Button
+          secondary
+          icon={Upload}
+          disabled={offline}
+          onClick={() => setModal({ type: "importVehicles" })}
+        >
+          {t("importVehicles")}
+        </Button>
+        <Button
           icon={Plus}
           disabled={offline}
           onClick={() => setModal({ type: "addVehicle" })}
@@ -1690,22 +1701,30 @@ function Inventory() {
   );
 }
 async function download(name, content, type) {
+  return downloadBlob(name, new Blob([content], { type }));
+}
+async function downloadBlob(name, blob) {
   if (native) {
-    const [{ Filesystem, Directory, Encoding }, { Share }] = await Promise.all([
+    const [{ Filesystem, Directory }, { Share }] = await Promise.all([
       import("@capacitor/filesystem"),
       import("@capacitor/share"),
     ]);
+    const encoded = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result).split(",")[1]);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(blob);
+    });
     const file = await Filesystem.writeFile({
       path: name,
-      data: content,
+      data: encoded,
       directory: Directory.Cache,
-      encoding: Encoding.UTF8,
     });
     await Share.share({ title: name, url: file.uri });
     return;
   }
   const link = document.createElement("a");
-  const url = URL.createObjectURL(new Blob([content], { type }));
+  const url = URL.createObjectURL(blob);
   link.href = url;
   link.download = name;
   link.click();
@@ -2045,7 +2064,14 @@ function SettingsPage({ onChangeServer }) {
     </>
   );
 }
-function Dialog({ title, children, onClose, busy = false, wide = false }) {
+function Dialog({
+  title,
+  children,
+  onClose,
+  busy = false,
+  wide = false,
+  footer,
+}) {
   const { t } = useApp();
   const ref = useRef(null);
   useEffect(() => {
@@ -2089,10 +2115,13 @@ function Dialog({ title, children, onClose, busy = false, wide = false }) {
         </button>
       </div>
       <div className="dialog-body">{children}</div>
+      {footer && <div className="dialog-footer">{footer}</div>}
     </dialog>
   );
 }
 function ModalContent({ modal, onClose }) {
+  if (modal.type === "importVehicles")
+    return <VehicleImport onClose={onClose} />;
   if (modal.type === "tyre")
     return <TyreDetails id={modal.id} onClose={onClose} />;
   if (modal.type === "invite")
@@ -2100,6 +2129,202 @@ function ModalContent({ modal, onClose }) {
   if (modal.type === "confirm")
     return <ConfirmModal {...modal} onClose={onClose} />;
   return <RecordForm modal={modal} onClose={onClose} />;
+}
+function VehicleImport({ onClose }) {
+  const { t, n, state, action, setToast, offline } = useApp();
+  const [sheets, setSheets] = useState([]);
+  const [selected, setSelected] = useState(0);
+  const [fileName, setFileName] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [working, setWorking] = useState(false);
+  const preview = sheets.length
+    ? previewVehicleImport(sheets[selected].data, state.vehicles)
+    : { rows: [] };
+  const ready = preview.rows.filter((row) => !row.errors.length);
+  async function choose(e) {
+    const file = e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    setWorking(true);
+    setError("");
+    setSheets([]);
+    setFileName("");
+    try {
+      const result = await readVehicleWorkbook(file);
+      setSheets(result);
+      setSelected(0);
+      setFileName(file.name);
+    } catch (e) {
+      setError(e.code || "importUnreadable");
+    } finally {
+      setWorking(false);
+    }
+  }
+  async function template() {
+    setWorking(true);
+    setError("");
+    try {
+      await downloadBlob(
+        "TyreSaathi-vehicle-template.xlsx",
+        await makeVehicleTemplate(),
+      );
+    } catch {
+      setError("importTemplateFailed");
+    } finally {
+      setWorking(false);
+    }
+  }
+  async function save() {
+    setBusy(true);
+    setError("");
+    try {
+      await action("importVehicles", {
+        vehicles: ready.map((row) => row.value),
+      });
+      setToast({
+        text: t("importSuccess").replace("{count}", n(ready.length)),
+      });
+      onClose();
+    } catch (e) {
+      setError(e.code || "serverError");
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <Dialog
+      title={t("importVehicles")}
+      onClose={onClose}
+      busy={busy || working}
+      footer={
+        <>
+          <Button secondary disabled={busy || working} onClick={onClose}>
+            {t("cancel")}
+          </Button>
+          <Button
+            icon={Upload}
+            disabled={busy || working || offline || !ready.length}
+            onClick={save}
+          >
+            {t(busy ? "saving" : "importConfirm").replace(
+              "{count}",
+              n(ready.length),
+            )}
+          </Button>
+        </>
+      }
+      wide
+    >
+      <p>{t("importHelp")}</p>
+      <div className="import-controls">
+        <Button
+          secondary
+          icon={Download}
+          disabled={busy || working}
+          onClick={template}
+        >
+          {t("importTemplate")}
+        </Button>
+        <label className={`import-file ${busy || working ? "disabled" : ""}`}>
+          <Upload size={17} />
+          <span>{t(working ? "loading" : "importChoose")}</span>
+          <input
+            type="file"
+            accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            aria-label={t("importChoose")}
+            disabled={busy || working}
+            onChange={choose}
+          />
+        </label>
+      </div>
+      <p className="small muted">{t("importDefaults")}</p>
+      {fileName && <p className="import-filename">{fileName}</p>}
+      {sheets.length > 1 && (
+        <Field label="importWorksheet">
+          <select
+            aria-label={t("importWorksheet")}
+            value={selected}
+            disabled={busy || working}
+            onChange={(e) => {
+              setSelected(Number(e.target.value));
+              setError("");
+            }}
+          >
+            {sheets.map((sheet, index) => (
+              <option key={index} value={index}>
+                {sheet.sheet}
+              </option>
+            ))}
+          </select>
+        </Field>
+      )}
+      {(error || preview.error) && (
+        <div role="alert" className="form-error">
+          {t(error || preview.error)}
+        </div>
+      )}
+      {!!preview.rows.length && (
+        <>
+          <div className="import-summary">
+            <strong>
+              {n(ready.length)} {t("importReady")}
+            </strong>
+            <span>
+              {n(preview.rows.length - ready.length)} {t("importSkipped")}
+            </span>
+          </div>
+          <p className="small muted">{t("importPreviewHint")}</p>
+          <p className="small muted import-swipe">{t("importSwipe")}</p>
+          <div className="import-table-wrap">
+            <table className="import-table">
+              <thead>
+                <tr>
+                  {[
+                    "importRow",
+                    "registration",
+                    "vehicleName",
+                    "odometer",
+                    "spare",
+                    "importStatus",
+                  ].map((key) => (
+                    <th key={key}>{t(key)}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {preview.rows.map((row) => (
+                  <tr
+                    key={row.number}
+                    className={row.errors.length ? "import-row-error" : ""}
+                  >
+                    <td>{n(row.number)}</td>
+                    <td>{row.displayRegistration || "—"}</td>
+                    <td>{row.value.name || "—"}</td>
+                    <td>
+                      {Number.isSafeInteger(row.value.odometer)
+                        ? n(row.value.odometer)
+                        : "—"}
+                    </td>
+                    <td>
+                      {typeof row.value.hasSpare === "boolean"
+                        ? t(row.value.hasSpare ? "yes" : "no")
+                        : "—"}
+                    </td>
+                    <td>
+                      {row.errors.length
+                        ? row.errors.map((code) => t(code)).join(" ")
+                        : t("importReady")}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+    </Dialog>
+  );
 }
 function InviteModal({ invite, onClose }) {
   const { t, setToast } = useApp();

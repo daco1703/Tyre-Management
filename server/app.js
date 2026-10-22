@@ -50,7 +50,7 @@ export function createApp({
     res.set("X-Frame-Options", "DENY");
     res.set(
       "Content-Security-Policy",
-      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https: http://localhost:*; object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
+      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https: http://localhost:*; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
     );
     const origin = req.get("origin");
     const native = ["https://localhost", "capacitor://localhost"].includes(
@@ -77,7 +77,7 @@ export function createApp({
     }
     next();
   });
-  app.use(express.json({ limit: "64kb" }));
+  app.use(express.json({ limit: "256kb" }));
   app.use("/api", (req, res, next) => {
     if (
       req.method === "POST" &&

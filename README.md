@@ -6,6 +6,7 @@ A tyre logbook for commercial vehicles, in English and Hindi. Includes an Androi
 
 - Owner and staff accounts, private invite codes, staff deactivation and password changes.
 - Unique tyre IDs, brand/model, size, New / Used / Remold condition, garage stock and scrapped history.
+- Excel vehicle import in offline and shared modes: download a blank `.xlsx` template, select a worksheet and review ready/skipped rows before confirming. Duplicate registrations and invalid rows are skipped in the preview. The selected valid rows are saved as one transaction with individual vehicle log entries.
 - 18 road positions per vehicle: two front singles and four rear axles with dual wheels, plus an optional spare position. Left/right are viewed facing forward from the driver’s seat; `LO/LI/RI/RO` mean left outer/inner and right inner/outer. `SP` is the spare.
 - Fit and return tyres with odometer readings and optional notes. Moving a tyre between vehicles or positions uses return → fit so both movements are recorded. Return a tyre before scrapping or recording a completed remold. A New tyre becomes Used on return, including a spare; remold tyres retain their condition.
 - Accumulated tyre mileage from entered odometer readings. Spares do not accrue road mileage. Previous mileage can be entered when receiving an existing tyre.
@@ -44,7 +45,7 @@ Browser tests launch a separate production server on port 3100 with a temporary 
 
 ### Test immediately without a server
 
-1. [Download the TyreSaathi 1.1.0 offline test APK](https://github.com/daco1703/Tyre-Management/blob/main/downloads/TyreSaathi-1.1-offline-test.apk?raw=true) and install it. If you installed the earlier test APK, install this as an update using the same signing key; do not uninstall to update.
+1. [Download the TyreSaathi 1.2.0 test APK](https://github.com/daco1703/Tyre-Management/blob/main/downloads/TyreSaathi-1.2-excel-test.apk?raw=true) and install it. If you installed the earlier test APK, install this as an update using the same signing key; do not uninstall to update.
 2. You can turn on **airplane mode before the first launch**. Open TyreSaathi and choose **Use offline on this phone**. Enter your garage name and tap **Open offline garage**. No username, password or server address is required.
 3. Add a vehicle with its current odometer and optional spare position. Add a few tyres using unique IDs, brands, sizes and New / Used / Remold conditions.
 4. Open Vehicles, select the vehicle and tap an empty wheel position to fit a stock tyre. Update the odometer or return the tyre to the garage to test mileage and stock movements. The dashboard and logbook update automatically.
@@ -52,6 +53,21 @@ Browser tests launch a separate production server on port 3100 with a temporary 
 6. In Team & settings, use **Export records (JSON)** to save/share a copy of your local records. This version does not include a JSON restore/import screen.
 
 Offline mode stores everything only on this device. **Uninstalling the app, clearing its storage, or browser storage eviction can remove local records.** Export copies regularly; Android device/cloud backup is disabled for this app. Offline mode has no staff accounts or shared synchronization. Switching to shared server mode keeps your local garage separate; it does not upload or merge offline records. Choose Use offline on this phone again to reopen the existing local garage.
+
+### Import vehicles from Excel
+
+Open **Vehicles → Import from Excel**. Download the template from the dialog, or [download it from this repository](https://github.com/daco1703/Tyre-Management/blob/main/downloads/TyreSaathi-vehicle-template.xlsx?raw=true). Fill one vehicle per row below the headings, save as `.xlsx`, and choose the file in the app. For files with multiple sheets, select the vehicle worksheet. Preview the rows and tap **Import N vehicles** to save only the ready rows.
+
+| Template column | Required | Accepted values / default |
+|---|---|---|
+| Vehicle Registration | Yes | Text containing letters, numbers, spaces or hyphens; normalized to uppercase without spaces, up to 30 characters |
+| Vehicle Name / Driver | No | Text, up to 100 characters |
+| Odometer (km) | No | Whole non-negative kilometres up to 99,999,999; blank = 0. Proper comma grouping such as 120,000 or 1,20,000 is accepted |
+| Has Spare | No | Yes/No, True/False, 1/0, or हाँ/नहीं; blank = No |
+
+Common alternate headings such as Registration, Vehicle No and वाहन नंबर are also recognized. Files must be `.xlsx` and at most 2 MB, with at most 200 nonempty vehicle rows per selected worksheet. Save old `.xls` files as `.xlsx` before importing. The template contains headings only, so it cannot accidentally add sample vehicles.
+
+Existing vehicles are not overwritten; import duplicate checks ignore registration case, spaces and hyphens. Duplicate registrations and invalid rows are marked as skipped. Cancel or correct the workbook to include skipped rows. All imports create empty 18-position road layouts with the requested optional spare; they do not create or fit tyres. In shared mode, a concurrent staff change causes the entire save to be rejected and the preview refreshed. A successful import saves all its ready rows together; it does not leave a partial import. Each vehicle receives a dated log entry with staff attribution (or This phone in offline mode). Excel import adds vehicles only; JSON record restore and offline-to-server migration are separate features.
 
 ### Share records between staff phones
 
@@ -159,6 +175,6 @@ Set `DATABASE_PATH` if needed. This resets an existing active account and revoke
 
 Native compilation and signature verification are separate from physical-device testing. Test an installed build on your actual phone before entering business records. Automated browser tests do not exercise Android’s file chooser or hardware-back behavior. Deployment, domain setup, Play Store publication, automated remote backups, GPS tracking, tyre inspections/tread depth, purchase costs, and reconciliation between local offline records and the shared server are not included in this version.
 
-Validation in the cloud workspace: all 24 domain/API/recovery tests and the production browser smoke workflow passed. The APK compiled and its signature verified. Compose configuration syntax passed. The optional Docker image build stalled during dependency installation here, including after proxy/trust configuration checks; it was stopped. The same frozen dependency installation completed in a standalone Node container. The full Docker image and HTTPS deployment still need validation on the selected host; the direct Node production workflow was validated separately.
+Validation in the cloud workspace includes domain/API/recovery tests and production browser workflows. Excel checks cover workbook/template parsing, multiple worksheets, Hindi values, defaults, duplicates, invalid rows, preview cancellation, offline persistence, atomic saving and the 200-row limit. The APK compiles and its signature is verified. Compose configuration syntax passed. The optional Docker image build stalled during dependency installation here, including after proxy/trust configuration checks; it was stopped. The same frozen dependency installation completed in a standalone Node container. The full Docker image and HTTPS deployment still need validation on the selected host; the direct Node production workflow was validated separately.
 
 The server stores the fleet’s state and event snapshots transactionally in SQLite. It is suited to a small fleet on one server; large histories and many concurrent users may need a normalized database and more granular synchronization in a future version.

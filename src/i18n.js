@@ -1,4 +1,44 @@
 export const en = {
+  importVehicles: "Import from Excel",
+  importTemplate: "Download template",
+  importChoose: "Choose Excel file",
+  importHelp:
+    "Import vehicles from an Excel workbook (.xlsx). Download the template, fill one vehicle per row, then choose the file and review the preview.",
+  importDefaults:
+    "Registration is required. Name/driver is optional; blank odometer = 0 km and blank spare = No. Use Yes/No for the spare column. Maximum 200 rows and 2 MB per workbook.",
+  importWorksheet: "Worksheet",
+  importRow: "Excel row",
+  importStatus: "Result",
+  importReady: "Ready",
+  importSwipe: "Swipe the preview sideways to see all columns and row results.",
+  importSkipped: "Skipped",
+  importPreviewHint:
+    "Only Ready rows will be added. Duplicate and invalid rows are skipped. Existing vehicles will stay as they are. All imported vehicles have 18 road positions.",
+  importConfirm: "Import {count} vehicles",
+  importSuccess: "Imported {count} vehicles",
+  importFileType:
+    "Choose an .xlsx workbook. In Excel, save older .xls files as Excel Workbook (.xlsx) first.",
+  importFileSize: "Choose a workbook smaller than 2 MB.",
+  importUnreadable:
+    "This workbook could not be read. Try saving it again as an unprotected .xlsx file.",
+  importEmpty:
+    "This worksheet has no vehicle rows. Fill in the template below its header row.",
+  importTooMany:
+    "Import at most 200 vehicle rows at a time. Split this worksheet into smaller batches.",
+  importDuplicateHeader:
+    "Two columns describe the same field. Keep only one column for each template field.",
+  importMissingHeader:
+    "A Vehicle Registration column is required. Use the template headings or Vehicle No / Registration / वाहन नंबर.",
+  importRegistrationInvalid:
+    "Enter a registration as text, using letters, numbers or hyphens (up to 30 characters).",
+  importNameInvalid: "Name/driver must be text, up to 100 characters.",
+  importSpareInvalid: "Spare must be Yes/No, True/False, 1/0 or हाँ/नहीं.",
+  importInvalidBatch:
+    "These rows cannot be imported. Check the preview and select the workbook again.",
+  importTemplateFailed:
+    "The template could not be saved or shared. Please try again.",
+  yes: "Yes",
+  no: "No",
   useOffline: "Use offline on this phone",
   offlineSetup: "Your own offline garage",
   offlineSetupSub:
@@ -283,6 +323,45 @@ export const en = {
 };
 export const hi = {
   ...en,
+  importVehicles: "Excel से वाहन जोड़ें",
+  importTemplate: "टेम्पलेट डाउनलोड करें",
+  importChoose: "Excel फ़ाइल चुनें",
+  importHelp:
+    "Excel वर्कबुक (.xlsx) से वाहन जोड़ें। टेम्पलेट डाउनलोड करें, हर पंक्ति में एक वाहन भरें और फ़ाइल चुनकर प्रीव्यू जाँचें।",
+  importDefaults:
+    "वाहन नंबर ज़रूरी है। नाम/ड्राइवर वैकल्पिक है। खाली ओडोमीटर = 0 किमी, खाली स्पेयर = नहीं। स्पेयर में Yes/No या हाँ/नहीं लिखें। अधिकतम 200 पंक्तियाँ और 2 MB।",
+  importWorksheet: "वर्कशीट",
+  importRow: "Excel पंक्ति",
+  importStatus: "परिणाम",
+  importReady: "तैयार",
+  importSwipe: "सभी कॉलम और परिणाम देखने के लिए प्रीव्यू को दाएँ-बाएँ खिसकाएँ।",
+  importSkipped: "छोड़ा गया",
+  importPreviewHint:
+    "केवल तैयार पंक्तियाँ जुड़ेंगी। डुप्लिकेट और गलत पंक्तियाँ छोड़ दी जाएँगी। पुराने वाहन नहीं बदलेंगे। हर नए वाहन में सड़क के 18 स्थान होंगे।",
+  importConfirm: "{count} वाहन जोड़ें",
+  importSuccess: "{count} वाहन जोड़े गए",
+  importFileType:
+    ".xlsx फ़ाइल चुनें। पुरानी .xls फ़ाइल को पहले Excel Workbook (.xlsx) में सेव करें।",
+  importFileSize: "2 MB से छोटी वर्कबुक चुनें।",
+  importUnreadable:
+    "वर्कबुक नहीं पढ़ी जा सकी। इसे बिना पासवर्ड वाली .xlsx फ़ाइल के रूप में दोबारा सेव करें।",
+  importEmpty:
+    "इस वर्कशीट में वाहन की पंक्तियाँ नहीं हैं। शीर्षक के नीचे वाहन भरें।",
+  importTooMany:
+    "एक बार में अधिकतम 200 वाहन जोड़ें। वर्कशीट को छोटे भागों में बाँटें।",
+  importDuplicateHeader:
+    "एक जानकारी के लिए दो कॉलम हैं। टेम्पलेट की हर जानकारी के लिए एक ही कॉलम रखें।",
+  importMissingHeader:
+    "Vehicle Registration, Vehicle No, Registration या वाहन नंबर कॉलम ज़रूरी है।",
+  importRegistrationInvalid:
+    "वाहन नंबर टेक्स्ट में लिखें। अधिकतम 30 अंग्रेज़ी अक्षर, अंक या हाइफ़न रखें।",
+  importNameInvalid: "नाम/ड्राइवर अधिकतम 100 अक्षरों का टेक्स्ट होना चाहिए।",
+  importSpareInvalid: "स्पेयर में Yes/No, True/False, 1/0 या हाँ/नहीं लिखें।",
+  importInvalidBatch:
+    "ये पंक्तियाँ नहीं जोड़ी जा सकतीं। प्रीव्यू जाँचकर फ़ाइल दोबारा चुनें।",
+  importTemplateFailed: "टेम्पलेट सेव या शेयर नहीं हुआ। फिर कोशिश करें।",
+  yes: "हाँ",
+  no: "नहीं",
   useOffline: "इस फोन पर ऑफलाइन इस्तेमाल करें",
   offlineSetup: "आपका अपना ऑफलाइन गैराज",
   offlineSetupSub:
