@@ -1,4 +1,24 @@
 export const en = {
+  useOffline: "Use offline on this phone",
+  offlineSetup: "Your own offline garage",
+  offlineSetupSub:
+    "Start with just your garage name. No account, server or internet needed.",
+  offlineStart: "Open offline garage",
+  offlineDefaultName: "My garage",
+  localMode: "Offline mode · saved on this phone",
+  localHint:
+    "Records stay on this device. Export a copy regularly. Uninstalling the app or clearing its storage removes local records.",
+  localTeamHint:
+    "One phone only. Local records are separate from shared server records and will not sync automatically when you switch.",
+  localStorageFailed:
+    "The record could not be saved on this device. Check available storage and try again. No success has been recorded.",
+  sharedMode: "Use a shared server",
+  thisPhone: "This phone",
+  localAccount: "Offline garage",
+  localExisting:
+    "Your existing offline garage will be reopened. Its records will be kept.",
+  localExportHint:
+    "Export all your local tyres, vehicles and movement history as a JSON file. This version exports records; it does not include a restore/import screen.",
   app: "TyreSaathi",
   tagline: "Every tyre. Every kilometre.",
   dashboard: "Dashboard",
@@ -263,6 +283,26 @@ export const en = {
 };
 export const hi = {
   ...en,
+  useOffline: "इस फोन पर ऑफलाइन इस्तेमाल करें",
+  offlineSetup: "आपका अपना ऑफलाइन गैराज",
+  offlineSetupSub:
+    "सिर्फ गैराज का नाम लिखकर शुरू करें। खाता, सर्वर या इंटरनेट की ज़रूरत नहीं।",
+  offlineStart: "ऑफलाइन गैराज खोलें",
+  offlineDefaultName: "मेरा गैराज",
+  localMode: "ऑफलाइन मोड · इसी फोन पर सेव",
+  localHint:
+    "रिकॉर्ड इसी फोन पर रहेंगे। नियमित एक्सपोर्ट करें। ऐप हटाने या उसका स्टोरेज साफ़ करने पर स्थानीय रिकॉर्ड मिट जाएँगे।",
+  localTeamHint:
+    "सिर्फ एक फोन के लिए। स्थानीय रिकॉर्ड साझा सर्वर के रिकॉर्ड से अलग हैं और मोड बदलने पर अपने आप सिंक नहीं होंगे।",
+  localStorageFailed:
+    "इस फोन पर रिकॉर्ड सेव नहीं हुआ। खाली स्टोरेज जाँचें और फिर कोशिश करें। सफल सेव दर्ज नहीं हुआ है।",
+  sharedMode: "साझा सर्वर इस्तेमाल करें",
+  thisPhone: "यह फोन",
+  localAccount: "ऑफलाइन गैराज",
+  localExisting:
+    "पहले से मौजूद ऑफलाइन गैराज खुलेगा। उसके रिकॉर्ड सुरक्षित रहेंगे।",
+  localExportHint:
+    "अपने फोन के टायर, वाहन और गतिविधियों का JSON एक्सपोर्ट करें। इस संस्करण में रिकॉर्ड वापस लोड करने की स्क्रीन नहीं है।",
   tagline: "हर टायर। हर किलोमीटर।",
   dashboard: "डैशबोर्ड",
   vehicles: "वाहन",

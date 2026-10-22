@@ -18,6 +18,35 @@
   line-height: 1.5;
   -webkit-tap-highlight-color: transparent;
 }
+.local-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 16px;
+  background: #e8f0dd;
+  color: #4d7038;
+  font-size: 12px;
+}
+.offline-choice {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+.offline-choice > button {
+  width: 100%;
+}
+.offline-disclosure {
+  margin-top: 22px;
+  padding: 14px;
+  background: #eef3e4;
+  border-radius: 10px;
+  font-size: 12px !important;
+}
+.connect-page form > .secondary {
+  width: 100%;
+  margin-top: 12px;
+}
 * {
   box-sizing: border-box;
 }

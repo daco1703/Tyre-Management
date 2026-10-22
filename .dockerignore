@@ -3,6 +3,7 @@ data
 android
 dist
 artifacts
+downloads
 .git
 .env
 *.log

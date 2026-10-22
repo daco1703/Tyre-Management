@@ -37,6 +37,7 @@ import {
   Menu,
 } from "lucide-react";
 import { en, hi } from "./i18n";
+import { loadOffline, startOffline, offlineAction } from "./offline";
 import { slots, dayKey, tally, dailyTally, tyreKm } from "../shared/model";
 import "./style.css";
 import "@fontsource/inter/latin-400.css";
@@ -91,6 +92,11 @@ async function request(url, body) {
 const Context = React.createContext();
 const useApp = () => React.useContext(Context);
 function App() {
+  const [localMode, setLocalMode] = useState(read("ts-mode") === "local");
+  const [showOfflineSetup, setShowOfflineSetup] = useState(false);
+  const initVersion = useRef(0);
+  const localRef = useRef(localMode);
+  localRef.current = localMode;
   const [lang, setLang] = useState(read("ts-lang", "en"));
   const [session, setSession] = useState(null),
     [state, setState] = useState(null);
@@ -101,7 +107,7 @@ function App() {
   const [modal, setModal] = useState(null),
     [toast, setToast] = useState(null);
   const [offline, setOffline] = useState(!navigator.onLine),
-    [needsServer, setNeedsServer] = useState(native && !server);
+    [needsServer, setNeedsServer] = useState(native && !server && !localMode);
   const dict = lang === "hi" ? hi : en;
   const t = (key) => dict[key] || en[key] || key;
   const n = (value) =>
@@ -124,11 +130,12 @@ function App() {
     if (!native) return;
     const listener = NativeApp.addListener("backButton", () => {
       if (modal) {
-        document.querySelector("dialog[open]")?.dispatchEvent(
-          new Event("cancel", { cancelable: true, bubbles: true }),
-        );
-      }
-      else if (vehicleId) {
+        document
+          .querySelector("dialog[open]")
+          ?.dispatchEvent(
+            new Event("cancel", { cancelable: true, bubbles: true }),
+          );
+      } else if (vehicleId) {
         setVehicleId(null);
         setPage("vehicles");
       } else if (page !== "dashboard") setPage("dashboard");
@@ -155,24 +162,40 @@ function App() {
     setVehicleId(null);
   }
   async function initialize() {
+    const version = ++initVersion.current;
+    if (localMode) {
+      try {
+        const profile = await loadOffline();
+        if (version !== initVersion.current) return;
+        if (profile) activateLocal(profile);
+        else setShowOfflineSetup(true);
+      } catch (e) {
+        if (version === initVersion.current) setBootError(e.code);
+      }
+      return;
+    }
     if (native && !server) return;
     setBootError("");
     try {
       const config = await request("/bootstrap");
+      if (version !== initVersion.current) return;
       setBoot(config);
       try {
         const s = await request("/me");
         const data = await request("/state");
+        if (version !== initVersion.current) return;
         setSession(s);
         store("ts-session", s);
         setState(data);
         store("ts-state", data);
         setOffline(false);
       } catch (e) {
+        if (version !== initVersion.current) return;
         if (e.status === 401) resetSession();
         else throw e;
       }
     } catch (e) {
+      if (version !== initVersion.current) return;
       const cached = read("ts-session"),
         data = read("ts-state");
       if (cached && data) {
@@ -185,15 +208,62 @@ function App() {
   }
   useEffect(() => {
     initialize();
-  }, [needsServer]);
+  }, [needsServer, localMode]);
+  function activateLocal(profile) {
+    setSession({
+      fleetName: profile.fleetName,
+      user: { id: "local", username: t("thisPhone"), role: "owner" },
+    });
+    setState(profile.state);
+    setOffline(false);
+    setBoot({ setupRequired: false });
+    setBootError("");
+    setNeedsServer(false);
+    setShowOfflineSetup(false);
+  }
+  async function beginLocal(fleetName) {
+    const profile = await startOffline(fleetName);
+    try {
+      localStorage.setItem("ts-mode", JSON.stringify("local"));
+    } catch {
+      throw { code: "localStorageFailed" };
+    }
+    ++initVersion.current;
+    localRef.current = true;
+    setLocalMode(true);
+    activateLocal(profile);
+    setPage("dashboard");
+    setVehicleId(null);
+  }
+  function leaveLocal() {
+    ++initVersion.current;
+    store("ts-mode", "server");
+    localRef.current = false;
+    setLocalMode(false);
+    resetSession();
+    setBoot(null);
+    setBootError("");
+    setNeedsServer(native && !server);
+  }
   async function refresh() {
+    if (localRef.current) {
+      try {
+        const profile = await loadOffline();
+        if (localRef.current && profile) setState(profile.state);
+        return profile?.state;
+      } catch {
+        return null;
+      }
+    }
     try {
       const data = await request("/state");
+      if (localRef.current) return null;
       setState(data);
       store("ts-state", data);
       setOffline(false);
       return data;
     } catch (e) {
+      if (localRef.current) return null;
       if (e.status === 401) {
         resetSession();
         setToast({ text: t("unauthorized"), error: true });
@@ -202,7 +272,7 @@ function App() {
     }
   }
   useEffect(() => {
-    if (!session) return;
+    if (!session || localMode) return;
     const id = setInterval(refresh, 10000);
     const online = () => refresh();
     const off = () => setOffline(true);
@@ -215,8 +285,19 @@ function App() {
       window.removeEventListener("offline", off);
       document.removeEventListener("visibilitychange", online);
     };
-  }, [session]);
+  }, [session, localMode]);
   async function action(kind, payload) {
+    if (localMode) {
+      try {
+        const data = await offlineAction(kind, payload, state.revision);
+        setState(data);
+        setToast({ text: t("saved") });
+        return data;
+      } catch (e) {
+        if (e.code === "staleData") await refresh();
+        throw e;
+      }
+    }
     if (offline) throw { code: "offlineHint" };
     try {
       const data = await request("/actions", {
@@ -278,10 +359,18 @@ function App() {
     setModal,
     setToast,
     logout,
+    localMode,
+    openOffline: () => setShowOfflineSetup(true),
+    leaveLocal,
   };
   return (
     <Context.Provider value={value}>
-      {needsServer ? (
+      {showOfflineSetup ? (
+        <OfflineSetup
+          onStart={beginLocal}
+          onCancel={() => setShowOfflineSetup(false)}
+        />
+      ) : needsServer ? (
         <ServerConnect
           onConnect={() => {
             setNeedsServer(false);
@@ -291,8 +380,11 @@ function App() {
         <div className="connection-page">
           <Brand />
           <WifiOff size={48} />
-          <h1>{t("notConnected")}</h1>
+          <h1>{t(localMode ? "localStorageFailed" : "notConnected")}</h1>
           <button onClick={initialize}>{t("retry")}</button>
+          <Button secondary onClick={() => setShowOfflineSetup(true)}>
+            {t("useOffline")}
+          </Button>
           {native && (
             <button className="secondary" onClick={() => setNeedsServer(true)}>
               {t("changeServer")}
@@ -304,6 +396,11 @@ function App() {
           <Brand />
           <RefreshCw className="spin" />
           <p>{t("reconnecting")}</p>
+          {!localMode && (
+            <Button secondary onClick={() => setShowOfflineSetup(true)}>
+              {t("useOffline")}
+            </Button>
+          )}
         </div>
       ) : !session ? (
         <Auth
@@ -320,7 +417,7 @@ function App() {
               <strong>{session.fleetName}</strong>
               <span className="workspace-dot">
                 <i />
-                {t("sync")}
+                {t(localMode ? "localMode" : "sync")}
               </span>
             </div>
             <Navigation page={page} navigate={navigate} />
@@ -338,7 +435,9 @@ function App() {
                 </span>
                 <span>
                   <strong>{session.user.username}</strong>
-                  <small>{t(session.user.role)}</small>
+                  <small>
+                    {t(localMode ? "localAccount" : session.user.role)}
+                  </small>
                 </span>
                 <Settings size={18} />
               </button>
@@ -361,7 +460,9 @@ function App() {
                   ) : (
                     <span className="live-dot" />
                   )}
-                  <span>{t(offline ? "offline" : "sync")}</span>
+                  <span>
+                    {t(localMode ? "localMode" : offline ? "offline" : "sync")}
+                  </span>
                 </span>
                 <LanguageSwitch />
                 <button
@@ -373,6 +474,12 @@ function App() {
                 </button>
               </div>
             </header>
+            {localMode && (
+              <div className="local-banner">
+                <CircleDot size={16} />
+                <span>{t("localMode")}</span>
+              </div>
+            )}
             {offline && (
               <div className="offline-banner">
                 <WifiOff size={16} />
@@ -407,7 +514,7 @@ function App() {
             <footer className="page-footer">
               <CircleDot size={14} />
               {t("tagline")}
-              <span>TyreSaathi · v1.0</span>
+              <span>TyreSaathi · v1.1</span>
             </footer>
           </div>
           <nav className="bottom-nav">
@@ -574,8 +681,86 @@ function PasswordField({
     </Field>
   );
 }
-function ServerConnect({ onConnect }) {
+function OfflineSetup({ onStart, onCancel }) {
   const { t } = useApp();
+  const [name, setName] = useState(t("offlineDefaultName"));
+  const [existing, setExisting] = useState(false);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    let active = true;
+    loadOffline()
+      .then((profile) => {
+        if (active && profile) {
+          setName(profile.fleetName);
+          setExisting(true);
+        }
+      })
+      .catch(() => {
+        if (active) setError("localStorageFailed");
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+  async function submit(e) {
+    e.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      await onStart(name);
+    } catch (e) {
+      setError(e.code || "localStorageFailed");
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <div className="auth-page connect-page">
+      <section className="auth-card">
+        <div className="auth-top">
+          <Brand />
+          <LanguageSwitch />
+        </div>
+        <span className="empty-icon">
+          <CircleDot size={30} />
+        </span>
+        <h1>{t("offlineSetup")}</h1>
+        <p>{t("offlineSetupSub")}</p>
+        <form onSubmit={submit}>
+          <Field
+            label="fleetName"
+            hint={existing ? "localExisting" : undefined}
+          >
+            <input
+              name="fleetName"
+              required
+              maxLength={80}
+              value={name}
+              readOnly={existing}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </Field>
+          {error && (
+            <div className="form-error" role="alert">
+              {t(error)}
+            </div>
+          )}
+          <Button disabled={busy} icon={ArrowRight}>
+            {t(busy ? "loading" : "offlineStart")}
+          </Button>
+          <Button secondary type="button" disabled={busy} onClick={onCancel}>
+            {t("cancel")}
+          </Button>
+        </form>
+        <p className="offline-disclosure">{t("localHint")}</p>
+        <p className="small muted">{t("localTeamHint")}</p>
+      </section>
+    </div>
+  );
+}
+function ServerConnect({ onConnect }) {
+  const { t, openOffline } = useApp();
   const [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
   async function submit(e) {
@@ -643,12 +828,17 @@ function ServerConnect({ onConnect }) {
             {t(busy ? "loading" : "connect")}
           </Button>
         </form>
+        <div className="offline-choice">
+          <Button secondary icon={CircleDot} onClick={openOffline}>
+            {t("useOffline")}
+          </Button>
+        </div>
       </section>
     </div>
   );
 }
 function Auth({ boot, onAuth, changeServer }) {
-  const { t } = useApp();
+  const { t, openOffline } = useApp();
   const [mode, setMode] = useState(boot.setupRequired ? "create" : "login");
   const [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
@@ -834,6 +1024,11 @@ function Auth({ boot, onAuth, changeServer }) {
           <div className="auth-foot">
             <ShieldCheck size={15} />
             <span>{t("privacy")}</span>
+          </div>
+          <div className="offline-choice">
+            <Button secondary icon={CircleDot} onClick={openOffline}>
+              {t("useOffline")}
+            </Button>
           </div>
           {native && (
             <button className="text-button" onClick={changeServer}>
@@ -1640,6 +1835,9 @@ function SettingsPage({ onChangeServer }) {
     setLang,
     logout,
     offline,
+    localMode,
+    openOffline,
+    leaveLocal,
   } = useApp();
   const [team, setTeam] = useState([]),
     [error, setError] = useState("");
@@ -1652,7 +1850,7 @@ function SettingsPage({ onChangeServer }) {
     }
   }
   useEffect(() => {
-    if (session.user.role === "owner") load();
+    if (!localMode && session.user.role === "owner") load();
   }, []);
   async function invite() {
     try {
@@ -1664,12 +1862,15 @@ function SettingsPage({ onChangeServer }) {
   }
   return (
     <>
-      <PageHeading title={t("settings")} sub={t("teamSub")} />
+      <PageHeading
+        title={t("settings")}
+        sub={t(localMode ? "localTeamHint" : "teamSub")}
+      />
       <div className="settings-grid">
         <section className="card settings-card">
           <h2>
             <Users size={20} />
-            {t("team")}
+            {t(localMode ? "localAccount" : "team")}
           </h2>
           <div className="business-info">
             <span className="avatar">
@@ -1678,11 +1879,22 @@ function SettingsPage({ onChangeServer }) {
             <div>
               <strong>{session.fleetName}</strong>
               <small>
-                {session.user.username} · {t(session.user.role)}
+                {localMode
+                  ? t("thisPhone")
+                  : `${session.user.username} · ${t(session.user.role)}`}
               </small>
             </div>
           </div>
-          {session.user.role === "owner" && (
+          {localMode && (
+            <>
+              <p>{t("localHint")}</p>
+              <p className="small muted">{t("localTeamHint")}</p>
+              <Button secondary icon={Link} onClick={leaveLocal}>
+                {t("sharedMode")}
+              </Button>
+            </>
+          )}
+          {!localMode && session.user.role === "owner" && (
             <>
               {error && <p className="form-error">{t(error)}</p>}
               <div className="team-list">
@@ -1747,38 +1959,48 @@ function SettingsPage({ onChangeServer }) {
                 </button>
               </div>
             </div>
-            <button
-              className="setting-button"
-              disabled={offline}
-              onClick={() => setModal({ type: "password" })}
-            >
-              {t("changePassword")}
-              <ChevronRight size={17} />
-            </button>
-            {native && (
+            {!localMode && (
+              <button
+                className="setting-button"
+                disabled={offline}
+                onClick={() => setModal({ type: "password" })}
+              >
+                {t("changePassword")}
+                <ChevronRight size={17} />
+              </button>
+            )}
+            {!localMode && native && (
               <button className="setting-button" onClick={onChangeServer}>
                 {t("changeServer")}
                 <ChevronRight size={17} />
               </button>
             )}
-            <button
-              className="setting-button danger"
-              onClick={logout}
-              disabled={offline}
-            >
-              <span>
-                <LogOut size={17} />
-                {t("signOut")}
-              </span>
-              <ChevronRight size={17} />
-            </button>
+            {!localMode && (
+              <button className="setting-button" onClick={openOffline}>
+                {t("useOffline")}
+                <ChevronRight size={17} />
+              </button>
+            )}
+            {!localMode && (
+              <button
+                className="setting-button danger"
+                onClick={logout}
+                disabled={offline}
+              >
+                <span>
+                  <LogOut size={17} />
+                  {t("signOut")}
+                </span>
+                <ChevronRight size={17} />
+              </button>
+            )}
           </section>
           <section className="card settings-card">
             <h2>
               <Download size={20} />
               {t("backup")}
             </h2>
-            <p>{t("exportHint")}</p>
+            <p>{t(localMode ? "localExportHint" : "exportHint")}</p>
             <Button
               secondary
               icon={Download}
@@ -1805,7 +2027,9 @@ function SettingsPage({ onChangeServer }) {
             >
               {t("exportBackup")}
             </Button>
-            <p className="small muted">{t("privacy")}</p>
+            <p className="small muted">
+              {t(localMode ? "localHint" : "privacy")}
+            </p>
           </section>
           {!native && (
             <section className="card settings-card">
