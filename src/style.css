@@ -3332,3 +3332,449 @@ main {
 .axle-label {
   visibility: hidden;
 }
+
+/* Shepards company colours and maintenance screens. */
+:root {
+  color: #352d2d;
+  background: #faf8f7;
+  --green: #bd1018;
+  --lime: #ffe1df;
+  --muted: #827575;
+  --border: #ece3e1;
+}
+.sidebar,
+.auth-story {
+  background: #8e1018;
+  color: #fff8f6;
+}
+.brand-icon {
+  background: #fff5f0;
+  color: #c20812;
+}
+.company-monogram {
+  font-family: Georgia, serif;
+  font-style: italic;
+  font-size: 30px;
+}
+.company-logo {
+  width: 40px;
+  height: 58px;
+  object-fit: contain;
+  flex-shrink: 0;
+  background: #fff;
+  border-radius: 3px;
+}
+.brand small,
+.story-main > p,
+.story-main > .eyebrow,
+.eyebrow.light,
+.workspace-dot {
+  color: #f6d8d5;
+}
+.workspace-label .tiny-label {
+  color: #efbdb9;
+}
+.nav-items button.selected {
+  background: #fff0ea;
+  color: #9c111b;
+}
+.nav-indicator,
+.workspace-dot i {
+  background: #f9aaa4;
+}
+.primary:hover:not(:disabled) {
+  background: #980d16;
+}
+.secondary {
+  border-color: #e4d5d2;
+  color: #6b3133;
+}
+.secondary:hover:not(:disabled) {
+  background: #fff2ee;
+}
+.text-button,
+.eyebrow {
+  color: #a11b23;
+}
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: #c12b32;
+  outline-color: #c12b32;
+}
+.company-banner-login {
+  display: block;
+  width: 100%;
+  max-height: 86px;
+  object-fit: contain;
+  margin: 0 0 26px;
+}
+.branding-preview {
+  display: block;
+  max-width: 100%;
+  object-fit: contain;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin: 8px 0;
+}
+.branding-preview.logo {
+  width: 80px;
+  height: 116px;
+}
+.branding-preview.banner {
+  width: 350px;
+  max-height: 100px;
+}
+.manufacturer-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  vertical-align: middle;
+  max-width: 100%;
+  min-width: 0;
+  font-size: inherit;
+}
+.manufacturer-mark > img,
+.manufacturer-initials {
+  width: 27px;
+  height: 27px;
+  object-fit: contain;
+  border-radius: 4px;
+  background: #fff;
+  flex-shrink: 0;
+}
+.manufacturer-initials {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: #6d4040;
+  border: 1px solid var(--border);
+}
+.manufacturer-mark > span:last-child {
+  overflow-wrap: anywhere;
+}
+.wheel .manufacturer-mark > img,
+.wheel .manufacturer-initials {
+  width: 20px;
+  height: 20px;
+}
+.report-filters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+  padding: 20px;
+}
+.report-filters .field {
+  margin: 0;
+  min-width: 0;
+}
+.report-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 22px;
+}
+.report-metrics > .card {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.report-metrics strong {
+  font-size: 27px;
+  color: #a3131c;
+}
+.report-metrics span {
+  font-size: 12px;
+  color: var(--muted);
+}
+.report-exports {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.report-table-wrap {
+  overflow-x: auto;
+  max-width: 100%;
+}
+.report-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 12px;
+}
+.report-table th,
+.report-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.report-table thead {
+  background: #fff4f1;
+}
+.report-history {
+  margin-top: 20px;
+}
+.report-event {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.report-event span,
+.report-event small {
+  color: var(--muted);
+}
+.report-table-wrap + p,
+.report-history > p {
+  padding: 8px 0;
+}
+.report-history,
+.report-metrics + .card {
+  padding: 20px;
+}
+.maintenance-reminders {
+  margin-bottom: 24px;
+  padding: 20px;
+  border-left: 4px solid #dc9a39;
+}
+.maintenance-reminders button {
+  display: block;
+  text-align: left;
+  margin-top: 9px;
+}
+.advisory-banner,
+.maintenance-notice {
+  padding: 14px 18px;
+  margin: 0 0 18px;
+  border: 1px solid #efd7ac;
+  border-radius: 10px;
+  background: #fffaed;
+  color: #765218;
+  font-size: 13px;
+}
+.advisory-banner button,
+.maintenance-notice button {
+  margin-left: 10px;
+}
+.vehicle-inspection-summary {
+  padding: 20px;
+  margin-top: 18px;
+}
+.inspection-counters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: 14px 0;
+  font-size: 12px;
+}
+.inspection-finding {
+  display: grid;
+  grid-template-columns: 90px 1fr 1fr;
+  gap: 10px;
+  padding: 14px;
+  margin-bottom: 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.inspection-finding .field {
+  margin: 0;
+  min-width: 0;
+}
+.inspection-finding button {
+  grid-column: 1 / -1;
+  justify-self: end;
+}
+.inspection-nsd-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 1.4fr) repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+  align-items: center;
+}
+.inspection-nsd-row > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+.inspection-nsd-row .field {
+  margin: 0;
+  min-width: 0;
+}
+.nsd-inputs {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  margin: 15px 0;
+  min-width: 0;
+}
+.nsd-inputs legend {
+  font-size: 12px;
+  padding: 0 5px;
+}
+.nsd-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.nsd-fields .field {
+  margin: 0;
+  min-width: 0;
+}
+.nsd-summary {
+  padding: 16px;
+  margin: 16px 0;
+  background: #fff6f2;
+  border-radius: 10px;
+}
+.nsd-summary > strong {
+  font-size: 24px;
+}
+.nsd-summary p {
+  font-size: 12px;
+}
+@media (max-width: 700px) {
+  .mobile-nav-items {
+    padding: 6px 2px;
+  }
+  .mobile-nav-items button {
+    min-width: 0;
+    padding: 4px 2px;
+    flex-basis: 0;
+    font-size: 8px;
+    overflow-wrap: anywhere;
+  }
+  .mobile-nav-items button.selected {
+    color: #ad1520;
+  }
+  .mobile-nav-items button.selected:before {
+    background: #ffe4df;
+  }
+  .bottom-nav {
+    background: #fffcfa;
+    border-color: var(--border);
+  }
+  .report-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 14px;
+    gap: 12px;
+  }
+  .report-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .report-metrics > .card {
+    padding: 14px;
+  }
+  .report-metrics strong {
+    font-size: 23px;
+  }
+  .inspection-finding {
+    grid-template-columns: 90px minmax(0, 1fr);
+    padding: 10px;
+  }
+  .inspection-finding .field:nth-child(3) {
+    grid-column: 1 / -1;
+  }
+  .inspection-nsd-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .inspection-nsd-row > div:first-child {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .inspection-nsd-row input {
+    padding: 9px;
+  }
+  .company-logo {
+    width: 30px;
+    height: 42px;
+  }
+}
+.dialog.wide {
+  max-width: min(850px, calc(100vw - 24px));
+}
+.dialog.wide .dialog-header {
+  position: static;
+  min-width: 0;
+}
+.dialog.wide .dialog-body {
+  width: 100%;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.dialog.wide form {
+  min-width: 0;
+}
+@media (max-width: 700px) {
+  .field input,
+  .field select,
+  .field textarea {
+    font-size: 16px;
+  }
+  .dialog.wide {
+    width: calc(100vw - 24px);
+  }
+}
+.page-heading {
+  flex-wrap: wrap;
+}
+.heading-actions {
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+@media (max-width: 700px) {
+  .heading-actions > .primary,
+  .heading-actions > .secondary {
+    flex: 1 1 calc(50% - 9px);
+    min-width: 0;
+  }
+}
+.daily-card {
+  background: #8e1018;
+}
+.daily-numbers strong {
+  color: #fff5ef;
+}
+.daily-card > p,
+.daily-card > .card-title-row > svg,
+.date-control,
+.daily-numbers span,
+.daily-foot {
+  color: #f4d9d4;
+}
+.daily-foot i {
+  background: #f4b6ad;
+}
+.field > span {
+  color: #6f5454;
+}
+.dialog {
+  color: #352d2d;
+}
+.form-info,
+.selected-record {
+  background: #fff4ef;
+  color: #845452;
+}
+.checkbox-field input {
+  accent-color: #bd1018;
+}
+.mobile-brand .brand small,
+.auth-top .brand small,
+.connect-page .brand small {
+  color: #9b5252;
+}

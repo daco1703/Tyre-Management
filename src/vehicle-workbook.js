@@ -18,13 +18,20 @@ export function makeVehicleTemplate() {
         value,
         type: String,
         fontWeight: "bold",
-        backgroundColor: "#173f35",
+        backgroundColor: "#bd1018",
         color: "#ffffff",
       })),
     ],
     {
       sheet: "Vehicles",
-      columns: [{ width: 28 }, { width: 32 }, { width: 22 }, { width: 18 }],
+      columns: [
+        { width: 28 },
+        { width: 32 },
+        { width: 22 },
+        { width: 18 },
+        { width: 28 },
+        { width: 28 },
+      ],
     },
   ).toBlob();
 }

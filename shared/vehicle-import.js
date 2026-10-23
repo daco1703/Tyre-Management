@@ -1,9 +1,12 @@
+import { vehicleClasses } from "./catalogue.js";
 export const MAX_IMPORT_ROWS = 200;
 export const VEHICLE_HEADERS = [
   "Vehicle Registration",
   "Vehicle Name / Driver",
   "Odometer (km)",
   "Has Spare",
+  "Vehicle Type (BS3/BS4/BS6)",
+  "Driver Name",
 ];
 const headerKey = (value) =>
   String(value ?? "")
@@ -27,12 +30,20 @@ const aliases = {
     "Vehicle Name / Driver",
     "Vehicle Name",
     "Driver",
-    "Driver Name",
     "Name",
     "वाहन का नाम",
     "ड्राइवर",
     "वाहन का नाम / ड्राइवर",
   ],
+  emissionClass: [
+    "Vehicle Type (BS3/BS4/BS6)",
+    "Vehicle Type",
+    "Emission Class",
+    "BS",
+    "BS Class",
+    "वाहन का प्रकार",
+  ],
+  driverName: ["Driver Name", "Current Driver", "ड्राइवर का नाम"],
   odometer: [
     "Odometer (km)",
     "Odometer",
@@ -105,7 +116,23 @@ export function normalizeVehicle(record) {
       hasSpare = false;
     else errors.push("importSpareInvalid");
   }
-  return { value: { registration, name, odometer, hasSpare }, errors };
+  const emissionClass = blank(record.emissionClass)
+    ? null
+    : String(record.emissionClass).replace(/\s+/g, "").toUpperCase();
+  if (emissionClass && !vehicleClasses.includes(emissionClass))
+    errors.push("invalidVehicleClass");
+  const driverName = blank(record.driverName)
+    ? ""
+    : typeof record.driverName === "string"
+      ? record.driverName.trim()
+      : null;
+  if (driverName === null || driverName.length > 100)
+    errors.push("importNameInvalid");
+  const value = { registration, name, odometer, hasSpare };
+  // Preserve compatibility with older four-column imports; new columns are optional.
+  if (!blank(record.emissionClass)) value.emissionClass = emissionClass;
+  if (!blank(record.driverName)) value.driverName = driverName;
+  return { value, errors };
 }
 export function previewVehicleImport(matrix, existing = []) {
   if (!Array.isArray(matrix)) return { error: "importUnreadable", rows: [] };

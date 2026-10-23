@@ -74,7 +74,7 @@ export function createApp({
     res.set("X-Frame-Options", "DENY");
     res.set(
       "Content-Security-Policy",
-      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https: http://localhost:*; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
+      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://www.google.com https://*.gstatic.com; connect-src 'self' https: http://localhost:*; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
     );
     const origin = req.get("origin");
     const native = ["https://localhost", "capacitor://localhost"].includes(
@@ -102,6 +102,7 @@ export function createApp({
     }
     next();
   });
+  app.use("/api/branding", express.json({ limit: "3mb" }));
   app.use(express.json({ limit: "256kb" }));
   app.use("/api", (req, res, next) => {
     if (
@@ -170,8 +171,42 @@ export function createApp({
     req.user.role === "owner"
       ? next()
       : res.status(403).json({ error: "ownerOnly" });
+  app.get("/api/branding", (req, res) =>
+    res.json(JSON.parse(setting("branding") || "{}")),
+  );
+  app.post("/api/branding", auth, owner, (req, res) => {
+    const branding = JSON.parse(setting("branding") || "{}");
+    for (const key of ["logo", "banner"]) {
+      if (req.body[key] === undefined) continue;
+      if (req.body[key] === null) {
+        delete branding[key];
+        continue;
+      }
+      if (typeof req.body[key] !== "string")
+        throw new AppError("invalidBrandImage");
+      const match =
+        /^data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+/]+={0,2})$/.exec(
+          req.body[key],
+        );
+      if (!match) throw new AppError("invalidBrandImage");
+      const bytes = Buffer.from(match[2], "base64");
+      if (bytes.length > 1024 * 1024 || bytes.toString("base64") !== match[2])
+        throw new AppError("invalidBrandImage");
+      const valid =
+        match[1] === "png"
+          ? bytes.subarray(0, 8).equals(Buffer.from("89504e470d0a1a0a", "hex"))
+          : match[1] === "jpeg"
+            ? bytes.subarray(0, 3).equals(Buffer.from("ffd8ff", "hex"))
+            : bytes.toString("ascii", 0, 4) === "RIFF" &&
+              bytes.toString("ascii", 8, 12) === "WEBP";
+      if (!valid) throw new AppError("invalidBrandImage");
+      branding[key] = req.body[key];
+    }
+    save("branding", JSON.stringify(branding));
+    res.json(branding);
+  });
   app.get("/api/health", (req, res) =>
-    res.json({ ok: true, version: "1.4.1" }),
+    res.json({ ok: true, version: "1.5.0" }),
   );
   app.get("/api/bootstrap", (req, res) => res.json({ setupRequired: false }));
   app.post("/api/login", authLimit, (req, res) => {

@@ -704,3 +704,47 @@ test("configured public origin still rejects foreign sites and forged forwarding
   }
   assert.equal((await req("/me", undefined, owner.cookie)).status, 200);
 });
+
+test("only admin can save company images; validation is atomic and public data contains only branding", async (t) => {
+  const { req, owner } = await fixture(t);
+  const png =
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a1ZkAAAAASUVORK5CYII=";
+  assert.deepEqual((await req("/branding")).data, {});
+  assert.equal((await req("/branding", { logo: png })).status, 401);
+  await req(
+    "/team/create",
+    { username: "image_staff", password: "image-staff-password" },
+    owner.cookie,
+  );
+  const staff = await req("/login", {
+    username: "image_staff",
+    password: "image-staff-password",
+  });
+  assert.equal(
+    (await req("/branding", { logo: png }, staff.cookie)).status,
+    403,
+  );
+  assert.equal(
+    (await req("/branding", { logo: png, banner: png }, owner.cookie)).status,
+    200,
+  );
+  assert.deepEqual((await req("/branding")).data, { logo: png, banner: png });
+  for (const bad of [
+    "data:image/svg+xml;base64,PHN2Zy8+",
+    "data:image/png;base64,YWJj",
+    {},
+    "https://evil.test/image.png",
+  ]) {
+    assert.equal(
+      (await req("/branding", { logo: null, banner: bad }, owner.cookie))
+        .status,
+      400,
+    );
+    assert.deepEqual((await req("/branding")).data, { logo: png, banner: png });
+  }
+  assert.equal(
+    (await req("/branding", { logo: null }, owner.cookie)).status,
+    200,
+  );
+  assert.deepEqual((await req("/branding")).data, { banner: png });
+});

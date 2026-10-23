@@ -1,6 +1,6 @@
 const { chromium } = require("playwright");
 const { spawn, spawnSync } = require("node:child_process");
-const { mkdtempSync, rmSync, mkdirSync } = require("node:fs");
+const { mkdtempSync, rmSync, mkdirSync, readFileSync } = require("node:fs");
 const { tmpdir } = require("node:os");
 const path = require("node:path");
 const assert = require("node:assert/strict");
@@ -62,14 +62,13 @@ async function main() {
     viewport: { width: 1440, height: 1000 },
   });
   const page = await context.newPage();
+  mkdirSync(path.join(root, "artifacts"), { recursive: true });
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto(base);
   assert.equal(
-    await page
-      .getByLabel("Fleet / business name", { exact: true })
-      .inputValue(),
-    "Shepards Shipping Services",
+    await page.getByLabel("Fleet / business name", { exact: true }).count(),
+    0,
   );
   assert.equal(await page.locator("input[name=setupKey]").count(), 0);
   await page
@@ -101,14 +100,16 @@ async function main() {
   await record("Add vehicle", {
     registration: "RJ14AB1234",
     name: "Jaipur route",
+    emissionClass: "BS6",
+    driverName: "Ram",
     odometer: 1000,
     hasSpare: true,
   });
   for (const [i, type] of ["new", "used", "remold"].entries())
     await record("Add tyre", {
       serial: `TYR-00${i + 1}`,
-      brand: ["MRF Steel Muscle", "Apollo EnduRace", "CEAT WinMile"][i],
-      size: "295/90 R20",
+      brand: ["MRF", "Apollo", "CEAT"][i],
+      construction: i === 1 ? "horse" : "radial",
       type,
     });
   await page
@@ -157,7 +158,7 @@ async function main() {
   await page.getByRole("button", { name: "2 · Empty", exact: true }).click();
   await page
     .locator("dialog select[name=tyreId]")
-    .selectOption({ label: "TYR-001 · MRF Steel Muscle · New" });
+    .selectOption({ label: "TYR-001 · MRF · New" });
   await page.getByRole("button", { name: "Save record", exact: true }).click();
   await page.locator("dialog").waitFor({ state: "detached" });
   await record("Update odometer", { odometer: 1250 });
@@ -172,6 +173,46 @@ async function main() {
   assert.equal(state.tyres[0].distance, 300);
   console.log(
     "PASS: owner login, vehicle, all three tyre conditions, visual fitment, mileage and return",
+  );
+  await page
+    .locator(".nav-items")
+    .getByRole("button", { name: "Tyre inventory", exact: true })
+    .click();
+  await page.getByRole("button", { name: /TYR-001/ }).click();
+  await record("Send for remolding", { vendor: "Sharvayu" });
+  await page.getByRole("button", { name: /TYR-001/ }).click();
+  await page
+    .getByRole("button", { name: "Record remolding", exact: true })
+    .click();
+  assert.equal(
+    await page.locator("dialog select[name=vendor]").inputValue(),
+    "Sharvayu",
+  );
+  await page.getByRole("button", { name: "Save record", exact: true }).click();
+  await page.locator("dialog").waitFor({ state: "detached" });
+  await page.getByRole("button", { name: /TYR-001/ }).click();
+  await record("Send for remolding", {
+    vendor: "other",
+    customVendor: "Custom Retreads",
+  });
+  await page.getByRole("button", { name: /TYR-001/ }).click();
+  await page
+    .getByRole("button", { name: "Record remolding", exact: true })
+    .click();
+  assert.equal(
+    await page.locator("dialog input[name=customVendor]").inputValue(),
+    "Custom Retreads",
+  );
+  await page.getByRole("button", { name: "Save record", exact: true }).click();
+  await page.locator("dialog").waitFor({ state: "detached" });
+  state = await (await context.request.get(base + "/api/state")).json();
+  assert.equal(state.tyres[0].lastRemoldVendor, "Custom Retreads");
+  assert.equal(
+    state.events.find((e) => e.kind === "sendRemold").vendor,
+    "Sharvayu",
+  );
+  console.log(
+    "PASS: remolding records preset and custom vendors, prefills return vendor and preserves history",
   );
   await context.request.post(base + "/api/team/create", {
     data: { username: "garage_staff", password: "test-staff-password" },
@@ -210,6 +251,97 @@ async function main() {
   console.log(
     "PASS: second staff account on mobile sees shared stock and records fitment with attribution",
   );
+  await page
+    .locator(".nav-items")
+    .getByRole("button", { name: "Vehicles", exact: true })
+    .click();
+  await page.getByRole("button", { name: /RJ14AB1234/ }).click();
+  await record("Change driver", { driverName: "Shyam" });
+  await page
+    .getByText("Driver changed — check all tyres.", { exact: true })
+    .first()
+    .waitFor();
+  await record("Update odometer", { odometer: 1300 }); // Reminder is advisory.
+  await staff
+    .locator(".mobile-nav-items")
+    .getByRole("button", { name: "Vehicles", exact: true })
+    .click();
+  await staff.getByRole("button", { name: /RJ14AB1234/ }).click();
+  await staff
+    .getByRole("button", { name: "Record tyre inspection", exact: true })
+    .click();
+  assert.match(
+    await staff.locator("dialog input[name=inspectedOn]").inputValue(),
+    /^\d{2}\/\d{2}\/\d{4}$/,
+  );
+  await staff.locator("dialog input[name=allTyresChecked]").check();
+  await staff.getByRole("button", { name: "Add issue", exact: true }).click();
+  await staff.getByLabel("Position 1", { exact: true }).selectOption("FL");
+  await staff
+    .getByLabel("Issue 1", { exact: true })
+    .selectOption("misalignment");
+  await staff.getByLabel("TYR-002 Inner %", { exact: true }).fill("75");
+  await staff.getByLabel("TYR-002 Centre %", { exact: true }).fill("65");
+  await staff.getByLabel("TYR-002 Outer %", { exact: true }).fill("70");
+  await staff.getByRole("button", { name: "Save record", exact: true }).click();
+  await staff.locator("dialog").waitFor({ state: "detached" });
+  state = await (await context.request.get(base + "/api/state")).json();
+  assert.equal(state.vehicles[0].pendingTyreCheck, false);
+  assert.equal(state.events.at(-1).actor, "garage_staff");
+  assert.equal(state.events.at(-1).driverCheckCompleted, true);
+  assert.equal(state.tyres[1].nsd.minimumPercent, 65);
+  await page
+    .locator(".vehicle-inspection-summary")
+    .getByText("Wheel misalignment", { exact: false })
+    .waitFor();
+  await staff.screenshot({
+    path: path.join(root, "artifacts/inspection-mobile.png"),
+    fullPage: true,
+  });
+  await staff
+    .getByRole("button", { name: "Vehicle report", exact: true })
+    .click();
+  await staff.getByRole("heading", { name: "Reports", exact: true }).waitFor();
+  assert.equal(
+    await staff.getByLabel("Vehicle", { exact: true }).inputValue(),
+    state.vehicles[0].id,
+  );
+  assert.match(await staff.locator(".report-table tbody").innerText(), /BS6/);
+  const reportDownload = staff.waitForEvent("download");
+  await staff
+    .getByRole("button", { name: "Export detail CSV", exact: true })
+    .click();
+  const detailCsv = await reportDownload;
+  assert.match(detailCsv.suggestedFilename(), /report-details/);
+  const detailText = readFileSync(await detailCsv.path(), "utf8");
+  assert.match(detailText, /garage_staff/);
+  assert.match(detailText, /65%/);
+  assert.match(detailText, /Wheel misalignment/);
+  assert.match(detailText, /\d{2}\/\d{2}\/\d{4}/);
+  await staff
+    .getByLabel("Date range", { exact: true })
+    .selectOption("lastYear");
+  assert.equal(await staff.locator(".report-event").count(), 0);
+  await staff
+    .getByLabel("Date range", { exact: true })
+    .selectOption("thisMonth");
+  assert.ok((await staff.locator(".report-event").count()) > 0);
+  for (const width of [360, 390, 700]) {
+    await staff.setViewportSize({ width, height: 900 });
+    assert.ok(
+      await staff.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+      `Report overflow at ${width}`,
+    );
+  }
+  await staff.screenshot({
+    path: path.join(root, "artifacts/reports-mobile.png"),
+    fullPage: true,
+  });
+  console.log(
+    "PASS: staff inspection records issue, direct tread percentages and completed driver check; per-vehicle date-filtered report and CSV work on mobile",
+  );
   // Add explicit test fixtures to exercise populated layouts; never touch the application database.
   async function apiAction(kind, payload) {
     const s = await (await context.request.get(base + "/api/state")).json();
@@ -218,6 +350,11 @@ async function main() {
     });
     assert.equal(res.status(), 200, JSON.stringify(await res.json()));
   }
+  await apiAction("measureNsd", {
+    tyreId: state.tyres[2].id,
+    measuredOn: "2025-12-31",
+    nsd: { inner: 30 },
+  });
   for (const [registration, hasSpare] of [
     ["RJ14GC2071", true],
     ["HR55AB8921", false],
@@ -256,6 +393,10 @@ async function main() {
     .getByRole("button", { name: "Dashboard", exact: true })
     .click();
   mkdirSync(path.join(root, "artifacts"), { recursive: true });
+  await page
+    .locator(".maintenance-reminders")
+    .getByRole("button", { name: /TYR-003/ })
+    .waitFor();
   await page.screenshot({
     path: path.join(root, "artifacts/dashboard-desktop.png"),
     fullPage: true,
@@ -318,6 +459,33 @@ async function main() {
     .locator(".nav-items")
     .getByRole("button", { name: "Team & settings", exact: true })
     .click();
+  const testPng = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a1ZkAAAAASUVORK5CYII=",
+    "base64",
+  );
+  await page.getByLabel("Company logo", { exact: true }).setInputFiles({
+    name: "test-logo.png",
+    mimeType: "image/png",
+    buffer: testPng,
+  });
+  await page.getByLabel("Company banner", { exact: true }).setInputFiles({
+    name: "test-banner.png",
+    mimeType: "image/png",
+    buffer: testPng,
+  });
+  await page
+    .getByRole("button", { name: "Save branding", exact: true })
+    .click();
+  await page.locator(".company-logo").first().waitFor();
+  const brandContext = await browser.newContext();
+  const loginPage = await brandContext.newPage();
+  await loginPage.goto(base);
+  await loginPage.locator(".company-banner-login").waitFor();
+  assert.ok((await loginPage.locator(".company-logo").count()) > 0);
+  await brandContext.close();
+  console.log(
+    "PASS: admin can upload company logo/banner and both load on the public login",
+  );
   const backupDownload = page.waitForEvent("download");
   await page
     .getByRole("button", { name: "Export records (JSON)", exact: true })

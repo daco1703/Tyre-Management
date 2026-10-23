@@ -33,9 +33,24 @@ import {
   Wrench,
   Trash2,
   Link,
-  Menu,
+  BarChart3,
+  ClipboardCheck,
+  UserRound,
+  Ruler,
   Upload,
 } from "lucide-react";
+import { DateField } from "./date-field.jsx";
+import { Reports } from "./reports.jsx";
+import { BrandMark, BrandingPanel } from "./branding.jsx";
+import { displayDate, parseDisplayDate } from "../shared/dates.js";
+import {
+  manufacturers,
+  manufacturerFor,
+  vehicleClasses,
+  constructions,
+  inspectionIssues,
+} from "../shared/catalogue.js";
+import { lastInspection, vehicleEvents } from "../shared/reports.js";
 import { defaultFleetName, defaultUsername } from "../shared/defaults.js";
 import { en, hi } from "./i18n";
 import { previewVehicleImport } from "../shared/vehicle-import";
@@ -109,6 +124,7 @@ function App() {
   const [lang, setLang] = useState(read("ts-lang", "en"));
   const [session, setSession] = useState(null),
     [state, setState] = useState(null);
+  const [branding, setBranding] = useState({});
   const [boot, setBoot] = useState(null),
     [bootError, setBootError] = useState("");
   const [page, setPage] = useState("dashboard"),
@@ -120,17 +136,25 @@ function App() {
   const dict = lang === "hi" ? hi : en;
   const t = (key) => dict[key] || en[key] || key;
   const n = (value) =>
-    Number(value).toLocaleString(lang === "hi" ? "hi-IN" : "en-IN");
-  const date = (value, time = false) =>
-    new Intl.DateTimeFormat(lang === "hi" ? "hi-IN" : "en-IN", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-      ...(time ? { hour: "2-digit", minute: "2-digit" } : {}),
-      timeZone: "Asia/Kolkata",
-    }).format(
-      new Date(value.length === 10 ? value + "T12:00:00+05:30" : value),
-    );
+    value === null || value === undefined
+      ? "—"
+      : Number(value).toLocaleString(lang === "hi" ? "hi-IN" : "en-IN");
+  const date = displayDate;
+  useEffect(() => {
+    let active = true;
+    request("/branding")
+      .then((data) => {
+        if (active) setBranding(data);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [needsServer]);
+  async function saveBranding(payload) {
+    setBranding(await request("/branding", payload));
+    setToast({ text: t("saved") });
+  }
   useEffect(() => {
     document.documentElement.lang = lang;
     store("ts-lang", lang);
@@ -359,6 +383,8 @@ function App() {
     setModal,
     setToast,
     logout,
+    branding,
+    saveBranding,
   };
   return (
     <Context.Provider value={value}>
@@ -473,6 +499,16 @@ function App() {
                 <Inventory />
               ) : page === "logbook" ? (
                 <Logbook />
+              ) : page === "reports" ? (
+                <Reports
+                  key={vehicleId || "all"}
+                  app={value}
+                  initialVehicleId={vehicleId}
+                  onExport={async (name, rows) => {
+                    await downloadCsv(name, rows);
+                    setToast({ text: t("exportDone") });
+                  }}
+                />
               ) : (
                 <SettingsPage onChangeServer={configureServer} />
               )}
@@ -480,7 +516,7 @@ function App() {
             <footer className="page-footer">
               <CircleDot size={14} />
               {t("tagline")}
-              <span>Shepards Tyre Management · v1.4</span>
+              <span>Shepards Tyre Management · v1.5</span>
             </footer>
           </div>
           <nav className="bottom-nav">
@@ -508,14 +544,16 @@ function App() {
   );
 }
 function Brand({ compact }) {
+  const { branding } = useApp();
   return (
     <div className={`brand ${compact ? "compact" : ""}`}>
-      <span className="brand-icon">
-        <CircleDot size={25} />
-      </span>
+      {branding.logo ? (
+        <img className="company-logo" src={branding.logo} alt="Shepards logo" />
+      ) : (
+        <span className="brand-icon company-monogram">S</span>
+      )}
       <div>
-        Shepards
-        <small>TYRE MANAGEMENT</small>
+        Shepards<small>TYRE MANAGEMENT</small>
       </div>
     </div>
   );
@@ -538,6 +576,7 @@ const navItems = [
   { id: "vehicles", Icon: Truck },
   { id: "inventory", Icon: CircleDot },
   { id: "logbook", Icon: BookOpen },
+  { id: "reports", Icon: BarChart3 },
   { id: "settings", Icon: Settings },
 ];
 function Navigation({ page, navigate, mobile }) {
@@ -739,7 +778,7 @@ function ServerConnect({ onConnect }) {
   );
 }
 function Auth({ boot, onAuth, onBeginAuth, changeServer }) {
-  const { t } = useApp();
+  const { t, branding } = useApp();
   const [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
   async function submit(e) {
@@ -798,17 +837,17 @@ function Auth({ boot, onAuth, onBeginAuth, changeServer }) {
           <LanguageSwitch />
         </div>
         <div className="auth-card">
+          {branding.banner && (
+            <img
+              className="company-banner-login"
+              src={branding.banner}
+              alt="Shepards company banner"
+            />
+          )}
           <span className="eyebrow">SHEPARDS TYRE MANAGEMENT</span>
           <h1>{t("loginTitle")}</h1>
           <p>{t("loginSub")}</p>
           <form onSubmit={submit}>
-            <Field label="fleetName">
-              <input
-                value={defaultFleetName}
-                readOnly
-                autoComplete="organization"
-              />
-            </Field>
             <Field label="username" hint="usernameHint">
               <input
                 name="username"
@@ -852,7 +891,7 @@ function Dashboard() {
   const { t, n, state, session, date, navigate, setModal, offline } = useApp();
   const [day, setDay] = useState(dayKey());
   const counts = tally(state),
-    daily = dailyTally(state, day);
+    daily = day ? dailyTally(state, day) : {};
   const emptySlots = state.vehicles.reduce(
     (sum, v) =>
       sum +
@@ -882,6 +921,7 @@ function Dashboard() {
           {t("addTyre")}
         </Button>
       </PageHeading>
+      <MaintenanceReminders />
       <section className="stats-grid">
         {[
           {
@@ -941,12 +981,13 @@ function Dashboard() {
           </div>
           <p>{t("dailySub")}</p>
           <div className="date-control">
-            <input
-              aria-label={t("date")}
-              type="date"
+            <DateField
+              label={t("date")}
               value={day}
               max={dayKey()}
-              onChange={(e) => setDay(e.target.value || dayKey())}
+              onChange={setDay}
+              required
+              errorText={t("invalidDate")}
             />
             <span>{day === dayKey() ? t("today") : date(day)}</span>
           </div>
@@ -1116,7 +1157,7 @@ function Dashboard() {
   );
 }
 function Activity({ event: e }) {
-  const { t, date, n } = useApp();
+  const { t, date, n, state } = useApp();
   const Icon =
     e.kind === "fit"
       ? ArrowUpRight
@@ -1169,16 +1210,57 @@ function Activity({ event: e }) {
             {e.scrapDetail ? ` · ${e.scrapDetail}` : ""}
           </p>
         )}
+        {e.tyre && stateBrand(e, state) && (
+          <BrandMark brand={stateBrand(e, state)} />
+        )}
+        {e.kind === "changeDriver" && (
+          <p className="activity-note">
+            {e.fromDriverName || t("notRecorded")} → {e.driverName} ·{" "}
+            {t("driverReminder")}
+          </p>
+        )}
+        {e.inspectedOn && (
+          <p className="activity-note">
+            {t("inspectedOn")}: {date(e.inspectedOn)} ·{" "}
+            {t(e.allTyresChecked ? "allTyresChecked" : "partialCheck")}
+            {e.driverCheckCompleted ? ` · ${t("driverCheckDone")}` : ""}
+          </p>
+        )}
+        {(e.findings || []).map((f, i) => (
+          <p className="activity-note" key={`f${i}`}>
+            {positionLabel(f.slot)} · {f.tyre || "—"} · {t(`issue_${f.issue}`)}
+            {f.detail ? ` · ${f.detail}` : ""}
+          </p>
+        ))}
+        {e.measuredOn && (
+          <p className="activity-note">
+            {t("measuredOn")}: {date(e.measuredOn)}
+          </p>
+        )}
+        {(e.nsdMeasurements || []).map((m, i) => (
+          <p className="activity-note" key={`n${i}`}>
+            {m.tyre} · {t("nsd")}: {m.minimumPercent}% · {t("inner")}:{" "}
+            {m.inner ?? "—"} / {t("center")}: {m.center ?? "—"} / {t("outer")}:{" "}
+            {m.outer ?? "—"}
+          </p>
+        ))}
+        {e.vendor && (
+          <p className="activity-note">
+            {t("remoldVendor")}: {e.vendor}
+          </p>
+        )}
         {e.note && <p className="activity-note">{e.note}</p>}
       </div>
     </div>
   );
 }
 function Vehicles() {
-  const { t, n, state, navigate, setModal, offline } = useApp();
+  const { t, n, date, state, navigate, setModal, offline } = useApp();
   const [query, setQuery] = useState("");
   const vehicles = state.vehicles.filter((v) =>
-    `${v.registration} ${v.name}`.toLowerCase().includes(query.toLowerCase()),
+    `${v.registration} ${v.name} ${v.driverName || ""} ${v.emissionClass || ""}`
+      .toLowerCase()
+      .includes(query.toLowerCase()),
   );
   return (
     <>
@@ -1235,7 +1317,22 @@ function Vehicles() {
                   <ChevronRight size={21} />
                 </div>
                 <h2>{v.registration}</h2>
-                <p>{v.name || t("vehicle")}</p>
+                <p>
+                  {[v.name, v.driverName, v.emissionClass]
+                    .filter(Boolean)
+                    .join(" · ") || t("vehicle")}
+                </p>
+                <p className="small muted">
+                  {t("lastInspected")}:{" "}
+                  {v.lastInspectedOn
+                    ? date(v.lastInspectedOn)
+                    : t("notInspected")}
+                </p>
+                {v.pendingTyreCheck && (
+                  <span className="reminder-pill">
+                    {t("driverCheckPending")}
+                  </span>
+                )}
                 <div className="vehicle-progress">
                   <span>{t("roadTyres")}</span>
                   <strong>{n(road)} / 18</strong>
@@ -1276,11 +1373,16 @@ function Vehicles() {
   );
 }
 function VehicleDetail({ id }) {
-  const { t, n, state, setModal, offline } = useApp();
+  const { t, n, date, state, setModal, offline, navigate } = useApp();
   const v = state.vehicles.find((v) => v.id === id);
   if (!v) return null;
   const tyres = state.tyres.filter((t) => t.vehicleId === id),
     count = tyres.filter((t) => t.slot !== "SP").length;
+  const inspection = lastInspection(state, v);
+  const history = vehicleEvents(state, v);
+  const dueNsd = tyres.filter(
+    (t) => t.nextNsdCheckOn && t.nextNsdCheckOn <= dayKey(),
+  );
   function wheel(slot) {
     const tyre = tyres.find((t) => t.slot === slot);
     return (
@@ -1298,7 +1400,11 @@ function VehicleDetail({ id }) {
         disabled={!tyre && offline}
       >
         <span className="tread-line" />
-        <CircleDot size={22} />
+        {tyre ? (
+          <BrandMark brand={tyre.brand} compact />
+        ) : (
+          <CircleDot size={22} />
+        )}
         <strong>{positionLabel(slot)}</strong>
         <small>{tyre?.serial || "+"}</small>
       </button>
@@ -1306,7 +1412,36 @@ function VehicleDetail({ id }) {
   }
   return (
     <>
-      <PageHeading title={v.registration} sub={v.name || t("slotHint")} back>
+      <PageHeading
+        title={v.registration}
+        sub={
+          [v.name, v.emissionClass, v.driverName].filter(Boolean).join(" · ") ||
+          t("slotHint")
+        }
+        back
+      >
+        <Button
+          secondary
+          icon={UserRound}
+          disabled={offline}
+          onClick={() => setModal({ type: "changeDriver", vehicleId: id })}
+        >
+          {t("changeDriver")}
+        </Button>
+        <Button
+          icon={ClipboardCheck}
+          disabled={offline}
+          onClick={() => setModal({ type: "inspectVehicle", vehicleId: id })}
+        >
+          {t("inspectVehicle")}
+        </Button>
+        <Button
+          secondary
+          icon={BarChart3}
+          onClick={() => navigate("reports", id)}
+        >
+          {t("vehicleReport")}
+        </Button>
         <Button
           secondary
           icon={Gauge}
@@ -1316,6 +1451,27 @@ function VehicleDetail({ id }) {
           {t("updateOdometer")}
         </Button>
       </PageHeading>
+      {v.pendingTyreCheck && (
+        <div className="maintenance-notice">
+          <AlertCircle size={20} />
+          <div>
+            <strong>{t("driverReminder")}</strong>
+            <p>{t("advisoryOnly")}</p>
+          </div>
+          <Button
+            secondary
+            onClick={() => setModal({ type: "inspectVehicle", vehicleId: id })}
+          >
+            {t("checkTyres")}
+          </Button>
+        </div>
+      )}
+      {!!dueNsd.length && (
+        <p className="maintenance-notice">
+          {t("nsdDue")}: {dueNsd.map((t) => t.serial).join(", ")} ·{" "}
+          {t("advisoryOnly")}
+        </p>
+      )}
       <div className="vehicle-detail-columns">
         <section className="card wheel-map">
           <div className="card-title-row">
@@ -1367,6 +1523,57 @@ function VehicleDetail({ id }) {
           </div>
         </section>
         <div className="vehicle-side">
+          <section className="card vehicle-inspection-summary">
+            <h2>{t("inspectionSummary")}</h2>
+            <p>
+              {t("lastInspected")}:{" "}
+              <strong>
+                {inspection ? date(inspection.inspectedOn) : t("notInspected")}
+              </strong>
+            </p>
+            <p>
+              {t("driverName")}: {v.driverName || t("notRecorded")}
+            </p>
+            <p>
+              {t("vehicleClass")}: {v.emissionClass || t("notRecorded")}
+            </p>
+            <div className="inspection-counters">
+              <span>
+                {t("fitments")}:{" "}
+                <strong>
+                  {n(history.filter((e) => e.kind === "fit").length)}
+                </strong>
+              </span>
+              <span>
+                {t("inspections")}:{" "}
+                <strong>
+                  {n(history.filter((e) => e.kind === "inspectVehicle").length)}
+                </strong>
+              </span>
+            </div>
+            {inspection && (
+              <>
+                <p>
+                  {t(
+                    inspection.allTyresChecked
+                      ? "allTyresChecked"
+                      : "partialCheck",
+                  )}{" "}
+                  · {inspection.actor}
+                </p>
+                {inspection.findings.length ? (
+                  inspection.findings.map((f, i) => (
+                    <p key={i}>
+                      {positionLabel(f.slot)} · {t(`issue_${f.issue}`)}{" "}
+                      {f.detail}
+                    </p>
+                  ))
+                ) : (
+                  <p className="small muted">{t("noIssuesRecorded")}</p>
+                )}
+              </>
+            )}
+          </section>
           <section className="card vehicle-summary">
             <span className="stat-icon green">
               <Gauge size={24} />
@@ -1437,7 +1644,7 @@ function Inventory() {
     (tyre) =>
       (status === "all" || tyre.status === status) &&
       (type === "all" || tyre.type === type) &&
-      `${tyre.serial} ${tyre.brand} ${tyre.size} ${state.vehicles.find((v) => v.id === tyre.vehicleId)?.registration || ""}`
+      `${tyre.serial} ${tyre.brand} ${tyre.construction || ""} ${state.vehicles.find((v) => v.id === tyre.vehicleId)?.registration || ""}`
         .toLowerCase()
         .includes(query.toLowerCase()),
   );
@@ -1511,7 +1718,10 @@ function Inventory() {
                   <span className="tyre-main">
                     <strong>{tyre.serial}</strong>
                     <small>
-                      {tyre.brand} · {tyre.size}
+                      <BrandMark brand={tyre.brand} /> ·{" "}
+                      {tyre.construction
+                        ? t(`construction_${tyre.construction}`)
+                        : t("notRecorded")}
                     </small>
                   </span>
                   <span className="tyre-status">
@@ -1573,8 +1783,9 @@ function Logbook() {
   const events = state.events
     .filter(
       (e) =>
+        day !== null &&
         (!day || e.date === day) &&
-        `${e.tyre || ""} ${e.vehicle || ""} ${e.actor} ${e.note} ${e.scrapReason ? t(`reason_${e.scrapReason}`) : ""} ${e.scrapDetail || ""} ${t("move_" + e.kind)}`
+        `${e.tyre || ""} ${e.vehicle || ""} ${e.actor} ${e.note} ${e.vendor || ""} ${e.driverName || ""} ${(e.findings || []).map((f) => `${f.tyre || ""} ${t(`issue_${f.issue}`)} ${f.detail || ""}`).join(" ")} ${(e.nsdMeasurements || []).map((m) => m.tyre).join(" ")} ${e.scrapReason ? t(`reason_${e.scrapReason}`) : ""} ${e.scrapDetail || ""} ${t("move_" + e.kind)}`
           .toLowerCase()
           .includes(query.toLowerCase()),
     )
@@ -1587,7 +1798,7 @@ function Logbook() {
     const rows = [
       [
         "Date (IST)",
-        "Time (UTC)",
+        "Date/time (IST)",
         "Movement",
         "Tyre",
         "Vehicle",
@@ -1600,11 +1811,17 @@ function Logbook() {
         "Scrap reason",
         "Other reason",
         "Staff",
+        "Remold vendor",
         "Note",
+        "Inspected on",
+        "Driver",
+        "All tyres checked",
+        "Inspection findings",
+        "NSD readings (%)",
       ],
       ...events.map((e) => [
-        e.date,
-        e.timestamp,
+        date(e.date),
+        date(e.timestamp, true),
         t("move_" + e.kind),
         e.tyre,
         e.vehicle,
@@ -1619,7 +1836,25 @@ function Logbook() {
         e.scrapReason ? t(`reason_${e.scrapReason}`) : "",
         e.scrapDetail,
         e.actor,
+        e.vendor,
         e.note,
+        e.inspectedOn ? date(e.inspectedOn) : "",
+        e.driverName,
+        e.allTyresChecked === undefined
+          ? ""
+          : t(e.allTyresChecked ? "yes" : "no"),
+        (e.findings || [])
+          .map(
+            (f) =>
+              `${positionLabel(f.slot)}: ${t(`issue_${f.issue}`)} ${f.detail}`,
+          )
+          .join("; "),
+        (e.nsdMeasurements || [])
+          .map(
+            (m) =>
+              `${m.tyre}: ${m.minimumPercent}% (${m.inner ?? "—"}/${m.center ?? "—"}/${m.outer ?? "—"})`,
+          )
+          .join("; "),
       ]),
     ];
     await download(
@@ -1654,12 +1889,12 @@ function Logbook() {
           />
           <div className="log-date">
             <CalendarDays size={17} />
-            <input
-              aria-label={t("date")}
-              type="date"
+            <DateField
+              label={t("date")}
               value={day}
               max={dayKey()}
-              onChange={(e) => setDay(e.target.value)}
+              onChange={setDay}
+              errorText={t("invalidDate")}
             />
             {day ? (
               <button
@@ -1694,6 +1929,7 @@ function Logbook() {
   );
 }
 function SettingsPage({ onChangeServer }) {
+  const app = useApp();
   const {
     t,
     session,
@@ -1785,6 +2021,7 @@ function SettingsPage({ onChangeServer }) {
           )}
         </section>
         <div>
+          {session.user.role === "owner" && <BrandingPanel app={app} />}
           <section className="card settings-card">
             <h2>
               <Settings size={20} />
@@ -1939,6 +2176,8 @@ function Dialog({
 function ModalContent({ modal, onClose }) {
   if (modal.type === "importVehicles")
     return <VehicleImport onClose={onClose} />;
+  if (modal.type === "inspectVehicle")
+    return <InspectionForm modal={modal} onClose={onClose} />;
   if (modal.type === "tyre")
     return <TyreDetails id={modal.id} onClose={onClose} />;
   if (modal.type === "confirm")
@@ -2101,6 +2340,8 @@ function VehicleImport({ onClose }) {
                     "vehicleName",
                     "odometer",
                     "spare",
+                    "vehicleClass",
+                    "driverName",
                     "importStatus",
                   ].map((key) => (
                     <th key={key}>{t(key)}</th>
@@ -2126,6 +2367,8 @@ function VehicleImport({ onClose }) {
                         ? t(row.value.hasSpare ? "yes" : "no")
                         : "—"}
                     </td>
+                    <td>{row.value.emissionClass || "—"}</td>
+                    <td>{row.value.driverName || "—"}</td>
                     <td>
                       {row.errors.length
                         ? row.errors.map((code) => t(code)).join(" ")
@@ -2188,8 +2431,14 @@ function TyreDetails({ id, onClose }) {
           <CircleDot size={36} />
         </span>
         <div>
-          <h3>{tyre.brand}</h3>
-          <p>{tyre.size}</p>
+          <h3>
+            <BrandMark brand={tyre.brand} />
+          </h3>
+          <p>
+            {tyre.construction
+              ? t(`construction_${tyre.construction}`)
+              : t("notRecorded")}
+          </p>
           <Badge type={tyre.type} />
         </div>
         <Badge
@@ -2244,6 +2493,38 @@ function TyreDetails({ id, onClose }) {
           </>
         )}
       </dl>
+      {tyre.remoldVendor && (
+        <p className="form-info">
+          {t("remoldVendor")}: {tyre.remoldVendor}
+        </p>
+      )}
+      <section className="nsd-summary">
+        <h3>{t("nsd")}</h3>
+        <strong>
+          {tyre.nsd ? `${tyre.nsd.minimumPercent}%` : t("notRecorded")}
+        </strong>
+        {tyre.lastNsdOn && (
+          <p>
+            {t("measuredOn")}: {date(tyre.lastNsdOn)} · {t("nextNsd")}:{" "}
+            {date(tyre.nextNsdCheckOn)}
+          </p>
+        )}
+        {tyre.nextNsdCheckOn && tyre.nextNsdCheckOn <= dayKey() && (
+          <p className="reminder-pill">
+            {t("nsdDue")} · {t("advisoryOnly")}
+          </p>
+        )}
+        {tyre.status !== "scrapped" && (
+          <Button
+            secondary
+            icon={Ruler}
+            disabled={offline}
+            onClick={() => setModal({ type: "measureNsd", tyreId: tyre.id })}
+          >
+            {t("measureNsd")}
+          </Button>
+        )}
+      </section>
       <p className="small muted">{t("distanceHint")}</p>
       {tyre.scrapReason && (
         <p className="form-info">
@@ -2278,14 +2559,7 @@ function TyreDetails({ id, onClose }) {
                     secondary
                     icon={Wrench}
                     disabled={offline}
-                    onClick={() =>
-                      setModal({
-                        type: "confirm",
-                        title: "sendRemold",
-                        text: "confirmSendRemold",
-                        run: () => action("sendRemold", { tyreId: id }),
-                      })
-                    }
+                    onClick={() => setModal({ type: "sendRemold", tyreId: id })}
                   >
                     {t("sendRemold")}
                   </Button>
@@ -2295,14 +2569,7 @@ function TyreDetails({ id, onClose }) {
                 secondary
                 icon={RefreshCw}
                 disabled={offline}
-                onClick={() =>
-                  setModal({
-                    type: "confirm",
-                    title: "remoldAction",
-                    text: "confirmRemold",
-                    run: () => action("remold", { tyreId: id }),
-                  })
-                }
+                onClick={() => setModal({ type: "remold", tyreId: id })}
               >
                 {t("remoldAction")}
               </Button>
@@ -2320,7 +2587,13 @@ function TyreDetails({ id, onClose }) {
       )}
       <h3 className="history-heading">{t("tyreHistory")}</h3>
       {state.events
-        .filter((e) => e.tyre === tyre.serial)
+        .filter(
+          (e) =>
+            e.tyre === tyre.serial ||
+            (e.nsdMeasurements || []).some((m) => m.tyreId === tyre.id) ||
+            (e.findings || []).some((f) => f.tyreId === tyre.id) ||
+            (e.inspectedTyres || []).some((t) => t.tyreId === tyre.id),
+        )
         .slice()
         .reverse()
         .map((e) => (
@@ -2333,6 +2606,16 @@ function RecordForm({ modal: m, onClose }) {
   const { t, n, state, action, setToast, offline } = useApp();
   const [busy, setBusy] = useState(false),
     [error, setError] = useState("");
+  const [selectedBrand, setSelectedBrand] = useState("MRF");
+  const previousVendor =
+    state.tyres.find((t) => t.id === m.tyreId)?.remoldVendor || "";
+  const [vendor, setVendor] = useState(
+    ["Sharvayu", "Guardex MRF"].includes(previousVendor)
+      ? previousVendor
+      : previousVendor
+        ? "other"
+        : "",
+  );
   const [destination, setDestination] = useState("stock");
   const [scrapReason, setScrapReason] = useState("");
   const [removalOdo, setRemovalOdo] = useState(null);
@@ -2357,7 +2640,9 @@ function RecordForm({ modal: m, onClose }) {
         ? "changePassword"
         : m.type === "scrap"
           ? "scrapAction"
-          : m.type;
+          : m.type === "remold"
+            ? "remoldAction"
+            : m.type;
   async function submit(e) {
     e.preventDefault();
     if (offline) return setError("offlineHint");
@@ -2366,6 +2651,14 @@ function RecordForm({ modal: m, onClose }) {
     const p = Object.fromEntries(new FormData(e.currentTarget));
     try {
       if (m.type === "addVehicle") p.hasSpare = p.hasSpare === "on";
+      if (m.type === "addTyre") {
+        if (p.brand === "other") p.brand = p.customBrand;
+        p.nsd = { inner: p.nsdInner, center: p.nsdCenter, outer: p.nsdOuter };
+      }
+      if (m.type === "measureNsd") {
+        p.measuredOn = parseDisplayDate(p.measuredOn);
+        p.nsd = { inner: p.nsdInner, center: p.nsdCenter, outer: p.nsdOuter };
+      }
       if (m.type === "password") {
         if (p.password !== p.confirm) throw { code: "passwordsDiffer" };
         await request("/password", p);
@@ -2386,6 +2679,7 @@ function RecordForm({ modal: m, onClose }) {
           ...(m.tyreId ? { tyreId: m.tyreId } : {}),
           ...(vehicleId ? { vehicleId } : {}),
         });
+      if (m.type === "changeDriver") setToast({ text: t("driverReminder") });
       onClose();
     } catch (e) {
       setError(e.code || "serverError");
@@ -2442,24 +2736,35 @@ function RecordForm({ modal: m, onClose }) {
                 placeholder="TYR-001"
               />
             </Field>
-            <div className="form-grid">
-              <Field label="brand">
-                <input
-                  name="brand"
-                  required
-                  maxLength={80}
-                  placeholder="MRF / Apollo / CEAT"
-                />
+            <Field label="brand">
+              <select
+                name="brand"
+                required
+                value={selectedBrand}
+                onChange={(e) => setSelectedBrand(e.target.value)}
+              >
+                {manufacturers.map((m) => (
+                  <option key={m.name}>{m.name}</option>
+                ))}
+                <option value="other">{t("otherManufacturer")}</option>
+              </select>
+            </Field>
+            {selectedBrand === "other" ? (
+              <Field label="customBrand">
+                <input name="customBrand" required maxLength={80} />
               </Field>
-              <Field label="size">
-                <input
-                  name="size"
-                  required
-                  maxLength={40}
-                  placeholder="295/90 R20"
-                />
-              </Field>
-            </div>
+            ) : (
+              <BrandMark brand={selectedBrand} />
+            )}
+            <Field label="construction">
+              <select name="construction" required defaultValue="radial">
+                {constructions.map((c) => (
+                  <option key={c} value={c}>
+                    {t(`construction_${c}`)}
+                  </option>
+                ))}
+              </select>
+            </Field>
             <Field label="condition">
               <select name="type" defaultValue="new">
                 {["new", "used", "remold"].map((type) => (
@@ -2470,6 +2775,7 @@ function RecordForm({ modal: m, onClose }) {
               </select>
             </Field>
             <KmInput label="previousKm" name="distance" value={0} />
+            <NsdInputs t={t} optional />
           </>
         )}
         {m.type === "addVehicle" && (
@@ -2486,6 +2792,19 @@ function RecordForm({ modal: m, onClose }) {
             <Field label="vehicleName">
               <input name="name" maxLength={100} />
             </Field>
+            <Field label="driverName">
+              <input name="driverName" maxLength={100} />
+            </Field>
+            <Field label="vehicleClass">
+              <select name="emissionClass" defaultValue="" required>
+                <option value="" disabled>
+                  {t("chooseVehicleClass")}
+                </option>
+                {vehicleClasses.map((c) => (
+                  <option key={c}>{c}</option>
+                ))}
+              </select>
+            </Field>
             <KmInput name="odometer" value={0} />
             <label className="checkbox-field">
               <input type="checkbox" name="hasSpare" />
@@ -2495,6 +2814,43 @@ function RecordForm({ modal: m, onClose }) {
               <Truck size={18} />
               18 {t("roadTyres")}
             </p>
+          </>
+        )}
+        {m.type === "changeDriver" && (
+          <>
+            <p className="form-info">
+              {t("driverReminder")} · {t("advisoryOnly")}
+            </p>
+            <p>
+              {vehicle?.registration} · {t("currentDriver")}:{" "}
+              {vehicle?.driverName || t("notRecorded")}
+            </p>
+            <Field label="driverName">
+              <input
+                name="driverName"
+                required
+                maxLength={100}
+                autoComplete="off"
+              />
+            </Field>
+          </>
+        )}
+        {m.type === "measureNsd" && (
+          <>
+            <p className="selected-record">
+              {tyre?.serial} <BrandMark brand={tyre?.brand} />
+            </p>
+            <Field label="measuredOn">
+              <DateField
+                name="measuredOn"
+                value={dayKey()}
+                max={dayKey()}
+                required
+                errorText={t("invalidDate")}
+              />
+            </Field>
+            <NsdInputs t={t} />
+            <p className="form-info">{t("nsdReminderHint")}</p>
           </>
         )}
         {m.type === "fit" && (
@@ -2663,6 +3019,46 @@ function RecordForm({ modal: m, onClose }) {
             )}
           </>
         )}
+        {(["sendRemold", "remold"].includes(m.type) ||
+          (m.type === "remove" && destination === "remolding")) && (
+          <>
+            {m.type !== "remove" && (
+              <p className="selected-record">
+                {tyre?.serial} <BrandMark brand={tyre?.brand} />
+              </p>
+            )}
+            <Field label="remoldVendor">
+              <select
+                name="vendor"
+                value={vendor}
+                required
+                onChange={(e) => setVendor(e.target.value)}
+              >
+                <option value="" disabled>
+                  {t("chooseVendor")}
+                </option>
+                <option>Sharvayu</option>
+                <option>Guardex MRF</option>
+                <option value="other">{t("otherVendor")}</option>
+              </select>
+            </Field>
+            {vendor === "other" && (
+              <Field label="customVendor">
+                <input
+                  name="customVendor"
+                  required
+                  maxLength={100}
+                  defaultValue={
+                    previousVendor &&
+                    !["Sharvayu", "Guardex MRF"].includes(previousVendor)
+                      ? previousVendor
+                      : ""
+                  }
+                />
+              </Field>
+            )}
+          </>
+        )}
         {m.type === "password" ? (
           <>
             <PasswordField label="currentPassword" name="currentPassword" />
@@ -2704,6 +3100,305 @@ function RecordForm({ modal: m, onClose }) {
     </Dialog>
   );
 }
+function stateBrand(event, state) {
+  return event.brand || state.tyres.find((t) => t.serial === event.tyre)?.brand;
+}
+async function downloadCsv(name, rows) {
+  const cell = (value) =>
+    `"${String(value ?? "")
+      .replace(/^[=+@\-\t\r]/, "'$&")
+      .replaceAll('"', '""')}"`;
+  await download(
+    name,
+    "\uFEFF" + rows.map((row) => row.map(cell).join(",")).join("\r\n"),
+    "text/csv;charset=utf-8",
+  );
+}
+function NsdInputs({ t, optional = false }) {
+  return (
+    <fieldset className="nsd-inputs">
+      <legend>{t(optional ? "initialNsd" : "nsd")}</legend>
+      <div className="nsd-fields">
+        {["inner", "center", "outer"].map((key) => (
+          <label className="field" key={key}>
+            <span>{t(key)} (%)</span>
+            <input
+              name={`nsd${key[0].toUpperCase() + key.slice(1)}`}
+              type="number"
+              min={0}
+              max={100}
+              step="0.01"
+              inputMode="decimal"
+              placeholder="0–100"
+            />
+          </label>
+        ))}
+      </div>
+      <p className="small muted">{t("nsdPercentHint")}</p>
+    </fieldset>
+  );
+}
+function MaintenanceReminders() {
+  const { t, state, navigate, setModal } = useApp();
+  const drivers = state.vehicles.filter((v) => v.pendingTyreCheck);
+  const due = state.tyres.filter(
+    (t) =>
+      t.status !== "scrapped" &&
+      t.nextNsdCheckOn &&
+      t.nextNsdCheckOn <= dayKey(),
+  );
+  if (!drivers.length && !due.length) return null;
+  return (
+    <section className="card maintenance-reminders">
+      <h2>{t("maintenanceReminders")}</h2>
+      <p className="small muted">{t("advisoryOnly")}</p>
+      <div>
+        {drivers.map((v) => (
+          <button
+            className="secondary"
+            key={v.id}
+            onClick={() => navigate("vehicles", v.id)}
+          >
+            {v.registration} · {t("driverCheckPending")}
+          </button>
+        ))}
+        {due.slice(0, 10).map((tyre) => (
+          <button
+            className="secondary"
+            key={tyre.id}
+            onClick={() => setModal({ type: "measureNsd", tyreId: tyre.id })}
+          >
+            {tyre.serial} · {t("nsdDue")}
+          </button>
+        ))}
+      </div>
+      {due.length > 10 && (
+        <p>
+          {due.length} {t("nsdDue")}
+        </p>
+      )}
+    </section>
+  );
+}
+function InspectionForm({ modal, onClose }) {
+  const { t, n, state, action, offline } = useApp();
+  const vehicle = state.vehicles.find((v) => v.id === modal.vehicleId);
+  const [tyres] = useState(() =>
+    state.tyres
+      .filter(
+        (t) => t.vehicleId === modal.vehicleId && t.status === "installed",
+      )
+      .map((t) => ({
+        id: t.id,
+        slot: t.slot,
+        serial: t.serial,
+        brand: t.brand,
+      })),
+  );
+  const [driverChangeId] = useState(vehicle?.driverChangeId || null);
+  const [inspectedOn, setInspectedOn] = useState(dayKey()),
+    [checked, setChecked] = useState(false);
+  const [findings, setFindings] = useState([]),
+    [readings, setReadings] = useState({});
+  const [busy, setBusy] = useState(false),
+    [error, setError] = useState("");
+  if (!vehicle) return null;
+  function edit(index, key, value) {
+    setFindings((old) =>
+      old.map((f, i) => (i === index ? { ...f, [key]: value } : f)),
+    );
+  }
+  async function submit(event) {
+    event.preventDefault();
+    setBusy(true);
+    setError("");
+    const form = new FormData(event.currentTarget);
+    try {
+      const nsdMeasurements = tyres
+        .filter((t) =>
+          Object.values(readings[t.id] || {}).some((v) => v !== ""),
+        )
+        .map((t) => ({ tyreId: t.id, slot: t.slot, ...readings[t.id] }));
+      await action("inspectVehicle", {
+        vehicleId: vehicle.id,
+        inspectedOn,
+        allTyresChecked: checked,
+        driverChangeId,
+        fitmentSnapshot: tyres.map((t) => ({ tyreId: t.id, slot: t.slot })),
+        findings: findings.map((f) => ({
+          ...f,
+          tyreId: tyres.find((t) => t.slot === f.slot)?.id || null,
+        })),
+        nsdMeasurements,
+        note: form.get("note"),
+      });
+      onClose();
+    } catch (e) {
+      setError(e.code || "serverError");
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <Dialog
+      title={`${t("inspectVehicle")} · ${vehicle.registration}`}
+      onClose={onClose}
+      busy={busy}
+      wide
+    >
+      <form onSubmit={submit}>
+        <Field label="inspectedOn">
+          <DateField
+            name="inspectedOn"
+            value={inspectedOn}
+            onChange={setInspectedOn}
+            max={dayKey()}
+            required
+            errorText={t("invalidDate")}
+          />
+        </Field>
+        <label className="checkbox-field">
+          <input
+            type="checkbox"
+            name="allTyresChecked"
+            checked={checked}
+            onChange={(e) => setChecked(e.target.checked)}
+          />
+          {t("allTyresChecked")}
+        </label>
+        <p className="small muted">{t("inspectionHint")}</p>
+        <h3>{t("findings")}</h3>
+        {findings.map((f, index) => (
+          <div className="inspection-finding" key={index}>
+            <Field label="position">
+              <select
+                aria-label={`${t("position")} ${index + 1}`}
+                required
+                value={f.slot}
+                onChange={(e) => edit(index, "slot", e.target.value)}
+              >
+                <option value="" disabled>
+                  {t("choosePosition")}
+                </option>
+                {[...numberedSlots, ...(vehicle.hasSpare ? ["SP"] : [])].map(
+                  (slot) => (
+                    <option key={slot} value={slot}>
+                      {positionLabel(slot)}
+                    </option>
+                  ),
+                )}
+              </select>
+            </Field>
+            <Field label="issue">
+              <select
+                aria-label={`${t("issue")} ${index + 1}`}
+                required
+                value={f.issue}
+                onChange={(e) => edit(index, "issue", e.target.value)}
+              >
+                <option value="" disabled>
+                  {t("chooseIssue")}
+                </option>
+                {inspectionIssues.map((issue) => (
+                  <option key={issue} value={issue}>
+                    {t(`issue_${issue}`)}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="issueDetail">
+              <input
+                aria-label={`${t("issueDetail")} ${index + 1}`}
+                value={f.detail}
+                required={f.issue === "other"}
+                maxLength={300}
+                onChange={(e) => edit(index, "detail", e.target.value)}
+              />
+            </Field>
+            <button
+              type="button"
+              className="text-button danger"
+              onClick={() =>
+                setFindings((old) => old.filter((_, i) => i !== index))
+              }
+            >
+              {t("removeFinding")}
+            </button>
+          </div>
+        ))}
+        <Button
+          secondary
+          type="button"
+          icon={Plus}
+          disabled={findings.length >= 57}
+          onClick={() =>
+            setFindings((old) => [...old, { slot: "", issue: "", detail: "" }])
+          }
+        >
+          {t("addFinding")}
+        </Button>
+        <h3 className="history-heading">{t("nsd")}</h3>
+        <p className="small muted">
+          {t("nsdPercentHint")} {t("nsdReminderHint")}
+        </p>
+        {!tyres.length ? (
+          <p className="form-info">{t("noTyresForNsd")}</p>
+        ) : (
+          <div className="inspection-nsd-table">
+            {tyres.map((tyre) => (
+              <div className="inspection-nsd-row" key={tyre.id}>
+                <div>
+                  <strong>
+                    {positionLabel(tyre.slot)} · {tyre.serial}
+                  </strong>
+                  <BrandMark brand={tyre.brand} />
+                </div>
+                {["inner", "center", "outer"].map((key) => (
+                  <label className="field" key={key}>
+                    <span>{t(key)} %</span>
+                    <input
+                      aria-label={`${tyre.serial} ${t(key)} %`}
+                      type="number"
+                      min={0}
+                      max={100}
+                      step="0.01"
+                      inputMode="decimal"
+                      placeholder="—"
+                      value={readings[tyre.id]?.[key] || ""}
+                      onChange={(e) =>
+                        setReadings((old) => ({
+                          ...old,
+                          [tyre.id]: { ...old[tyre.id], [key]: e.target.value },
+                        }))
+                      }
+                    />
+                  </label>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+        <Field label="notes">
+          <textarea name="note" rows={3} maxLength={500} />
+        </Field>
+        {error && (
+          <p className="form-error" role="alert">
+            {t(error)}
+          </p>
+        )}
+        <div className="form-actions">
+          <Button secondary type="button" onClick={onClose} disabled={busy}>
+            {t("cancel")}
+          </Button>
+          <Button disabled={busy || offline}>
+            {t(busy ? "saving" : "save")}
+          </Button>
+        </div>
+      </form>
+    </Dialog>
+  );
+}
+
 function KmInput({ name, value, min = 0, label = "odometer", onChange }) {
   return (
     <Field label={label}>

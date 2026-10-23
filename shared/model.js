@@ -1,3 +1,10 @@
+import {
+  vehicleClasses,
+  constructions,
+  defaultTyreSize,
+  inspectionIssues,
+} from "./catalogue.js";
+import { isDay, addCalendarMonths } from "./dates.js";
 import { validateVehicleBatch } from "./vehicle-import.js";
 
 export class AppError extends Error {
@@ -45,6 +52,43 @@ function recordScrap(tyre, payload, event) {
   tyre.scrapReason = event.scrapReason = payload.scrapReason;
   tyre.scrapDetail = event.scrapDetail =
     payload.scrapReason === "other" ? detail : "";
+}
+function readNsd(input) {
+  const values = {};
+  for (const key of ["inner", "center", "outer"]) {
+    const raw = input?.[key];
+    if (raw === "" || raw === null || raw === undefined) {
+      values[key] = null;
+      continue;
+    }
+    if (
+      !["string", "number"].includes(typeof raw) ||
+      !/^\d+(?:\.\d{1,2})?$/.test(String(raw)) ||
+      Number(raw) < 0 ||
+      Number(raw) > 100
+    )
+      throw new AppError("invalidNsd");
+    values[key] = Number(raw);
+  }
+  const measured = Object.values(values).filter((v) => v !== null);
+  if (!measured.length) throw new AppError("nsdRequired");
+  return { ...values, minimumPercent: Math.min(...measured) };
+}
+function saveNsd(tyre, values, measuredOn) {
+  if (!tyre.lastNsdOn || measuredOn >= tyre.lastNsdOn) {
+    tyre.lastNsdOn = measuredOn;
+    tyre.nsd = values;
+    tyre.nextNsdCheckOn = addCalendarMonths(measuredOn, 2);
+  }
+  return { tyreId: tyre.id, tyre: tyre.serial, slot: tyre.slot, ...values };
+}
+function remoldVendor(payload, previous = "") {
+  if (payload.vendor === undefined) return previous || null;
+  const value =
+    payload.vendor === "other" ? payload.customVendor : payload.vendor;
+  if (typeof value !== "string" || !value.trim() || value.trim().length > 100)
+    throw new AppError("vendorRequired");
+  return value.trim();
 }
 export const emptyState = () => ({
   version: 1,
@@ -175,10 +219,14 @@ export function applyAction(previous, action, actor, now = new Date()) {
         .replace(/\s+/g, "");
       if (state.vehicles.some((v) => v.registration === registration))
         throw new AppError("duplicateVehicle");
+      if (p.emissionClass && !vehicleClasses.includes(p.emissionClass))
+        throw new AppError("invalidVehicleClass");
       const v = {
         id,
         registration,
         name: text(p.name),
+        driverName: text(p.driverName),
+        emissionClass: p.emissionClass || null,
         hasSpare: p.hasSpare,
         odometer: km(p.odometer),
         createdAt: event.timestamp,
@@ -189,6 +237,8 @@ export function applyAction(previous, action, actor, now = new Date()) {
     }
     case "addTyre": {
       if (!tyreTypes.includes(p.type)) throw new AppError("invalidType");
+      if (p.construction && !constructions.includes(p.construction))
+        throw new AppError("invalidConstruction");
       const serial = required(p.serial, 70).toUpperCase();
       if (state.tyres.some((t) => t.serial === serial))
         throw new AppError("duplicateTyre");
@@ -196,7 +246,8 @@ export function applyAction(previous, action, actor, now = new Date()) {
         id,
         serial,
         brand: required(p.brand, 80),
-        size: required(p.size, 40),
+        size: text(p.size, 40) || defaultTyreSize,
+        construction: p.construction || null,
         type: p.type,
         status: "stock",
         distance: km(p.distance ?? 0),
@@ -207,8 +258,172 @@ export function applyAction(previous, action, actor, now = new Date()) {
         fittedAt: null,
       };
       state.tyres.push(t);
+      if (
+        p.nsd &&
+        Object.values(p.nsd).some(
+          (v) => v !== "" && v !== null && v !== undefined,
+        )
+      )
+        event.nsdMeasurements = [saveNsd(t, readNsd(p.nsd), dayKey(now))];
       event.tyre = serial;
       event.type = p.type;
+      break;
+    }
+    case "measureNsd": {
+      const t = tyre();
+      if (t.status === "scrapped") throw new AppError("notInStock");
+      if (!isDay(p.measuredOn) || p.measuredOn > dayKey(now))
+        throw new AppError("invalidInspectionDate");
+      const values = readNsd(p.nsd);
+      const v = t.vehicleId ? vehicle(t.vehicleId) : null;
+      Object.assign(event, {
+        tyre: t.serial,
+        vehicleId: v?.id || null,
+        vehicle: v?.registration || null,
+        measuredOn: p.measuredOn,
+        nsdMeasurements: [saveNsd(t, values, p.measuredOn)],
+      });
+      break;
+    }
+    case "changeDriver": {
+      const v = vehicle(p.vehicleId);
+      const driverName = required(p.driverName, 100);
+      if (driverName === v.driverName) throw new AppError("sameDriver");
+      Object.assign(event, {
+        vehicleId: v.id,
+        vehicle: v.registration,
+        fromDriverName: v.driverName || "",
+        driverName,
+      });
+      Object.assign(v, {
+        driverName,
+        driverChangedAt: event.timestamp,
+        driverChangeId: id,
+        pendingTyreCheck: true,
+      });
+      break;
+    }
+    case "inspectVehicle": {
+      const v = vehicle(p.vehicleId);
+      if (!isDay(p.inspectedOn) || p.inspectedOn > dayKey(now))
+        throw new AppError("invalidInspectionDate");
+      if (typeof p.allTyresChecked !== "boolean")
+        throw new AppError("required");
+      if (p.fitmentSnapshot !== undefined) {
+        if (
+          !Array.isArray(p.fitmentSnapshot) ||
+          p.fitmentSnapshot.some(
+            (t) =>
+              !t ||
+              typeof t !== "object" ||
+              typeof t.tyreId !== "string" ||
+              typeof t.slot !== "string",
+          )
+        )
+          throw new AppError("inspectionTyreChanged");
+        const snapshotKey = (list) =>
+          list
+            .map((t) => `${t.slot}:${t.tyreId}`)
+            .sort()
+            .join("|");
+        const current = state.tyres
+          .filter((t) => t.status === "installed" && t.vehicleId === v.id)
+          .map((t) => ({ tyreId: t.id, slot: t.slot }));
+        if (snapshotKey(current) !== snapshotKey(p.fitmentSnapshot))
+          throw new AppError("inspectionTyreChanged");
+      }
+      const findings = p.findings ?? [];
+      if (!Array.isArray(findings) || findings.length > 57)
+        throw new AppError("invalidFindings");
+      const seen = new Set();
+      const checkedFindings = findings.map((f) => {
+        if (
+          !f ||
+          typeof f !== "object" ||
+          !inspectionIssues.includes(f.issue) ||
+          (!slots.includes(f.slot) && !(f.slot === "SP" && v.hasSpare))
+        )
+          throw new AppError("invalidFindings");
+        const detail = text(f.detail, 300);
+        if (f.issue === "other" && !detail)
+          throw new AppError("inspectionDetailRequired");
+        const key = f.slot + ":" + f.issue;
+        if (seen.has(key)) throw new AppError("duplicateFinding");
+        seen.add(key);
+        const t = state.tyres.find(
+          (t) =>
+            t.status === "installed" &&
+            t.vehicleId === v.id &&
+            t.slot === f.slot,
+        );
+        if (Object.hasOwn(f, "tyreId") && f.tyreId !== (t?.id || null))
+          throw new AppError("inspectionTyreChanged");
+        return {
+          slot: f.slot,
+          issue: f.issue,
+          detail,
+          tyreId: t?.id || null,
+          tyre: t?.serial || null,
+          brand: t?.brand || null,
+        };
+      });
+      const nsds = p.nsdMeasurements || [];
+      if (!Array.isArray(nsds) || nsds.length > 19)
+        throw new AppError("invalidNsd");
+      const measuredSlots = new Set();
+      const nsdMeasurements = nsds.map((reading) => {
+        if (!reading || measuredSlots.has(reading.slot))
+          throw new AppError("invalidNsd");
+        measuredSlots.add(reading.slot);
+        const tyre = state.tyres.find(
+          (t) =>
+            t.status === "installed" &&
+            t.vehicleId === v.id &&
+            t.slot === reading.slot &&
+            t.id === reading.tyreId,
+        );
+        if (!tyre) throw new AppError("inspectionTyreChanged");
+        return saveNsd(tyre, readNsd(reading), p.inspectedOn);
+      });
+      if (
+        !p.allTyresChecked &&
+        !checkedFindings.length &&
+        !nsdMeasurements.length &&
+        !event.note
+      )
+        throw new AppError("inspectionRequired");
+      const driverCheckCompleted = !!(
+        v.pendingTyreCheck &&
+        p.allTyresChecked &&
+        p.driverChangeId === v.driverChangeId &&
+        p.inspectedOn >= dayKey(new Date(v.driverChangedAt))
+      );
+      if (driverCheckCompleted) v.pendingTyreCheck = false;
+      if (!v.lastInspectedOn || p.inspectedOn >= v.lastInspectedOn) {
+        v.lastInspectedOn = p.inspectedOn;
+        v.lastInspectionId = id;
+      }
+      Object.assign(event, {
+        vehicleId: v.id,
+        vehicle: v.registration,
+        inspectedOn: p.inspectedOn,
+        allTyresChecked: p.allTyresChecked,
+        findings: checkedFindings,
+        nsdMeasurements,
+        driverCheckCompleted,
+        driverChangeId: driverCheckCompleted ? v.driverChangeId : null,
+        driverName: v.driverName || "",
+        odometer: v.odometer,
+        inspectedTyres: state.tyres
+          .filter((t) => t.status === "installed" && t.vehicleId === v.id)
+          .map((t) => ({
+            tyreId: t.id,
+            tyre: t.serial,
+            slot: t.slot,
+            brand: t.brand,
+            construction: t.construction || null,
+          })),
+      });
       break;
     }
     case "updateOdometer": {
@@ -243,6 +458,8 @@ export function applyAction(previous, action, actor, now = new Date()) {
         tyre: t.serial,
         vehicle: v.registration,
         slot: p.slot,
+        brand: t.brand,
+        construction: t.construction || null,
       });
       break;
     }
@@ -263,8 +480,14 @@ export function applyAction(previous, action, actor, now = new Date()) {
         runningKm: totalKm - t.distance,
         totalKm,
         destination,
+        brand: t.brand,
+        construction: t.construction || null,
       });
       if (destination === "scrapped") recordScrap(t, p, event);
+      if (destination === "remolding") {
+        event.vendor = remoldVendor(p);
+        t.remoldVendor = event.vendor;
+      }
       t.distance = totalKm;
       Object.assign(t, {
         status: destination,
@@ -279,6 +502,7 @@ export function applyAction(previous, action, actor, now = new Date()) {
       const t = tyre();
       if (t.status !== "stock") throw new AppError("notInStock");
       t.status = "remolding";
+      t.remoldVendor = event.vendor = remoldVendor(p);
       event.tyre = t.serial;
       event.totalKm = t.distance;
       break;
@@ -288,6 +512,8 @@ export function applyAction(previous, action, actor, now = new Date()) {
       if (!["stock", "remolding"].includes(t.status))
         throw new AppError("notInStock");
       t.status = "stock";
+      t.remoldVendor = event.vendor = remoldVendor(p, t.remoldVendor);
+      t.lastRemoldVendor = event.vendor;
       t.type = "remold";
       t.remolds++;
       event.tyre = t.serial;
