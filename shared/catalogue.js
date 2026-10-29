@@ -1,57 +1,23 @@
 export const vehicleClasses = ["BS3", "BS4", "BS6"];
 export const constructions = ["radial", "horse"];
 export const defaultTyreSize = "295/90 R20";
-// Common domestic and imported makes; Other keeps regional/new makes available.
+// Dropdown choices only. Other manufacturer names remain valid as custom entries.
 export const manufacturers = [
-  ["MRF", "mrftyres.com"],
-  ["Apollo", "apollotyres.com"],
-  ["CEAT", "ceat.com"],
-  ["JK Tyre", "jktyre.com"],
-  ["Bridgestone", "bridgestone.co.in"],
-  ["Michelin", "michelin.in"],
-  ["Goodyear", "goodyear.co.in"],
-  ["Continental", "continental-tires.com"],
-  ["Yokohama", "yokohama-india.com"],
-  ["Pirelli", "pirelli.com"],
-  ["Hankook", "hankooktire.com"],
-  ["Dunlop", "dunloptyres.com"],
-  ["Falken", "falkentyre.in"],
-  ["Toyo", "toyotires.in"],
-  ["Maxxis", "maxxistyres.in"],
-  ["Kumho", "kumhotire.com"],
-  ["Nexen", "nexentire.com"],
-  ["BKT", "bkt-tires.com"],
-  ["TVS Eurogrip", "eurogriptyres.com"],
-  ["Birla", "birlatyre.com"],
-  ["Ralco", "ralcotyres.com"],
-  ["Ralson", "ralson.com"],
-  ["Metro", "metrotyres.com"],
-  ["Speedways", "speedwaystyres.com"],
-  ["Malhotra / MRL", "mrltires.com"],
-  ["Hartex", "hartextyres.com"],
-  ["Reise", "reisemoto.com"],
-  ["Kelly", "kellytires.com"],
-  ["Firestone", "firestonetire.com"],
-  ["Giti", "giti.com"],
-  ["GT Radial", "gtradial.com"],
-  ["Sailun", "sailuntire.com"],
-  ["Triangle", "triangle.com.cn"],
-  ["Linglong", "linglongtire.com"],
-  ["Westlake", "westlaketyre.com"],
-  ["Goodride", "goodridetire.com"],
-  ["Double Coin", "doublecointires.com"],
-  ["Chaoyang", "chaoyangtire.com"],
-  ["Nokian", "nokiantyres.com"],
-  ["Vredestein", "vredestein.co.in"],
-  ["Kenda", "kendatire.com"],
-  ["CST", "csttires.com"],
-  ["Alliance", "yokohama-atg.com"],
-  ["Mitas", "mitas-tires.com"],
-  ["Camso", "camso.co"],
-  ["Solideal", "camso.co"],
-].map(([name, domain]) => ({ name, domain }));
+  ["MRF", "mrf"],
+  ["Apollo", "apollo", "jpg"],
+  ["CEAT", "ceat"],
+  ["JK Tyre", "jk-tyre"],
+  ["Bridgestone", "bridgestone", "webp"],
+  ["Michelin", "michelin", "jpg"],
+  ["Goodyear", "goodyear", "jpg"],
+].map(([name, slug, extension = "png"]) => ({
+  name,
+  logo: `/brands/${slug}.${extension}`,
+}));
 export function manufacturerFor(brand) {
-  const key = String(brand || "").toLowerCase();
+  const key = String(brand || "")
+    .trim()
+    .toLowerCase();
   return (
     manufacturers.find((m) => key === m.name.toLowerCase()) ||
     manufacturers.find((m) => key.startsWith(m.name.toLowerCase() + " "))

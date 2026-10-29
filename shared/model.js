@@ -168,6 +168,8 @@ export function dailyTally(state, date) {
     tally(emptyState())
   );
 }
+export const activeVehicles = (state) =>
+  state.vehicles.filter((v) => v.status !== "sold");
 export function tyreKm(tyre, state) {
   const vehicle = state.vehicles.find((v) => v.id === tyre.vehicleId);
   return (
@@ -238,6 +240,7 @@ function applySingleAction(state, action, actor, now) {
   const vehicle = (id) => {
     const v = state.vehicles.find((v) => v.id === id);
     if (!v) throw new AppError("vehicleMissing");
+    if (v.status === "sold") throw new AppError("vehicleAlreadySold");
     return v;
   };
   const setOdo = (v) => {
@@ -312,6 +315,97 @@ function applySingleAction(state, action, actor, now) {
         vehicle: v?.registration || null,
         measuredOn: p.measuredOn,
         nsdMeasurements: [saveNsd(t, values, p.measuredOn)],
+      });
+      break;
+    }
+    case "sellVehicle": {
+      const v = vehicle(p.vehicleId);
+      const fitted = state.tyres.filter(
+        (t) => t.vehicleId === v.id && t.status === "installed",
+      );
+      const snapshot = p.fitmentSnapshot;
+      if (snapshot !== undefined) {
+        const valid =
+          Array.isArray(snapshot) &&
+          snapshot.every(
+            (t) =>
+              t && typeof t.tyreId === "string" && typeof t.slot === "string",
+          );
+        const key = (list) =>
+          list
+            .map((t) => `${t.slot}:${t.tyreId}`)
+            .sort()
+            .join("|");
+        if (
+          !valid ||
+          key(snapshot) !==
+            key(fitted.map((t) => ({ tyreId: t.id, slot: t.slot })))
+        )
+          throw new AppError("saleTyresChanged", 409);
+      }
+      setOdo(v);
+      const snapshots = fitted.map((t) => ({
+        tyreId: t.id,
+        tyre: t.serial,
+        brand: t.brand,
+        construction: t.construction || null,
+        slot: t.slot,
+        fittedOdometer: t.fittedAt,
+        runningKm: tyreKm(t, state) - t.distance,
+        totalKm: tyreKm(t, state),
+        averagePercent: averageNsd(t.nsd),
+      }));
+      for (const t of fitted) {
+        const detail = snapshots.find((s) => s.tyreId === t.id);
+        t.status = "sold";
+        t.distance = detail.totalKm;
+        t.type = t.type === "new" ? "used" : t.type;
+        Object.assign(t, {
+          vehicleId: null,
+          slot: null,
+          fittedAt: null,
+          soldAt: event.timestamp,
+          soldBy: actor,
+          saleNote: event.note,
+          soldFrom: "installed",
+          soldWithVehicleId: v.id,
+          soldVehicle: v.registration,
+          soldSlot: detail.slot,
+          vehicleSaleId: id,
+        });
+        state.events.push({
+          id: crypto.randomUUID(),
+          timestamp: event.timestamp,
+          date: event.date,
+          kind: "sell",
+          actor,
+          note: event.note,
+          ...detail,
+          type: t.type,
+          vehicleId: v.id,
+          vehicle: v.registration,
+          vehicleSaleId: id,
+          soldWithVehicle: true,
+          fromStatus: "installed",
+          destination: "sold",
+          odometer: v.odometer,
+          tally: tally(state),
+        });
+      }
+      Object.assign(v, {
+        status: "sold",
+        soldAt: event.timestamp,
+        soldBy: actor,
+        saleNote: event.note,
+        soldTyreIds: fitted.map((t) => t.id),
+        vehicleSaleId: id,
+        pendingTyreCheck: false,
+      });
+      Object.assign(event, {
+        vehicleId: v.id,
+        vehicle: v.registration,
+        tyreCount: fitted.length,
+        soldTyres: snapshots,
       });
       break;
     }

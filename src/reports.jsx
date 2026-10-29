@@ -32,6 +32,7 @@ export function Reports({ app, initialVehicleId, onExport }) {
     "removals",
     "driverChanges",
     "driverChecks",
+    "vehicleSales",
     "tyreKm",
   ];
   async function exportReport(details = false) {
@@ -175,6 +176,7 @@ export function Reports({ app, initialVehicleId, onExport }) {
             {state.vehicles.map((v) => (
               <option key={v.id} value={v.id}>
                 {v.registration}
+                {v.status === "sold" ? ` · ${t("sold")}` : ""}
               </option>
             ))}
           </select>
@@ -239,7 +241,12 @@ export function Reports({ app, initialVehicleId, onExport }) {
                 <tbody>
                   {result.rows.map((r) => (
                     <tr key={r.vehicle.id}>
-                      <th>{r.vehicle.registration}</th>
+                      <th>
+                        {r.vehicle.registration}
+                        {r.vehicle.status === "sold" && (
+                          <span className="report-sold-tag">{t("sold")}</span>
+                        )}
+                      </th>
                       <td>{r.vehicle.emissionClass || t("notRecorded")}</td>
                       {metrics.map((k) => (
                         <td key={k}>{n(r[k])}</td>

@@ -64,6 +64,11 @@ async function main() {
   const page = await context.newPage();
   mkdirSync(path.join(root, "artifacts"), { recursive: true });
   const errors = [];
+  const remoteLogoRequests = [];
+  context.on("request", (req) => {
+    if (/google\.com|gstatic\.com/.test(req.url()))
+      remoteLogoRequests.push(req.url());
+  });
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto(base);
   assert.equal(
@@ -85,6 +90,36 @@ async function main() {
     .waitFor();
   async function record(button, data) {
     await page.getByRole("button", { name: button, exact: true }).click();
+    if (button === "Add tyre")
+      assert.deepEqual(
+        await page
+          .locator("dialog select[name=brand] option")
+          .evaluateAll((options) => options.map((o) => o.value)),
+        [
+          "MRF",
+          "Apollo",
+          "CEAT",
+          "JK Tyre",
+          "Bridgestone",
+          "Michelin",
+          "Goodyear",
+          "other",
+        ],
+      );
+    if (button === "Add tyre" && data.serial === "TYR-001") {
+      const { manufacturers } = await import("../shared/catalogue.js");
+      for (const make of manufacturers) {
+        await page.locator("dialog select[name=brand]").selectOption(make.name);
+        const logo = page.locator("dialog .manufacturer-mark img");
+        await logo.waitFor();
+        await logo.evaluate((img) => img.decode());
+        assert.equal(await logo.getAttribute("src"), make.logo);
+        assert.equal(
+          await logo.evaluate((img) => getComputedStyle(img).objectFit),
+          "contain",
+        );
+      }
+    }
     for (const [name, value] of Object.entries(data)) {
       const field = page.locator(`dialog [name="${name}"]`);
       if (typeof value === "boolean") await field.setChecked(value);
@@ -361,6 +396,7 @@ async function main() {
   console.log(
     "PASS: staff inspection records issue, direct tread percentages and completed driver check; per-vehicle date-filtered report and CSV work on mobile",
   );
+  await staff.setViewportSize({ width: 390, height: 844 });
   await staff
     .locator(".mobile-nav-items")
     .getByRole("button", { name: "Tyre inventory", exact: true })
@@ -385,14 +421,12 @@ async function main() {
     ),
     { sheet: "Tyres" },
   ).toBuffer();
-  await staff
-    .getByLabel("Choose Excel file", { exact: true })
-    .setInputFiles({
-      name: "tyres.xlsx",
-      mimeType:
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      buffer: workbook,
-    });
+  await staff.getByLabel("Choose Excel file", { exact: true }).setInputFiles({
+    name: "tyres.xlsx",
+    mimeType:
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    buffer: workbook,
+  });
   await staff
     .getByRole("button", { name: "Import 2 tyres", exact: true })
     .waitFor();
@@ -443,7 +477,10 @@ async function main() {
   assert.equal(state.events.at(-1).actor, "garage_staff");
   assert.equal(state.events.at(-1).tally.total, 4);
   assert.equal(state.events.at(-1).tally.sold, 1);
-  await staff.locator("dialog").getByRole("button", { name: "Close", exact: true }).click();
+  await staff
+    .locator("dialog")
+    .getByRole("button", { name: "Close", exact: true })
+    .click();
   console.log(
     "PASS: staff cannot add/import vehicles; real tyre Excel import preserves IDs, skips duplicates, defaults NSD, and sold history leaves active stock",
   );
@@ -517,6 +554,132 @@ async function main() {
     path: path.join(root, "artifacts/vehicle-mobile.png"),
     fullPage: true,
   });
+  await staff.getByRole("heading", { name: "Horse", exact: false }).waitFor();
+  await staff.getByRole("heading", { name: "Trolley", exact: false }).waitFor();
+  assert.equal(
+    await staff
+      .getByRole("button", { name: "Vehicle Sold", exact: true })
+      .count(),
+    0,
+  );
+  const separation = await staff
+    .locator(".axle-row")
+    .evaluateAll(
+      (rows) =>
+        rows[2].getBoundingClientRect().top -
+        rows[1].getBoundingClientRect().bottom,
+    );
+  assert.ok(separation >= 80, "Horse and trolley have a clear break");
+  await record("Add vehicle", {
+    registration: "RJ14SALE1",
+    emissionClass: "BS4",
+    odometer: 1000,
+    hasSpare: true,
+  });
+  for (const serial of ["VSROAD", "VSSPARE"])
+    await record("Add tyre", {
+      serial,
+      brand: "MRF",
+      construction: "radial",
+      type: "new",
+    });
+  state = await (await context.request.get(base + "/api/state")).json();
+  const saleVehicle = state.vehicles.find(
+    (v) => v.registration === "RJ14SALE1",
+  );
+  for (const [serial, slot] of [
+    ["VSROAD", "FR"],
+    ["VSSPARE", "SP"],
+  ])
+    await apiAction("fit", {
+      vehicleId: saleVehicle.id,
+      tyreId: state.tyres.find((t) => t.serial === serial).id,
+      slot,
+      odometer: 1000,
+    });
+  state = await (await context.request.get(base + "/api/state")).json();
+  const activeBefore = state.events.at(-1).tally.total;
+  await page
+    .locator(".nav-items")
+    .getByRole("button", { name: "Vehicles", exact: true })
+    .click();
+  await page.getByRole("button", { name: /RJ14SALE1/ }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole("button", { name: "Vehicle Sold", exact: true }).click();
+  assert.equal(await page.locator("dialog .sale-tyre-list li").count(), 2);
+  await page.locator("dialog input[name=odometer]").fill("1500");
+  await page
+    .locator("dialog textarea[name=note]")
+    .fill("Vehicle buyer invoice 84");
+  await page.locator("dialog input[name=confirmSale]").check();
+  await page.screenshot({
+    path: path.join(root, "artifacts/vehicle-sale-review-mobile.png"),
+    fullPage: true,
+  });
+  await page.getByRole("button", { name: "Record sale", exact: true }).click();
+  await page.locator("dialog").waitFor({ state: "detached" });
+  assert.equal(
+    await page.getByRole("button", { name: /RJ14SALE1/ }).count(),
+    0,
+  );
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  state = await (await context.request.get(base + "/api/state")).json();
+  assert.equal(state.events.at(-1).kind, "sellVehicle");
+  assert.equal(state.events.at(-1).actor, "garage_owner");
+  assert.equal(state.events.at(-1).tally.total, activeBefore - 2);
+  assert.equal(state.tyres.find((t) => t.serial === "VSROAD").distance, 500);
+  assert.equal(state.tyres.find((t) => t.serial === "VSSPARE").distance, 0);
+  await staff
+    .locator(".mobile-nav-items")
+    .getByRole("button", { name: "Vehicles", exact: true })
+    .click();
+  assert.equal(
+    await staff.getByRole("button", { name: /RJ14SALE1/ }).count(),
+    0,
+  );
+  await staff.getByRole("button", { name: /Sold vehicles/ }).click();
+  await staff.getByRole("button", { name: /RJ14SALE1/ }).click();
+  await staff
+    .getByText(
+      "This vehicle and its fitted tyres are archived as sold. History and reports remain available.",
+      { exact: true },
+    )
+    .waitFor();
+  assert.equal(
+    await staff
+      .getByRole("button", { name: "Update odometer", exact: true })
+      .count(),
+    0,
+  );
+  assert.equal(
+    await staff
+      .getByRole("button", { name: "Record tyre inspection", exact: true })
+      .count(),
+    0,
+  );
+  await staff.screenshot({
+    path: path.join(root, "artifacts/vehicle-sold-mobile.png"),
+    fullPage: true,
+  });
+  await staff
+    .locator(".mobile-nav-items")
+    .getByRole("button", { name: "Tyre inventory", exact: true })
+    .click();
+  await staff.getByRole("button", { name: /^Sold/ }).click();
+  await staff.getByRole("button", { name: /VSROAD/ }).click();
+  await staff.getByText(/Sold with vehicle: RJ14SALE1/).waitFor();
+  await staff
+    .locator("dialog")
+    .getByRole("button", { name: "Close", exact: true })
+    .click();
+  console.log(
+    "PASS: only admin sells vehicles; sale lists fitted tyres, closes road/spare km, removes active vehicle/stock and shares read-only vehicle and tyre history",
+  );
+  await staff
+    .locator(".mobile-nav-items")
+    .getByRole("button", { name: "Vehicles", exact: true })
+    .click();
+  await staff.getByRole("button", { name: /RJ14AB1234/ }).click();
   await staff.getByRole("button", { name: "Language", exact: true }).click();
   await staff
     .getByRole("heading", { name: "RJ14AB1234", exact: true })
@@ -610,6 +773,7 @@ async function main() {
   await staff
     .getByRole("heading", { name: "आपके बेड़े का पूरा हिसाब" })
     .waitFor();
+  assert.deepEqual(remoteLogoRequests, []);
   assert.deepEqual(errors, []);
   console.log(
     "PASS: offline warning blocks access/entries, survives reload, and reconnect restores shared data; no runtime errors",

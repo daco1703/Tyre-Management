@@ -62,6 +62,7 @@ import {
   makeTyreTemplate,
 } from "./vehicle-workbook";
 import {
+  activeVehicles,
   numberedSlots,
   positionLabel,
   dayKey,
@@ -509,7 +510,7 @@ function App() {
             <footer className="page-footer">
               <CircleDot size={14} />
               {t("tagline")}
-              <span>Shepards Tyre Management · v1.6</span>
+              <span>Shepards Tyre Management · v1.7</span>
             </footer>
           </div>
           <nav className="bottom-nav">
@@ -885,7 +886,8 @@ function Dashboard() {
   const [day, setDay] = useState(dayKey());
   const counts = tally(state),
     daily = day ? dailyTally(state, day) : {};
-  const emptySlots = state.vehicles.reduce(
+  const fleet = activeVehicles(state);
+  const emptySlots = fleet.reduce(
     (sum, v) =>
       sum +
       18 -
@@ -934,7 +936,7 @@ function Dashboard() {
           { key: "stock", value: counts.stock, Icon: Package, style: "amber" },
           {
             key: "fleet",
-            value: state.vehicles.length,
+            value: fleet.length,
             Icon: Gauge,
             style: "purple",
           },
@@ -1052,7 +1054,7 @@ function Dashboard() {
           <p className="small muted">{t("aboutTally")}</p>
         </section>
       </div>
-      {!state.tyres.length && !state.vehicles.length && (
+      {!state.tyres.length && !fleet.length && (
         <section className="start-guide">
           <div>
             <span className="empty-icon">
@@ -1106,7 +1108,7 @@ function Dashboard() {
               <ArrowUpRight size={16} />
             </button>
           </div>
-          {!state.vehicles.length ? (
+          {!fleet.length ? (
             <Empty title="noVehicles" icon={Truck} />
           ) : (
             <>
@@ -1121,7 +1123,7 @@ function Dashboard() {
                   <span>{t("positionsOpen")}</span>
                 </div>
               </div>
-              {state.vehicles.slice(0, 3).map((v) => {
+              {fleet.slice(0, 3).map((v) => {
                 const fitted = state.tyres.filter(
                   (t) => t.vehicleId === v.id && t.slot !== "SP",
                 ).length;
@@ -1245,6 +1247,11 @@ function Activity({ event: e }) {
             {t("remoldVendor")}: {e.vendor}
           </p>
         )}
+        {e.tyreCount !== undefined && (
+          <p className="activity-note">
+            {n(e.tyreCount)} {t("tyresIncluded")}
+          </p>
+        )}
         {e.note && <p className="activity-note">{e.note}</p>}
       </div>
     </div>
@@ -1253,7 +1260,11 @@ function Activity({ event: e }) {
 function Vehicles() {
   const { t, n, date, state, navigate, setModal, offline, session } = useApp();
   const [query, setQuery] = useState("");
-  const vehicles = state.vehicles.filter((v) =>
+  const [status, setStatus] = useState("active");
+  const scope = state.vehicles.filter((v) =>
+    status === "sold" ? v.status === "sold" : v.status !== "sold",
+  );
+  const vehicles = scope.filter((v) =>
     `${v.registration} ${v.name} ${v.driverName || ""} ${v.emissionClass || ""}`
       .toLowerCase()
       .includes(query.toLowerCase()),
@@ -1282,6 +1293,28 @@ function Vehicles() {
           </>
         )}
       </PageHeading>
+      <div
+        className="vehicle-tabs tabs"
+        role="group"
+        aria-label={t("vehicleStatus")}
+      >
+        {["active", "sold"].map((k) => (
+          <button
+            key={k}
+            className={status === k ? "selected" : ""}
+            onClick={() => setStatus(k)}
+          >
+            {t(k === "active" ? "activeVehicles" : "soldVehicles")}
+            <span>
+              {n(
+                state.vehicles.filter((v) =>
+                  k === "sold" ? v.status === "sold" : v.status !== "sold",
+                ).length,
+              )}
+            </span>
+          </button>
+        ))}
+      </div>
       <div className="toolbar">
         <SearchInput
           placeholder="searchVehicles"
@@ -1289,15 +1322,16 @@ function Vehicles() {
           onChange={setQuery}
         />
         <span className="muted small">
-          {n(state.vehicles.length)} {t("vehicles")}
+          {n(scope.length)}{" "}
+          {t(status === "sold" ? "soldVehicles" : "activeVehicles")}
         </span>
       </div>
       {!vehicles.length ? (
         <section className="card">
           <Empty
             icon={Truck}
-            title={query ? "noResults" : "noVehicles"}
-            sub={query ? "noResultsSub" : "noVehiclesSub"}
+            title={query || status === "sold" ? "noResults" : "noVehicles"}
+            sub={query || status === "sold" ? "noResultsSub" : "noVehiclesSub"}
           />
         </section>
       ) : (
@@ -1334,13 +1368,21 @@ function Vehicles() {
                     {t("driverCheckPending")}
                   </span>
                 )}
-                <div className="vehicle-progress">
-                  <span>{t("roadTyres")}</span>
-                  <strong>{n(road)} / 18</strong>
-                  <div>
-                    <i style={{ width: `${(road / 18) * 100}%` }} />
-                  </div>
-                </div>
+                {v.status === "sold" ? (
+                  <p className="vehicle-sale-stamp">
+                    {t("vehicleSold")}: {date(v.soldAt)} · {v.soldBy}
+                  </p>
+                ) : (
+                  <>
+                    <div className="vehicle-progress">
+                      <span>{t("roadTyres")}</span>
+                      <strong>{n(road)} / 18</strong>
+                      <div>
+                        <i style={{ width: `${(road / 18) * 100}%` }} />
+                      </div>
+                    </div>
+                  </>
+                )}
                 <div className="vehicle-meta">
                   <span>
                     <Gauge size={16} />
@@ -1349,22 +1391,24 @@ function Vehicles() {
                   <span>
                     {t("spare")}:{" "}
                     {v.hasSpare
-                      ? `${tyres.some((t) => t.slot === "SP") ? 1 : 0}/1`
+                      ? `${v.status === "sold" ? (state.tyres.some((t) => t.soldWithVehicleId === v.id && t.soldSlot === "SP") ? 1 : 0) : tyres.some((t) => t.slot === "SP") ? 1 : 0}/1`
                       : "—"}
                   </span>
                 </div>
-                <span
-                  className={`vehicle-readiness ${road === 18 ? "complete" : ""}`}
-                >
-                  {road === 18 ? (
-                    <CheckCircle2 size={14} />
-                  ) : (
-                    <AlertCircle size={14} />
-                  )}{" "}
-                  {road === 18
-                    ? t("full")
-                    : `${n(18 - road)} ${t("positionsOpen")}`}
-                </span>
+                {v.status !== "sold" && (
+                  <span
+                    className={`vehicle-readiness ${road === 18 ? "complete" : ""}`}
+                  >
+                    {road === 18 ? (
+                      <CheckCircle2 size={14} />
+                    ) : (
+                      <AlertCircle size={14} />
+                    )}{" "}
+                    {road === 18
+                      ? t("full")
+                      : `${n(18 - road)} ${t("positionsOpen")}`}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -1374,15 +1418,20 @@ function Vehicles() {
   );
 }
 function VehicleDetail({ id }) {
-  const { t, n, date, state, setModal, offline, navigate } = useApp();
+  const { t, n, date, state, setModal, offline, navigate, session } = useApp();
   const v = state.vehicles.find((v) => v.id === id);
   if (!v) return null;
-  const tyres = state.tyres.filter((t) => t.vehicleId === id),
-    count = tyres.filter((t) => t.slot !== "SP").length;
+  const sold = v.status === "sold";
+  const tyres = sold
+    ? state.tyres
+        .filter((t) => t.soldWithVehicleId === v.id)
+        .map((t) => ({ ...t, slot: t.soldSlot }))
+    : state.tyres.filter((t) => t.vehicleId === id);
+  const count = tyres.filter((t) => t.slot !== "SP").length;
   const inspection = lastInspection(state, v);
   const history = vehicleEvents(state, v);
   const dueNsd = tyres.filter(
-    (t) => t.nextNsdCheckOn && t.nextNsdCheckOn <= dayKey(),
+    (t) => !sold && t.nextNsdCheckOn && t.nextNsdCheckOn <= dayKey(),
   );
   function wheel(slot) {
     const tyre = tyres.find((t) => t.slot === slot);
@@ -1398,7 +1447,7 @@ function VehicleDetail({ id }) {
               : { type: "fit", vehicleId: id, slot },
           )
         }
-        disabled={!tyre && offline}
+        disabled={!tyre && (offline || sold)}
       >
         <span className="tread-line" />
         {tyre ? (
@@ -1421,21 +1470,27 @@ function VehicleDetail({ id }) {
         }
         back
       >
-        <Button
-          secondary
-          icon={UserRound}
-          disabled={offline}
-          onClick={() => setModal({ type: "changeDriver", vehicleId: id })}
-        >
-          {t("changeDriver")}
-        </Button>
-        <Button
-          icon={ClipboardCheck}
-          disabled={offline}
-          onClick={() => setModal({ type: "inspectVehicle", vehicleId: id })}
-        >
-          {t("inspectVehicle")}
-        </Button>
+        {!sold && (
+          <>
+            <Button
+              secondary
+              icon={UserRound}
+              disabled={offline || sold}
+              onClick={() => setModal({ type: "changeDriver", vehicleId: id })}
+            >
+              {t("changeDriver")}
+            </Button>
+            <Button
+              icon={ClipboardCheck}
+              disabled={offline || sold}
+              onClick={() =>
+                setModal({ type: "inspectVehicle", vehicleId: id })
+              }
+            >
+              {t("inspectVehicle")}
+            </Button>
+          </>
+        )}
         <Button
           secondary
           icon={BarChart3}
@@ -1443,15 +1498,41 @@ function VehicleDetail({ id }) {
         >
           {t("vehicleReport")}
         </Button>
-        <Button
-          secondary
-          icon={Gauge}
-          disabled={offline}
-          onClick={() => setModal({ type: "updateOdometer", vehicleId: id })}
-        >
-          {t("updateOdometer")}
-        </Button>
+        {!sold && (
+          <>
+            <Button
+              secondary
+              icon={Gauge}
+              disabled={offline || sold}
+              onClick={() =>
+                setModal({ type: "updateOdometer", vehicleId: id })
+              }
+            >
+              {t("updateOdometer")}
+            </Button>
+            {session.user.role === "owner" && (
+              <Button
+                secondary
+                className="vehicle-sale-button"
+                disabled={offline}
+                onClick={() => setModal({ type: "sellVehicle", vehicleId: id })}
+              >
+                {t("vehicleSold")}
+              </Button>
+            )}
+          </>
+        )}
       </PageHeading>
+      {sold && (
+        <section className="sale-record">
+          <strong>{t("vehicleSold")}</strong>
+          <p>
+            {date(v.soldAt, true)} · {v.soldBy}
+          </p>
+          <p>{t("soldVehicleReadOnly")}</p>
+          {v.saleNote && <p>{v.saleNote}</p>}
+        </section>
+      )}
       {v.pendingTyreCheck && (
         <div className="maintenance-notice">
           <AlertCircle size={20} />
@@ -1480,7 +1561,9 @@ function VehicleDetail({ id }) {
               <h2>{t("road")}</h2>
               <p>{t("slotHint")}</p>
             </div>
-            <Badge type={count === 18 ? "new" : "used"}>{n(count)} / 18</Badge>
+            <Badge type={count === 18 ? "new" : "used"}>
+              {sold ? t("sold") : `${n(count)} / 18`}
+            </Badge>
           </div>
           <div className="truck-map">
             <div className="truck-cab">
@@ -1491,24 +1574,53 @@ function VehicleDetail({ id }) {
               <span>{t("left")}</span>
               <span>{t("right")}</span>
             </div>
-            <div className="axle-row front-axle">
-              {wheel("FL")}
-              <span className="axle-label" aria-hidden="true" />
-              {wheel("FR")}
-            </div>
-            {[2, 3, 4, 5].map((a) => (
-              <div className={`axle-row${a === 3 ? " axle-gap" : ""}`} key={a}>
+            <section
+              className="tyre-section horse-section"
+              aria-label={t("horseUnit")}
+            >
+              <h3>
+                {t("horseUnit")}
+                <span>{t("positions")} 1–6</span>
+              </h3>
+              <div className="axle-row front-axle">
+                {wheel("FL")}
+                <span className="axle-label" aria-hidden="true" />
+                {wheel("FR")}
+              </div>
+              <div className="axle-row">
                 <div>
-                  {wheel(`${a}LO`)}
-                  {wheel(`${a}LI`)}
+                  {wheel("2LO")}
+                  {wheel("2LI")}
                 </div>
                 <span className="axle-label" aria-hidden="true" />
                 <div>
-                  {wheel(`${a}RI`)}
-                  {wheel(`${a}RO`)}
+                  {wheel("2RI")}
+                  {wheel("2RO")}
                 </div>
               </div>
-            ))}
+            </section>
+            <section
+              className="tyre-section trolley-section"
+              aria-label={t("trolleyUnit")}
+            >
+              <h3>
+                {t("trolleyUnit")}
+                <span>{t("positions")} 7–18</span>
+              </h3>
+              {[3, 4, 5].map((a) => (
+                <div className="axle-row" key={a}>
+                  <div>
+                    {wheel(`${a}LO`)}
+                    {wheel(`${a}LI`)}
+                  </div>
+                  <span className="axle-label" aria-hidden="true" />
+                  <div>
+                    {wheel(`${a}RI`)}
+                    {wheel(`${a}RO`)}
+                  </div>
+                </div>
+              ))}
+            </section>
             <div className="spare-position">
               <span>{t("spare")}</span>
               {v.hasSpare ? wheel("SP") : <small>{t("noSpare")}</small>}
@@ -1643,7 +1755,9 @@ function Inventory() {
     [query, setQuery] = useState("");
   const tyres = state.tyres.filter(
     (tyre) =>
-      (status === "all" || tyre.status === status) &&
+      (status === "all"
+        ? !["sold", "scrapped"].includes(tyre.status)
+        : tyre.status === status) &&
       (type === "all" || tyre.type === type) &&
       `${tyre.serial} ${tyre.brand} ${tyre.construction || ""} ${state.vehicles.find((v) => v.id === tyre.vehicleId)?.registration || ""}`
         .toLowerCase()
@@ -1671,7 +1785,7 @@ function Inventory() {
       <section className="card inventory-card">
         <div className="tabs">
           {[
-            ["all", "all"],
+            ["all", "total"],
             ["stock", "garage"],
             ["installed", "onRoad"],
             ["remolding", "remolding"],
@@ -1686,8 +1800,11 @@ function Inventory() {
               {t(label)}
               <span>
                 {n(
-                  state.tyres.filter((t) => key === "all" || t.status === key)
-                    .length,
+                  state.tyres.filter((t) =>
+                    key === "all"
+                      ? !["sold", "scrapped"].includes(t.status)
+                      : t.status === key,
+                  ).length,
                 )}
               </span>
             </button>
@@ -2143,7 +2260,7 @@ function Dialog({
   }, []);
   return (
     <dialog
-      className={`dialog ${wide ? "wide" : ""}`}
+      className={`dialog ${wide ? "wide" : ""} ${footer ? "with-footer" : ""}`}
       ref={ref}
       onCancel={(e) => {
         e.preventDefault();
@@ -2183,6 +2300,8 @@ function ModalContent({ modal, onClose }) {
     return <WorkbookImport type="vehicle" onClose={onClose} />;
   if (modal.type === "importTyres")
     return <WorkbookImport type="tyre" onClose={onClose} />;
+  if (modal.type === "sellVehicle")
+    return <VehicleSaleForm modal={modal} onClose={onClose} />;
   if (modal.type === "inspectVehicle")
     return <InspectionForm modal={modal} onClose={onClose} />;
   if (modal.type === "tyre")
@@ -2602,7 +2721,7 @@ function TyreDetails({ id, onClose }) {
                 <>
                   <Button
                     icon={ArrowUpRight}
-                    disabled={offline || !state.vehicles.length}
+                    disabled={offline || !activeVehicles(state).length}
                     onClick={() => setModal({ type: "fit", tyreId: id })}
                   >
                     {t("fit")}
@@ -2641,6 +2760,12 @@ function TyreDetails({ id, onClose }) {
         <p className="sale-record">
           {t("sold")}: {date(tyre.soldAt, true)} · {tyre.soldBy}
           {tyre.saleNote ? ` · ${tyre.saleNote}` : ""}
+          {tyre.soldVehicle && (
+            <span className="sold-with-vehicle">
+              {t("withVehicle")}: {tyre.soldVehicle} · {t("position")}{" "}
+              {positionLabel(tyre.soldSlot)}
+            </span>
+          )}
         </p>
       )}
       {["stock", "scrapped"].includes(tyre.status) && (
@@ -2962,7 +3087,7 @@ function RecordForm({ modal: m, onClose }) {
                 <option value="" disabled>
                   {t("chooseVehicle")}
                 </option>
-                {state.vehicles.map((v) => (
+                {activeVehicles(state).map((v) => (
                   <option key={v.id} value={v.id}>
                     {v.registration}
                   </option>
@@ -3204,7 +3329,7 @@ function NsdInputs({ t }) {
 }
 function MaintenanceReminders() {
   const { t, state, navigate, setModal } = useApp();
-  const drivers = state.vehicles.filter((v) => v.pendingTyreCheck);
+  const drivers = activeVehicles(state).filter((v) => v.pendingTyreCheck);
   const due = state.tyres.filter(
     (t) =>
       t.status === "installed" &&
@@ -3482,3 +3607,106 @@ function KmInput({ name, value, min = 0, label = "odometer", onChange }) {
 createRoot(document.getElementById("root")).render(<App />);
 if ("serviceWorker" in navigator && import.meta.env.PROD && !native)
   navigator.serviceWorker.register("/sw.js").catch(() => {});
+
+function VehicleSaleForm({ modal, onClose }) {
+  const { t, n, state, session, action, offline, navigate } = useApp();
+  const vehicle = state.vehicles.find((v) => v.id === modal.vehicleId);
+  const [snapshot] = useState(() =>
+    state.tyres
+      .filter(
+        (t) => t.status === "installed" && t.vehicleId === modal.vehicleId,
+      )
+      .map((t) => ({
+        tyreId: t.id,
+        slot: t.slot,
+        tyre: t.serial,
+        brand: t.brand,
+      })),
+  );
+  const [busy, setBusy] = useState(false),
+    [error, setError] = useState("");
+  if (!vehicle || vehicle.status === "sold" || session.user.role !== "owner")
+    return null;
+  async function submit(e) {
+    e.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      const data = Object.fromEntries(new FormData(e.currentTarget));
+      await action("sellVehicle", {
+        ...data,
+        vehicleId: vehicle.id,
+        fitmentSnapshot: snapshot.map((t) => ({
+          tyreId: t.tyreId,
+          slot: t.slot,
+        })),
+      });
+      onClose();
+      navigate("vehicles");
+    } catch (e) {
+      setError(e.code || "serverError");
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <Dialog
+      title={`${t("vehicleSold")} · ${vehicle.registration}`}
+      onClose={onClose}
+      busy={busy}
+      footer={
+        <>
+          <Button secondary type="button" onClick={onClose} disabled={busy}>
+            {t("cancel")}
+          </Button>
+          <Button
+            type="submit"
+            form="vehicle-sale-form"
+            disabled={busy || offline}
+          >
+            {t(busy ? "saving" : "confirmSale")}
+          </Button>
+        </>
+      }
+    >
+      <form id="vehicle-sale-form" onSubmit={submit}>
+        <p className="sale-review-info">{t("vehicleSaleHelp")}</p>
+        <p className="sale-tyre-count">
+          <strong>{n(snapshot.length)}</strong> {t("tyresIncluded")}
+        </p>
+        <ul className="sale-tyre-list">
+          {snapshot.map((tyre) => (
+            <li key={tyre.tyreId}>
+              <span>
+                {positionLabel(tyre.slot)} · {tyre.tyre}
+              </span>
+              <BrandMark brand={tyre.brand} />
+            </li>
+          ))}
+        </ul>
+        <KmInput
+          name="odometer"
+          value={vehicle.odometer}
+          min={vehicle.odometer}
+        />
+        <Field label="notes">
+          <textarea
+            name="note"
+            rows={3}
+            maxLength={500}
+            placeholder={t("saleNotePlaceholder")}
+          />
+        </Field>
+        <label className="checkbox-field">
+          <input type="checkbox" name="confirmSale" required />
+          {t("confirmVehicleSale")}
+        </label>
+        {error && (
+          <p className="form-error" role="alert">
+            {t(error)}
+          </p>
+        )}
+      </form>
+    </Dialog>
+  );
+}

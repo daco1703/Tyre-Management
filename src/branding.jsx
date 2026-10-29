@@ -2,9 +2,7 @@ import React, { useEffect, useState } from "react";
 import { manufacturerFor } from "../shared/catalogue.js";
 export function BrandMark({ brand, compact = false }) {
   const make = manufacturerFor(brand);
-  const url = make
-    ? `https://www.google.com/s2/favicons?domain=${make.domain}&sz=128`
-    : "";
+  const url = make?.logo || "";
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [url]);
   return (
@@ -17,7 +15,6 @@ export function BrandMark({ brand, compact = false }) {
           src={url}
           alt={brand}
           loading="lazy"
-          referrerPolicy="no-referrer"
           onError={() => setFailed(true)}
         />
       ) : (

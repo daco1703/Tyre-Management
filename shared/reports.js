@@ -52,7 +52,10 @@ export function reportFor(state, filters) {
       vehicle: v,
       events,
       fitments: events.filter((e) => e.kind === "fit").length,
-      removals: events.filter((e) => e.kind === "remove").length,
+      removals: events.filter(
+        (e) => e.kind === "remove" || (e.kind === "sell" && e.soldWithVehicle),
+      ).length,
+      vehicleSales: events.filter((e) => e.kind === "sellVehicle").length,
       inspections: events.filter((e) => e.kind === "inspectVehicle").length,
       findings: events.reduce((n, e) => n + (e.findings?.length || 0), 0),
       nsdChecks: events.reduce(
@@ -62,13 +65,17 @@ export function reportFor(state, filters) {
       driverChanges: events.filter((e) => e.kind === "changeDriver").length,
       driverChecks: events.filter((e) => e.driverCheckCompleted).length,
       tyreKm: events
-        .filter((e) => e.kind === "remove")
+        .filter(
+          (e) =>
+            e.kind === "remove" || (e.kind === "sell" && e.soldWithVehicle),
+        )
         .reduce((n, e) => n + (e.runningKm || 0), 0),
     };
   });
   const keys = [
     "fitments",
     "removals",
+    "vehicleSales",
     "inspections",
     "findings",
     "nsdChecks",

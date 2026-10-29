@@ -1,0 +1,58 @@
+[
+  {
+    "slug": "apollo",
+    "file": "apollo.jpg",
+    "source": "apollo logo.jpg",
+    "width": 1090,
+    "height": 418,
+    "sha256": "b630c6d06af76ec6beb2a4deb16b04d0e2088b645d7a76eeb9e8fde630dbe069"
+  },
+  {
+    "slug": "bridgestone",
+    "file": "bridgestone.webp",
+    "source": "Bridgestone logo.webp",
+    "width": 3840,
+    "height": 474,
+    "sha256": "da1956663eecdd0fd0c9d70f28b8dcfa12e55c722133b6b95dc095952c423bfb"
+  },
+  {
+    "slug": "ceat",
+    "file": "ceat.png",
+    "source": "ceat logo.png",
+    "width": 2000,
+    "height": 662,
+    "sha256": "112e9858c7c1fa6f0898a6333c2968c90f6235b446efcbd1bbd9bbe90c738690"
+  },
+  {
+    "slug": "goodyear",
+    "file": "goodyear.jpg",
+    "source": "Goodyear logo.jpg",
+    "width": 736,
+    "height": 414,
+    "sha256": "29a79a37c97f3efc996f4b0f528bf094d900e05b3766972329a8d24443c97b2a"
+  },
+  {
+    "slug": "jk-tyre",
+    "file": "jk-tyre.png",
+    "source": "jk logo.png",
+    "width": 2700,
+    "height": 600,
+    "sha256": "f7cefec1fc393a102834c96f9a1d7fcdfecfe9d4dca2514314fbbab5659556cd"
+  },
+  {
+    "slug": "michelin",
+    "file": "michelin.jpg",
+    "source": "michelin logo.jpg",
+    "width": 1954,
+    "height": 1491,
+    "sha256": "4d4e723ef4ebcb67df03bccf1810c6e6ff19514b29def4e4030ab76bbb6bd4e4"
+  },
+  {
+    "slug": "mrf",
+    "file": "mrf.png",
+    "source": "mrf logo.png",
+    "width": 900,
+    "height": 900,
+    "sha256": "cf3b7f3c2e840437b92a95ca2b054dc59215c04e61fa8b4279d06b3bb9efb979"
+  }
+]

@@ -3964,3 +3964,584 @@ textarea:focus {
 .wheel .manufacturer-initials {
   font-size: 10px;
 }
+
+/* Consistent surfaces and spacing across the fleet workspace. */
+:root {
+  --muted: #667085;
+  --border: #e6e9ef;
+  color: #263244;
+  background: #f7f8fb;
+}
+.topbar {
+  background: #fff;
+  border-bottom-color: var(--border);
+}
+.desktop-crumb strong {
+  color: #344054;
+}
+.card {
+  border-radius: 16px;
+  border-color: var(--border);
+  box-shadow: 0 2px 8px #18274004;
+}
+.page-heading {
+  gap: 20px;
+  align-items: flex-start;
+}
+.page-heading > div:first-child {
+  min-width: 0;
+}
+.page-heading p {
+  color: #667085;
+  line-height: 1.65;
+}
+.heading-actions {
+  gap: 8px;
+}
+.primary,
+.secondary {
+  min-height: 44px;
+  border-radius: 10px;
+}
+.primary {
+  box-shadow: 0 2px 4px #ab14251a;
+}
+.secondary {
+  color: #475467;
+  border-color: #d9dee7;
+  background: #fff;
+}
+.secondary:hover:not(:disabled) {
+  background: #f5f7fb;
+  border-color: #b9c3d3;
+}
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 3px;
+}
+input,
+select,
+textarea {
+  color: #263244;
+  border-color: #d7dce5;
+  background: #fff;
+}
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: #c51c32;
+  box-shadow: 0 0 0 3px #c51c3214;
+}
+input::placeholder,
+textarea::placeholder {
+  color: #8a94a5;
+}
+.field > span {
+  color: #475467;
+  font-weight: 600;
+}
+.field > small {
+  color: #667085;
+}
+.nav-items button {
+  color: #f5e1e3;
+}
+.nav-items button.selected {
+  background: #fff;
+  color: #a91227;
+}
+.support-mark,
+.support-mark span,
+.profile small {
+  color: #edc4cc;
+}
+.sync-status {
+  color: #475467;
+}
+.live-dot {
+  background: #14a468;
+  box-shadow: 0 0 0 3px #e5f7ef;
+}
+.mobile-settings {
+  color: #475467;
+}
+.manufacturer-mark {
+  gap: 8px;
+  min-height: 32px;
+  line-height: 1.4;
+}
+.manufacturer-mark > img {
+  width: 72px;
+  height: 36px;
+  object-fit: contain;
+  border-radius: 5px;
+  background: #fff;
+  padding: 2px;
+}
+.manufacturer-mark.compact {
+  justify-content: center;
+  min-height: 28px;
+  width: 100%;
+}
+.wheel .manufacturer-mark > img {
+  width: 100%;
+  max-width: 46px;
+  height: 28px;
+  padding: 2px;
+}
+.tyre-detail-hero .manufacturer-mark > img {
+  width: 112px;
+  height: 68px;
+  padding: 5px;
+}
+.selected-record .manufacturer-mark > img {
+  width: 90px;
+  height: 46px;
+}
+.tyre-main small {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  line-height: 1.5;
+}
+.tyre-row {
+  gap: 14px;
+  padding: 18px 0;
+}
+.tyre-main strong {
+  color: #263244;
+  font-size: 15px;
+  line-height: 1.5;
+}
+.tyre-status {
+  min-width: 140px;
+}
+.tyre-distance {
+  color: #344054;
+}
+.tyre-distance small,
+.tyre-status > small {
+  color: #667085;
+}
+.vehicle-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 5px;
+  background: #edf0f5;
+  width: fit-content;
+  max-width: 100%;
+  border-radius: 12px;
+  margin-bottom: 22px;
+  border: 0;
+}
+.vehicle-tabs button {
+  border: 0;
+  border-radius: 8px;
+  min-height: 42px;
+  padding: 10px 16px;
+  background: transparent;
+  color: #667085;
+  font-size: 14px;
+}
+.vehicle-tabs button.selected {
+  background: #fff;
+  color: #a91227;
+  box-shadow: 0 1px 4px #2632440d;
+}
+.vehicle-tabs button span {
+  background: #edf0f5;
+  color: #475467;
+}
+.vehicle-card {
+  padding: 24px;
+  text-align: left;
+  transition:
+    box-shadow 0.18s,
+    border-color 0.18s;
+}
+.vehicle-card:hover {
+  border-color: #bec8d6;
+  box-shadow: 0 5px 18px #2632440b;
+}
+.vehicle-meta {
+  color: #667085;
+  flex-wrap: wrap;
+}
+.vehicle-sale-stamp {
+  padding: 12px;
+  background: #eff5ff;
+  color: #2459ab;
+  border-radius: 9px;
+  margin-top: 16px;
+  font-size: 13px;
+}
+.vehicle-sale-button {
+  color: #a91227;
+  background: #fff4f5;
+  border-color: #f1cbd2;
+}
+.vehicle-sale-button:hover:not(:disabled) {
+  color: #8d1024;
+  border-color: #d99daa;
+  background: #ffecef;
+}
+.sold-with-vehicle {
+  display: block;
+  margin-top: 8px;
+}
+.sale-record {
+  margin: 0 0 20px;
+  padding: 18px 20px;
+}
+.sale-record p {
+  color: inherit;
+  font-size: 14px;
+  margin-top: 6px;
+}
+.sale-review-info {
+  line-height: 1.7;
+  margin-bottom: 18px;
+}
+.sale-tyre-count {
+  padding: 12px 14px;
+  background: #f3f6fb;
+  border-radius: 10px;
+  margin-bottom: 12px;
+  color: #475467;
+}
+.sale-tyre-count strong {
+  font-size: 22px;
+  color: #263244;
+  margin-right: 5px;
+}
+.sale-tyre-list {
+  list-style: none;
+  margin: 0 0 20px;
+  padding: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.sale-tyre-list:empty {
+  display: none;
+}
+.sale-tyre-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.sale-tyre-list li:last-child {
+  border: 0;
+}
+.sale-tyre-list .manufacturer-mark {
+  font-size: 12px;
+}
+.report-sold-tag {
+  display: inline-block;
+  padding: 2px 6px;
+  margin-left: 8px;
+  border-radius: 5px;
+  background: #eaf1ff;
+  color: #275ba7;
+  font-size: 11px;
+}
+.truck-cab {
+  background: #f0f3f8;
+  border-color: #dce2ec;
+  color: #65758b;
+  box-shadow: inset 0 -10px #e3e8f0;
+}
+.wheel-sides {
+  color: #7c899c;
+  font-weight: 600;
+}
+.tyre-section > h3 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 16px;
+  color: #344054;
+  font-size: 14px;
+  font-weight: 700;
+}
+.tyre-section > h3 span {
+  color: #768297;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+.trolley-section {
+  margin-top: 52px;
+  padding-top: 22px;
+  border-top: 2px dashed #d2dae7;
+  position: relative;
+}
+.trolley-section::before {
+  content: "";
+  position: absolute;
+  height: 24px;
+  width: 8px;
+  left: calc(50% - 4px);
+  top: -39px;
+  background: #e1e6ee;
+  border-radius: 4px;
+}
+.truck-map .tyre-section .axle-row {
+  margin: 14px 0;
+}
+.axle-row:before {
+  background: #dce3ed;
+  height: 4px;
+}
+.wheel {
+  border-radius: 9px;
+  padding: 9px 4px 8px;
+}
+.wheel strong {
+  font-size: 13px;
+  line-height: 1.4;
+}
+.wheel small {
+  line-height: 1.6;
+}
+.vehicle-side {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+.vehicle-inspection-summary {
+  margin-top: 0;
+}
+.vehicle-inspection-summary p {
+  line-height: 1.65;
+  margin-top: 6px;
+  font-size: 14px;
+}
+.vehicle-inspection-summary h2 {
+  margin-bottom: 12px;
+}
+.vehicle-summary {
+  margin-bottom: 0;
+}
+.report-history {
+  margin-top: 22px;
+}
+.report-event {
+  gap: 6px;
+  padding: 16px 0;
+}
+.report-event span,
+.report-event small {
+  color: #667085;
+}
+.report-event strong {
+  color: #344054;
+}
+.activity-note {
+  background: #f5f7fa;
+  color: #5c687a;
+  border-radius: 7px;
+  padding: 7px 10px;
+  line-height: 1.6;
+}
+.badge {
+  font-weight: 600;
+  border-radius: 6px;
+}
+.dialog {
+  border-radius: 18px;
+  border-color: #e0e5ed;
+  box-shadow: 0 24px 80px #17243d33;
+}
+.dialog::backdrop {
+  background: #111c3459;
+}
+.dialog-header {
+  padding: 20px 24px;
+}
+.dialog-body {
+  padding: 24px;
+}
+.dialog-body form > .field:last-of-type {
+  margin-bottom: 0;
+}
+.form-actions {
+  gap: 10px;
+  margin-top: 24px;
+  padding-top: 20px;
+}
+.page-footer {
+  color: #778296;
+}
+@media (max-width: 700px) {
+  :root {
+    background: #f7f8fb;
+  }
+  .topbar {
+    height: 76px;
+    padding: 0 18px;
+  }
+  .main-shell {
+    padding-bottom: calc(82px + env(safe-area-inset-bottom));
+  }
+  main {
+    padding: 24px 18px;
+  }
+  .page-heading {
+    gap: 18px;
+    margin-bottom: 24px;
+  }
+  .page-heading h1 {
+    font-size: 24px;
+    line-height: 1.35;
+  }
+  .heading-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+    gap: 9px;
+  }
+  .heading-actions > button {
+    width: 100%;
+    font-size: 13px;
+    padding: 11px 10px;
+    min-height: 46px;
+  }
+  .heading-actions > .vehicle-sale-button {
+    grid-column: 1 / -1;
+  }
+  .heading-actions > button:only-child {
+    grid-column: 1 / -1;
+  }
+  .vehicle-tabs {
+    width: 100%;
+  }
+  .vehicle-tabs button {
+    flex: 1;
+    padding: 10px 8px;
+    font-size: 13px;
+    white-space: normal;
+  }
+  .vehicle-card {
+    padding: 20px;
+  }
+  .manufacturer-mark > img {
+    width: 64px;
+    height: 32px;
+  }
+  .tyre-main small {
+    font-size: 12px;
+  }
+  .tyre-status {
+    min-width: 0;
+  }
+  .tyre-row {
+    gap: 10px;
+  }
+  .dialog-header {
+    padding: 18px 20px;
+  }
+  .dialog-body {
+    padding: 20px;
+  }
+  .sale-tyre-list .manufacturer-mark > img {
+    width: 52px;
+    height: 28px;
+  }
+  .mobile-nav-items {
+    height: 76px;
+    padding: 7px 4px;
+  }
+  .mobile-nav-items button {
+    gap: 6px;
+    font-size: 11px;
+    color: #798599;
+  }
+  .mobile-nav-items button.selected {
+    color: #b71b30;
+  }
+  .mobile-nav-items button.selected:before {
+    background: #ffe8ed;
+  }
+  .bottom-nav {
+    background: #ffffffed;
+    border-color: #e3e8f0;
+    box-shadow: 0 -4px 20px #27345008;
+    backdrop-filter: blur(12px);
+  }
+  .trolley-section {
+    margin-top: 48px;
+  }
+}
+.activity-row > div > .manufacturer-mark {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 6px;
+}
+@media (min-width: 701px) {
+  .report-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 700px) {
+  .report-metrics > .card:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+}
+.bar-new {
+  background: #16ba64;
+}
+.bar-used {
+  background: #ffb000;
+}
+.bar-remold {
+  background: #9052ef;
+}
+.lower {
+  align-items: start;
+}
+.stat-label {
+  color: #667085;
+}
+.stat-foot,
+.fleet-row small {
+  color: #7a8699;
+}
+.fleet-row strong {
+  color: #344054;
+}
+.vehicle-progress i,
+.mini-progress i {
+  background: #15a866;
+}
+.vehicle-progress > div,
+.mini-progress {
+  background: #e9f5ef;
+}
+.checkbox-field input {
+  flex-shrink: 0;
+  align-self: flex-start;
+  margin-top: 3px;
+}
+.dialog.with-footer[open] {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.dialog.with-footer .dialog-header {
+  flex-shrink: 0;
+}
+.dialog.with-footer .dialog-body {
+  min-height: 0;
+  overflow-y: auto;
+}

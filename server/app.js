@@ -74,7 +74,7 @@ export function createApp({
     res.set("X-Frame-Options", "DENY");
     res.set(
       "Content-Security-Policy",
-      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://www.google.com https://*.gstatic.com; connect-src 'self' https: http://localhost:*; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
+      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https: http://localhost:*; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
     );
     const origin = req.get("origin");
     const native = ["https://localhost", "capacitor://localhost"].includes(
@@ -206,7 +206,7 @@ export function createApp({
     res.json(branding);
   });
   app.get("/api/health", (req, res) =>
-    res.json({ ok: true, version: "1.6.0" }),
+    res.json({ ok: true, version: "1.7.0" }),
   );
   app.get("/api/bootstrap", (req, res) => res.json({ setupRequired: false }));
   app.post("/api/login", authLimit, (req, res) => {
@@ -290,7 +290,7 @@ export function createApp({
   );
   app.post("/api/actions", auth, (req, res) => {
     if (
-      ["addVehicle", "importVehicles"].includes(req.body.kind) &&
+      ["addVehicle", "importVehicles", "sellVehicle"].includes(req.body.kind) &&
       req.user.role !== "owner"
     )
       throw new AppError("ownerOnly", 403);

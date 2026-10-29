@@ -340,8 +340,7 @@ export const en = {
   driverChanges: "Driver changes",
   driverChecks: "Driver checks completed",
   tyreKm: "Tyre kilometres",
-  tyreKmHint:
-    "Tyre kilometres sum the known running distance of tyres removed in this period; they are not vehicle kilometres.",
+
   vehicleClass: "Vehicle type",
   chooseVehicleClass: "Choose BS3, BS4 or BS6",
   invalidVehicleClass: "Choose BS3, BS4 or BS6.",
@@ -401,7 +400,7 @@ export const en = {
   construction_radial: "Radial",
   construction_horse: "Horse",
   invalidConstruction: "Choose Radial or Horse.",
-  otherManufacturer: "Other manufacturer",
+
   customBrand: "Manufacturer name",
   companyBranding: "Company branding",
   brandingHelp:
@@ -465,6 +464,33 @@ export const en = {
   saleFrom: "Previous status",
   averageLegacyHint:
     "Older three-point readings are shown as their average; the original readings remain in stored history.",
+  vehicleSold: "Vehicle Sold",
+  sellVehicle: "Vehicle Sold",
+  move_sellVehicle: "Vehicle sold",
+  vehicleAlreadySold:
+    "This vehicle is sold. Its history is available under Sold vehicles.",
+  saleTyresChanged:
+    "The fitted tyres changed while this form was open. Reopen Vehicle Sold and review the current tyres.",
+  vehicleStatus: "Vehicle status",
+  activeVehicles: "Active vehicles",
+  soldVehicles: "Sold vehicles",
+  soldVehicleReadOnly:
+    "This vehicle and its fitted tyres are archived as sold. History and reports remain available.",
+  vehicleSaleHelp:
+    "Record the final odometer below. This moves the vehicle out of the active fleet and all its fitted tyres, including its spare, to Sold. History is retained.",
+  tyresIncluded: "tyres included in the vehicle sale",
+  confirmVehicleSale:
+    "I confirm this vehicle and the tyres listed above have been sold.",
+  confirmSale: "Record sale",
+  saleNotePlaceholder: "Buyer, invoice number or other sale notes (optional)",
+  horseUnit: "Horse",
+  trolleyUnit: "Trolley",
+  positions: "Positions",
+  withVehicle: "Sold with vehicle",
+  vehicleSales: "Vehicle sales",
+  otherManufacturer: "Custom / other",
+  tyreKmHint:
+    "Tyre kilometres sum recorded running distance from removals and vehicle sales in this period; they are not vehicle kilometres.",
 };
 export const hi = {
   ...en,
@@ -798,8 +824,7 @@ export const hi = {
   driverChanges: "ड्राइवर बदले",
   driverChecks: "ड्राइवर बदलाव की जाँच पूरी",
   tyreKm: "टायर किलोमीटर",
-  tyreKmHint:
-    "टायर किलोमीटर इस अवधि में निकाले टायरों की ज्ञात चली दूरी का योग है; यह वाहन की दूरी नहीं है।",
+
   vehicleClass: "वाहन का प्रकार",
   chooseVehicleClass: "BS3, BS4 या BS6 चुनें",
   invalidVehicleClass: "BS3, BS4 या BS6 चुनें।",
@@ -857,7 +882,7 @@ export const hi = {
   construction_radial: "रेडियल",
   construction_horse: "Horse",
   invalidConstruction: "रेडियल या Horse चुनें।",
-  otherManufacturer: "अन्य निर्माता",
+
   customBrand: "निर्माता का नाम",
   companyBranding: "कंपनी की ब्रांडिंग",
   brandingHelp:
@@ -918,4 +943,31 @@ export const hi = {
   saleFrom: "पिछली स्थिति",
   averageLegacyHint:
     "पुरानी तीन रीडिंग का औसत दिखता है; मूल रीडिंग इतिहास में सुरक्षित हैं।",
+  vehicleSold: "वाहन बेचा गया",
+  sellVehicle: "वाहन बेचा गया",
+  move_sellVehicle: "वाहन की बिक्री दर्ज हुई",
+  vehicleAlreadySold:
+    "यह वाहन बेचा जा चुका है। इसका इतिहास बेचे गए वाहन में उपलब्ध है।",
+  saleTyresChanged:
+    "फॉर्म खुला रहने के दौरान लगे टायर बदले हैं। वाहन बेचा गया दोबारा खोलकर टायर जाँचें।",
+  vehicleStatus: "वाहन की स्थिति",
+  activeVehicles: "सक्रिय वाहन",
+  soldVehicles: "बेचे गए वाहन",
+  soldVehicleReadOnly:
+    "यह वाहन और उस पर लगे टायर बेचे गए में सुरक्षित हैं। इतिहास और रिपोर्ट उपलब्ध हैं।",
+  vehicleSaleHelp:
+    "अंतिम ओडोमीटर दर्ज करें। वाहन सक्रिय बेड़े से हटेगा और लगे हुए सभी टायर व स्पेयर बेचे गए में जाएँगे। इतिहास सुरक्षित रहेगा।",
+  tyresIncluded: "टायर वाहन की बिक्री में शामिल",
+  confirmVehicleSale:
+    "मैं पुष्टि करता हूँ कि यह वाहन और ऊपर दिए टायर बेचे जा चुके हैं।",
+  confirmSale: "बिक्री दर्ज करें",
+  saleNotePlaceholder: "खरीदार, बिल नंबर या बिक्री के अन्य नोट (वैकल्पिक)",
+  horseUnit: "हॉर्स",
+  trolleyUnit: "ट्रॉली",
+  positions: "स्थान",
+  withVehicle: "वाहन के साथ बेचा",
+  vehicleSales: "वाहनों की बिक्री",
+  otherManufacturer: "कस्टम / अन्य",
+  tyreKmHint:
+    "टायर किलोमीटर में इस अवधि में निकाले टायर और वाहन बिक्री पर दर्ज चली दूरी शामिल है; यह वाहन किलोमीटर नहीं है।",
 };

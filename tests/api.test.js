@@ -870,3 +870,103 @@ test("vehicle creation/import are owner-only; staff can import tyres and sell wi
     200,
   );
 });
+
+test("only admin can sell a vehicle and fitted tyres; stale or invalid sales cannot alter shared inventory", async (t) => {
+  const { req, owner } = await fixture(t);
+  await req(
+    "/team/create",
+    { username: "sales_staff", password: "sales-test-password" },
+    owner.cookie,
+  );
+  const staff = await req("/login", {
+    username: "sales_staff",
+    password: "sales-test-password",
+  });
+  async function act(kind, payload, who = owner) {
+    const state = (await req("/state", undefined, owner.cookie)).data;
+    return req(
+      "/actions",
+      { kind, payload, revision: state.revision },
+      who.cookie,
+    );
+  }
+  let added = await act("addVehicle", {
+    registration: "MH01AA1234",
+    hasSpare: true,
+    odometer: 1000,
+  });
+  const vehicleId = added.data.vehicles[0].id;
+  added = await act("addTyre", { serial: "S1", brand: "MRF", type: "new" });
+  const tyreId = added.data.tyres[0].id;
+  await act("fit", { vehicleId, tyreId, slot: "FR", odometer: 1000 });
+  assert.equal(
+    (
+      await act(
+        "sellVehicle",
+        { vehicleId, odometer: 1500, role: "owner" },
+        staff,
+      )
+    ).status,
+    403,
+  );
+  assert.equal(
+    (await act("sellVehicle", { vehicleId, odometer: 999 })).status,
+    400,
+  );
+  let state = (await req("/state", undefined, owner.cookie)).data;
+  assert.equal(state.vehicles[0].odometer, 1000);
+  assert.equal(state.tyres[0].status, "installed");
+  assert.equal(
+    (
+      await act("sellVehicle", {
+        vehicleId,
+        odometer: 1500,
+        fitmentSnapshot: [],
+      })
+    ).status,
+    409,
+  );
+  const revision = state.revision;
+  const sold = await act("sellVehicle", {
+    vehicleId,
+    odometer: 1500,
+    fitmentSnapshot: [{ tyreId, slot: "FR" }],
+    note: "Vehicle invoice",
+  });
+  assert.equal(sold.status, 200);
+  assert.equal(sold.data.tyres[0].status, "sold");
+  assert.equal(sold.data.tyres[0].distance, 500);
+  assert.equal(sold.data.events.at(-1).actor, "owner");
+  assert.equal(
+    (await req("/state", undefined, staff.cookie)).data.vehicles[0].status,
+    "sold",
+  );
+  assert.equal(
+    (
+      await req(
+        "/actions",
+        {
+          kind: "sellVehicle",
+          payload: { vehicleId, odometer: 1500 },
+          revision,
+        },
+        owner.cookie,
+      )
+    ).status,
+    409,
+  );
+  assert.equal(
+    (await act("sellVehicle", { vehicleId, odometer: 1500 })).status,
+    400,
+  );
+  assert.equal(
+    (
+      await act(
+        "inspectVehicle",
+        { vehicleId, inspectedOn: "2026-10-29", allTyresChecked: true },
+        staff,
+      )
+    ).status,
+    400,
+  );
+});
