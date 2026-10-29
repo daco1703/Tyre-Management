@@ -206,7 +206,7 @@ export function createApp({
     res.json(branding);
   });
   app.get("/api/health", (req, res) =>
-    res.json({ ok: true, version: "1.5.0" }),
+    res.json({ ok: true, version: "1.6.0" }),
   );
   app.get("/api/bootstrap", (req, res) => res.json({ setupRequired: false }));
   app.post("/api/login", authLimit, (req, res) => {
@@ -289,6 +289,11 @@ export function createApp({
     res.json(JSON.parse(setting("state"))),
   );
   app.post("/api/actions", auth, (req, res) => {
+    if (
+      ["addVehicle", "importVehicles"].includes(req.body.kind) &&
+      req.user.role !== "owner"
+    )
+      throw new AppError("ownerOnly", 403);
     db.exec("BEGIN IMMEDIATE");
     try {
       const state = JSON.parse(setting("state"));

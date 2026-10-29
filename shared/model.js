@@ -5,6 +5,8 @@ import {
   inspectionIssues,
 } from "./catalogue.js";
 import { isDay, addCalendarMonths } from "./dates.js";
+import { validateTyreBatch } from "./tyre-import.js";
+import { averageNsd } from "./nsd.js";
 import { validateVehicleBatch } from "./vehicle-import.js";
 
 export class AppError extends Error {
@@ -54,13 +56,7 @@ function recordScrap(tyre, payload, event) {
     payload.scrapReason === "other" ? detail : "";
 }
 function readNsd(input) {
-  const values = {};
-  for (const key of ["inner", "center", "outer"]) {
-    const raw = input?.[key];
-    if (raw === "" || raw === null || raw === undefined) {
-      values[key] = null;
-      continue;
-    }
+  const parse = (raw) => {
     if (
       !["string", "number"].includes(typeof raw) ||
       !/^\d+(?:\.\d{1,2})?$/.test(String(raw)) ||
@@ -68,14 +64,36 @@ function readNsd(input) {
       Number(raw) > 100
     )
       throw new AppError("invalidNsd");
-    values[key] = Number(raw);
+    return Number(raw);
+  };
+  if (input?.averagePercent !== undefined) {
+    if (input.averagePercent === "" || input.averagePercent === null)
+      throw new AppError("nsdRequired");
+    return { averagePercent: parse(input.averagePercent) };
   }
-  const measured = Object.values(values).filter((v) => v !== null);
-  if (!measured.length) throw new AppError("nsdRequired");
-  return { ...values, minimumPercent: Math.min(...measured) };
+  // Accept old installed clients while saving one average in new records.
+  const values = ["inner", "center", "outer"]
+    .map((k) => input?.[k])
+    .filter((v) => v !== "" && v !== null && v !== undefined)
+    .map(parse);
+  if (!values.length) throw new AppError("nsdRequired");
+  return {
+    averagePercent:
+      Math.round((values.reduce((a, b) => a + b, 0) / values.length) * 100) /
+      100,
+  };
+}
+function resetNsd(tyre, day) {
+  tyre.nsd = { averagePercent: 100 };
+  tyre.nsdBaselineOn = day;
+  tyre.lastNsdOn = null;
+  tyre.nextNsdCheckOn = null;
 }
 function saveNsd(tyre, values, measuredOn) {
-  if (!tyre.lastNsdOn || measuredOn >= tyre.lastNsdOn) {
+  if (
+    (!tyre.lastNsdOn || measuredOn >= tyre.lastNsdOn) &&
+    (!tyre.nsdBaselineOn || measuredOn >= tyre.nsdBaselineOn)
+  ) {
     tyre.lastNsdOn = measuredOn;
     tyre.nsd = values;
     tyre.nextNsdCheckOn = addCalendarMonths(measuredOn, 2);
@@ -128,7 +146,9 @@ const km = (value) => {
 };
 export function tally(state) {
   return {
-    total: state.tyres.filter((t) => t.status !== "scrapped").length,
+    total: state.tyres.filter((t) => !["scrapped", "sold"].includes(t.status))
+      .length,
+    sold: state.tyres.filter((t) => t.status === "sold").length,
     installed: state.tyres.filter((t) => t.status === "installed").length,
     stock: state.tyres.filter((t) => t.status === "stock").length,
     scrapped: state.tyres.filter((t) => t.status === "scrapped").length,
@@ -158,6 +178,19 @@ export function tyreKm(tyre, state) {
   );
 }
 export function applyAction(previous, action, actor, now = new Date()) {
+  if (action.kind === "importTyres") {
+    const result = validateTyreBatch(action.payload?.tyres, previous.tyres);
+    if (result.error) throw new AppError(result.error);
+    let state = structuredClone(previous);
+    for (const tyre of result.tyres)
+      state = applySingleAction(
+        state,
+        { kind: "addTyre", payload: { ...tyre, note: "Excel import" } },
+        actor,
+        now,
+      );
+    return state;
+  }
   if (action.kind === "importVehicles") {
     const result = validateVehicleBatch(
       action.payload?.vehicles,
@@ -184,7 +217,9 @@ export function applyAction(previous, action, actor, now = new Date()) {
     }
     return state;
   }
-  const state = structuredClone(previous);
+  return applySingleAction(structuredClone(previous), action, actor, now);
+}
+function applySingleAction(state, action, actor, now) {
   const p = action.payload || {};
   const id = crypto.randomUUID();
   const event = {
@@ -258,20 +293,15 @@ export function applyAction(previous, action, actor, now = new Date()) {
         fittedAt: null,
       };
       state.tyres.push(t);
-      if (
-        p.nsd &&
-        Object.values(p.nsd).some(
-          (v) => v !== "" && v !== null && v !== undefined,
-        )
-      )
-        event.nsdMeasurements = [saveNsd(t, readNsd(p.nsd), dayKey(now))];
+      if (t.type === "new" || t.type === "remold") resetNsd(t, dayKey(now));
+      // Stock receives baseline values only; staff measure fitted tyres.
       event.tyre = serial;
       event.type = p.type;
       break;
     }
     case "measureNsd": {
       const t = tyre();
-      if (t.status === "scrapped") throw new AppError("notInStock");
+      if (t.status !== "installed") throw new AppError("nsdOnlyFitted");
       if (!isDay(p.measuredOn) || p.measuredOn > dayKey(now))
         throw new AppError("invalidInspectionDate");
       const values = readNsd(p.nsd);
@@ -448,6 +478,7 @@ export function applyAction(previous, action, actor, now = new Date()) {
       )
         throw new AppError("slotOccupied");
       setOdo(v);
+      if (!t.lastNsdOn) t.nextNsdCheckOn = addCalendarMonths(dayKey(now), 2);
       Object.assign(t, {
         status: "installed",
         vehicleId: v.id,
@@ -515,8 +546,30 @@ export function applyAction(previous, action, actor, now = new Date()) {
       t.remoldVendor = event.vendor = remoldVendor(p, t.remoldVendor);
       t.lastRemoldVendor = event.vendor;
       t.type = "remold";
+      resetNsd(t, dayKey(now));
       t.remolds++;
       event.tyre = t.serial;
+      break;
+    }
+    case "sell": {
+      const t = tyre();
+      if (!["stock", "scrapped"].includes(t.status))
+        throw new AppError("sellStockOnly");
+      Object.assign(event, {
+        tyre: t.serial,
+        tyreId: t.id,
+        brand: t.brand,
+        construction: t.construction || null,
+        type: t.type,
+        totalKm: t.distance,
+        fromStatus: t.status,
+        averagePercent: averageNsd(t.nsd),
+      });
+      t.status = "sold";
+      t.soldAt = event.timestamp;
+      t.soldBy = actor;
+      t.saleNote = event.note;
+      t.soldFrom = event.fromStatus;
       break;
     }
     case "scrap": {

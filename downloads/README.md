@@ -1,12 +1,12 @@
 # Android test update
 
-[Download Shepards Tyre Management 1.5.0](https://github.com/daco1703/Tyre-Management/blob/main/downloads/Shepards-Tyre-Management-1.5-test.apk?raw=true)
+[Download Shepards Tyre Management 1.6.0](https://github.com/daco1703/Tyre-Management/blob/main/downloads/Shepards-Tyre-Management-1.6-test.apk?raw=true)
 
 Install over the earlier build without uninstalling. The package ID and test signing certificate are unchanged. The app opens the login for **https://tyre-management.onrender.com/** directly. Use admin or an assigned staff username/password. Forgot username/password displays Contact the admin.
 
 **Admin:** Team & settings → Add staff → enter a unique username, password and confirmation. Only admin can add or remove staff. Removing access retains the employee's historical log entries.
 
-All accounts share live vehicle/tyre records. Each entry includes the authenticated username and timestamp. Losing internet displays **You are offline. Please connect to the internet.** and blocks entries until reconnection. Offline login and public staff signup have been removed. The server must also run version 1.5; deploy the latest main commit on Render if automatic deployment is disabled.
+All accounts share live vehicle/tyre records. Each entry includes the authenticated username and timestamp. Losing internet displays **You are offline. Please connect to the internet.** and blocks entries until reconnection. Offline login and public staff signup have been removed. The server must also run version 1.6; deploy the latest main commit on Render if automatic deployment is disabled.
 
 Old phone-only records are not deleted or automatically uploaded to the server. Export any needed local records using the old version before upgrading. This version uses shared-server records only.
 
@@ -16,4 +16,6 @@ This is a debug-signed APK for phone testing. SHA-256 checksums are in SHA256SUM
 
 Version 1.5 adds BS vehicle classes and driver changes, vehicle tyre inspections, direct NSD tread percentages with advisory two-month reminders, date-filtered vehicle/overall reports, dd/mm/yyyy dates, Radial/Horse construction, manufacturer selection, and remolding vendors Sharvayu / Guardex MRF / Other. Login no longer asks for a fleet name.
 
-To apply the exact company artwork, admin can select the original logo/banner image files under **Team & settings → Company branding** and save once. The supplied chat artwork is not bundled; the initial app theme uses red/white and an S initial. Manufacturer icons are fetched online with initials as a fallback.
+Version 1.6 bundles cleaned logo/banner artwork permanently, including the Android launcher. There is no branding upload step. Smaller text is larger and status colours are brighter. NSD is one average percentage; new and freshly remolded tyres start at 100%, and manual NSD entry is fitted-only. Existing three-point history remains intact and is shown as an average. Only admin can add/import vehicles. All staff can import tyres from Excel and record sales; sold tyres leave active stock and remain in the Sold tab with their full history and sale notes.
+
+[Blank tyre Excel template](https://github.com/daco1703/Tyre-Management/blob/main/downloads/Shepards-tyre-template.xlsx?raw=true). Use text cells for Tyre ID to preserve leading zeros. New/Used/Remold, Radial/Horse and Previous km are optional; defaults are New, Radial and 0. Manufacturer website icons still load online with initials as a fallback.

@@ -748,3 +748,125 @@ test("only admin can save company images; validation is atomic and public data c
   );
   assert.deepEqual((await req("/branding")).data, { banner: png });
 });
+
+test("vehicle creation/import are owner-only; staff can import tyres and sell with server attribution", async (t) => {
+  const { req, owner } = await fixture(t);
+  await req(
+    "/team/create",
+    { username: "operator", password: "operator-test-password" },
+    owner.cookie,
+  );
+  const staff = await req("/login", {
+    username: "operator",
+    password: "operator-test-password",
+  });
+  for (const kind of ["addVehicle", "importVehicles"]) {
+    assert.equal(
+      (
+        await req(
+          "/actions",
+          {
+            kind,
+            revision: 0,
+            payload: {
+              registration: "MH01AA1234",
+              hasSpare: false,
+              odometer: 0,
+              vehicles: [
+                { registration: "MH01AA1234", hasSpare: false, odometer: 0 },
+              ],
+              role: "owner",
+            },
+          },
+          staff.cookie,
+        )
+      ).status,
+      403,
+    );
+  }
+  assert.equal((await req("/state", undefined, owner.cookie)).data.revision, 0);
+  const added = await req(
+    "/actions",
+    {
+      kind: "importTyres",
+      revision: 0,
+      payload: {
+        tyres: [
+          { serial: "0001", brand: "MRF", type: "new", construction: "radial" },
+          {
+            serial: "0002",
+            brand: "Apollo",
+            type: "remold",
+            construction: "horse",
+          },
+        ],
+      },
+    },
+    staff.cookie,
+  );
+  assert.equal(added.status, 200);
+  assert.equal(added.data.revision, 2);
+  assert.ok(added.data.events.every((e) => e.actor === "operator"));
+  assert.equal(added.data.tyres[1].nsd.averagePercent, 100);
+  const failed = await req(
+    "/actions",
+    {
+      kind: "importTyres",
+      revision: 2,
+      payload: {
+        tyres: [
+          { serial: "OK", brand: "MRF" },
+          { serial: "BAD", brand: "" },
+        ],
+      },
+    },
+    staff.cookie,
+  );
+  assert.equal(failed.status, 400);
+  assert.equal((await req("/state", undefined, owner.cookie)).data.revision, 2);
+  const sold = await req(
+    "/actions",
+    {
+      kind: "sell",
+      revision: 2,
+      payload: {
+        tyreId: added.data.tyres[0].id,
+        actor: "owner",
+        note: "Invoice 100",
+      },
+    },
+    staff.cookie,
+  );
+  assert.equal(sold.status, 200);
+  assert.equal(sold.data.events.at(-1).actor, "operator");
+  assert.equal(sold.data.events.at(-1).tally.stock, 1);
+  assert.equal(sold.data.events.at(-1).tally.sold, 1);
+  assert.equal(
+    (
+      await req(
+        "/actions",
+        {
+          kind: "sell",
+          revision: 2,
+          payload: { tyreId: added.data.tyres[0].id },
+        },
+        owner.cookie,
+      )
+    ).status,
+    409,
+  );
+  assert.equal(
+    (
+      await req(
+        "/actions",
+        {
+          kind: "addVehicle",
+          revision: 3,
+          payload: { registration: "MH01AA1234", hasSpare: false, odometer: 0 },
+        },
+        owner.cookie,
+      )
+    ).status,
+    200,
+  );
+});

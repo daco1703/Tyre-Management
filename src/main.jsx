@@ -41,7 +41,7 @@ import {
 } from "lucide-react";
 import { DateField } from "./date-field.jsx";
 import { Reports } from "./reports.jsx";
-import { BrandMark, BrandingPanel } from "./branding.jsx";
+import { BrandMark } from "./branding.jsx";
 import { displayDate, parseDisplayDate } from "../shared/dates.js";
 import {
   manufacturers,
@@ -53,8 +53,14 @@ import {
 import { lastInspection, vehicleEvents } from "../shared/reports.js";
 import { defaultFleetName, defaultUsername } from "../shared/defaults.js";
 import { en, hi } from "./i18n";
+import { averageNsd } from "../shared/nsd.js";
+import { previewTyreImport } from "../shared/tyre-import.js";
 import { previewVehicleImport } from "../shared/vehicle-import";
-import { readVehicleWorkbook, makeVehicleTemplate } from "./vehicle-workbook";
+import {
+  readVehicleWorkbook,
+  makeVehicleTemplate,
+  makeTyreTemplate,
+} from "./vehicle-workbook";
 import {
   numberedSlots,
   positionLabel,
@@ -124,7 +130,10 @@ function App() {
   const [lang, setLang] = useState(read("ts-lang", "en"));
   const [session, setSession] = useState(null),
     [state, setState] = useState(null);
-  const [branding, setBranding] = useState({});
+  const branding = {
+    logo: "/branding/shepards-logo.png",
+    banner: "/branding/shepards-banner.png",
+  };
   const [boot, setBoot] = useState(null),
     [bootError, setBootError] = useState("");
   const [page, setPage] = useState("dashboard"),
@@ -140,21 +149,6 @@ function App() {
       ? "—"
       : Number(value).toLocaleString(lang === "hi" ? "hi-IN" : "en-IN");
   const date = displayDate;
-  useEffect(() => {
-    let active = true;
-    request("/branding")
-      .then((data) => {
-        if (active) setBranding(data);
-      })
-      .catch(() => {});
-    return () => {
-      active = false;
-    };
-  }, [needsServer]);
-  async function saveBranding(payload) {
-    setBranding(await request("/branding", payload));
-    setToast({ text: t("saved") });
-  }
   useEffect(() => {
     document.documentElement.lang = lang;
     store("ts-lang", lang);
@@ -384,7 +378,6 @@ function App() {
     setToast,
     logout,
     branding,
-    saveBranding,
   };
   return (
     <Context.Provider value={value}>
@@ -516,7 +509,7 @@ function App() {
             <footer className="page-footer">
               <CircleDot size={14} />
               {t("tagline")}
-              <span>Shepards Tyre Management · v1.5</span>
+              <span>Shepards Tyre Management · v1.6</span>
             </footer>
           </div>
           <nav className="bottom-nav">
@@ -544,16 +537,16 @@ function App() {
   );
 }
 function Brand({ compact }) {
-  const { branding } = useApp();
   return (
     <div className={`brand ${compact ? "compact" : ""}`}>
-      {branding.logo ? (
-        <img className="company-logo" src={branding.logo} alt="Shepards logo" />
-      ) : (
-        <span className="brand-icon company-monogram">S</span>
-      )}
-      <div>
-        Shepards<small>TYRE MANAGEMENT</small>
+      <img
+        className="company-logo"
+        src="/branding/shepards-logo.png"
+        alt="Shepards logo"
+      />
+      <div className="company-wordmark">
+        <img src="/branding/shepards-banner.png" alt="Shepards" />
+        <small>TYRE MANAGEMENT</small>
       </div>
     </div>
   );
@@ -905,14 +898,16 @@ function Dashboard() {
   return (
     <>
       <PageHeading title={t("fleetOverview")} sub={t("dashboardSub")}>
-        <Button
-          secondary
-          icon={Plus}
-          onClick={() => setModal({ type: "addVehicle" })}
-          disabled={offline}
-        >
-          {t("addVehicle")}
-        </Button>
+        {session.user.role === "owner" && (
+          <Button
+            secondary
+            icon={Plus}
+            onClick={() => setModal({ type: "addVehicle" })}
+            disabled={offline}
+          >
+            {t("addVehicle")}
+          </Button>
+        )}
         <Button
           icon={Plus}
           onClick={() => setModal({ type: "addTyre" })}
@@ -1013,7 +1008,10 @@ function Dashboard() {
               {t("remolding")}: {n(daily.remolding ?? 0)}
             </span>
             <span>
-              {t("tallyScrapped")}: {n(daily.scrapped)}
+              {t("tallyScrapped")}: {n(daily.scrapped ?? 0)}
+            </span>
+            <span>
+              {t("sold")}: {n(daily.sold ?? 0)}
             </span>
           </div>
         </section>
@@ -1239,9 +1237,7 @@ function Activity({ event: e }) {
         )}
         {(e.nsdMeasurements || []).map((m, i) => (
           <p className="activity-note" key={`n${i}`}>
-            {m.tyre} · {t("nsd")}: {m.minimumPercent}% · {t("inner")}:{" "}
-            {m.inner ?? "—"} / {t("center")}: {m.center ?? "—"} / {t("outer")}:{" "}
-            {m.outer ?? "—"}
+            {m.tyre} · {t("nsd")}: {averageNsd(m)}%
           </p>
         ))}
         {e.vendor && (
@@ -1255,7 +1251,7 @@ function Activity({ event: e }) {
   );
 }
 function Vehicles() {
-  const { t, n, date, state, navigate, setModal, offline } = useApp();
+  const { t, n, date, state, navigate, setModal, offline, session } = useApp();
   const [query, setQuery] = useState("");
   const vehicles = state.vehicles.filter((v) =>
     `${v.registration} ${v.name} ${v.driverName || ""} ${v.emissionClass || ""}`
@@ -1265,21 +1261,26 @@ function Vehicles() {
   return (
     <>
       <PageHeading title={t("vehicles")} sub={t("noVehiclesSub")}>
-        <Button
-          secondary
-          icon={Upload}
-          disabled={offline}
-          onClick={() => setModal({ type: "importVehicles" })}
-        >
-          {t("importVehicles")}
-        </Button>
-        <Button
-          icon={Plus}
-          disabled={offline}
-          onClick={() => setModal({ type: "addVehicle" })}
-        >
-          {t("addVehicle")}
-        </Button>
+        {session.user.role === "owner" && (
+          <>
+            {" "}
+            <Button
+              secondary
+              icon={Upload}
+              disabled={offline}
+              onClick={() => setModal({ type: "importVehicles" })}
+            >
+              {t("importVehicles")}
+            </Button>
+            <Button
+              icon={Plus}
+              disabled={offline}
+              onClick={() => setModal({ type: "addVehicle" })}
+            >
+              {t("addVehicle")}
+            </Button>
+          </>
+        )}
       </PageHeading>
       <div className="toolbar">
         <SearchInput
@@ -1652,6 +1653,14 @@ function Inventory() {
     <>
       <PageHeading title={t("inventory")} sub={t("aboutTally")}>
         <Button
+          secondary
+          icon={Upload}
+          disabled={offline}
+          onClick={() => setModal({ type: "importTyres" })}
+        >
+          {t("importTyres")}
+        </Button>
+        <Button
           icon={Plus}
           disabled={offline}
           onClick={() => setModal({ type: "addTyre" })}
@@ -1667,6 +1676,7 @@ function Inventory() {
             ["installed", "onRoad"],
             ["remolding", "remolding"],
             ["scrapped", "scrapped"],
+            ["sold", "sold"],
           ].map(([key, label]) => (
             <button
               key={key}
@@ -1817,7 +1827,7 @@ function Logbook() {
         "Driver",
         "All tyres checked",
         "Inspection findings",
-        "NSD readings (%)",
+        "Average NSD (%)",
       ],
       ...events.map((e) => [
         date(e.date),
@@ -1850,10 +1860,7 @@ function Logbook() {
           )
           .join("; "),
         (e.nsdMeasurements || [])
-          .map(
-            (m) =>
-              `${m.tyre}: ${m.minimumPercent}% (${m.inner ?? "—"}/${m.center ?? "—"}/${m.outer ?? "—"})`,
-          )
+          .map((m) => `${m.tyre}: ${averageNsd(m)}%`)
           .join("; "),
       ]),
     ];
@@ -1929,7 +1936,6 @@ function Logbook() {
   );
 }
 function SettingsPage({ onChangeServer }) {
-  const app = useApp();
   const {
     t,
     session,
@@ -2021,7 +2027,6 @@ function SettingsPage({ onChangeServer }) {
           )}
         </section>
         <div>
-          {session.user.role === "owner" && <BrandingPanel app={app} />}
           <section className="card settings-card">
             <h2>
               <Settings size={20} />
@@ -2175,7 +2180,9 @@ function Dialog({
 }
 function ModalContent({ modal, onClose }) {
   if (modal.type === "importVehicles")
-    return <VehicleImport onClose={onClose} />;
+    return <WorkbookImport type="vehicle" onClose={onClose} />;
+  if (modal.type === "importTyres")
+    return <WorkbookImport type="tyre" onClose={onClose} />;
   if (modal.type === "inspectVehicle")
     return <InspectionForm modal={modal} onClose={onClose} />;
   if (modal.type === "tyre")
@@ -2184,7 +2191,8 @@ function ModalContent({ modal, onClose }) {
     return <ConfirmModal {...modal} onClose={onClose} />;
   return <RecordForm modal={modal} onClose={onClose} />;
 }
-function VehicleImport({ onClose }) {
+function WorkbookImport({ type, onClose }) {
+  const isTyre = type === "tyre";
   const { t, n, state, action, setToast, offline } = useApp();
   const [sheets, setSheets] = useState([]);
   const [selected, setSelected] = useState(0);
@@ -2193,7 +2201,9 @@ function VehicleImport({ onClose }) {
   const [busy, setBusy] = useState(false);
   const [working, setWorking] = useState(false);
   const preview = sheets.length
-    ? previewVehicleImport(sheets[selected].data, state.vehicles)
+    ? isTyre
+      ? previewTyreImport(sheets[selected].data, state.tyres)
+      : previewVehicleImport(sheets[selected].data, state.vehicles)
     : { rows: [] };
   const ready = preview.rows.filter((row) => !row.errors.length);
   async function choose(e) {
@@ -2220,8 +2230,8 @@ function VehicleImport({ onClose }) {
     setError("");
     try {
       await downloadBlob(
-        "Shepards Tyre Management-vehicle-template.xlsx",
-        await makeVehicleTemplate(),
+        `Shepards-Tyre-Management-${type}-template.xlsx`,
+        await (isTyre ? makeTyreTemplate() : makeVehicleTemplate()),
       );
     } catch {
       setError("importTemplateFailed");
@@ -2233,11 +2243,14 @@ function VehicleImport({ onClose }) {
     setBusy(true);
     setError("");
     try {
-      await action("importVehicles", {
-        vehicles: ready.map((row) => row.value),
+      await action(isTyre ? "importTyres" : "importVehicles", {
+        [isTyre ? "tyres" : "vehicles"]: ready.map((row) => row.value),
       });
       setToast({
-        text: t("importSuccess").replace("{count}", n(ready.length)),
+        text: t(isTyre ? "importTyreSuccess" : "importSuccess").replace(
+          "{count}",
+          n(ready.length),
+        ),
       });
       onClose();
     } catch (e) {
@@ -2248,7 +2261,7 @@ function VehicleImport({ onClose }) {
   }
   return (
     <Dialog
-      title={t("importVehicles")}
+      title={t(isTyre ? "importTyres" : "importVehicles")}
       onClose={onClose}
       busy={busy || working}
       footer={
@@ -2261,16 +2274,15 @@ function VehicleImport({ onClose }) {
             disabled={busy || working || offline || !ready.length}
             onClick={save}
           >
-            {t(busy ? "saving" : "importConfirm").replace(
-              "{count}",
-              n(ready.length),
-            )}
+            {t(
+              busy ? "saving" : isTyre ? "importTyreConfirm" : "importConfirm",
+            ).replace("{count}", n(ready.length))}
           </Button>
         </>
       }
       wide
     >
-      <p>{t("importHelp")}</p>
+      <p>{t(isTyre ? "importTyreHelp" : "importHelp")}</p>
       <div className="import-controls">
         <Button
           secondary
@@ -2292,7 +2304,9 @@ function VehicleImport({ onClose }) {
           />
         </label>
       </div>
-      <p className="small muted">{t("importDefaults")}</p>
+      <p className="small muted">
+        {t(isTyre ? "importTyreDefaults" : "importDefaults")}
+      </p>
       {fileName && <p className="import-filename">{fileName}</p>}
       {sheets.length > 1 && (
         <Field label="importWorksheet">
@@ -2328,22 +2342,35 @@ function VehicleImport({ onClose }) {
               {n(preview.rows.length - ready.length)} {t("importSkipped")}
             </span>
           </div>
-          <p className="small muted">{t("importPreviewHint")}</p>
+          <p className="small muted">
+            {t(isTyre ? "importTyrePreviewHint" : "importPreviewHint")}
+          </p>
           <p className="small muted import-swipe">{t("importSwipe")}</p>
           <div className="import-table-wrap">
             <table className="import-table">
               <thead>
                 <tr>
-                  {[
-                    "importRow",
-                    "registration",
-                    "vehicleName",
-                    "odometer",
-                    "spare",
-                    "vehicleClass",
-                    "driverName",
-                    "importStatus",
-                  ].map((key) => (
+                  {(isTyre
+                    ? [
+                        "importRow",
+                        "serial",
+                        "brand",
+                        "condition",
+                        "construction",
+                        "previousKm",
+                        "importStatus",
+                      ]
+                    : [
+                        "importRow",
+                        "registration",
+                        "vehicleName",
+                        "odometer",
+                        "spare",
+                        "vehicleClass",
+                        "driverName",
+                        "importStatus",
+                      ]
+                  ).map((key) => (
                     <th key={key}>{t(key)}</th>
                   ))}
                 </tr>
@@ -2355,20 +2382,38 @@ function VehicleImport({ onClose }) {
                     className={row.errors.length ? "import-row-error" : ""}
                   >
                     <td>{n(row.number)}</td>
-                    <td>{row.displayRegistration || "—"}</td>
-                    <td>{row.value.name || "—"}</td>
-                    <td>
-                      {Number.isSafeInteger(row.value.odometer)
-                        ? n(row.value.odometer)
-                        : "—"}
-                    </td>
-                    <td>
-                      {typeof row.value.hasSpare === "boolean"
-                        ? t(row.value.hasSpare ? "yes" : "no")
-                        : "—"}
-                    </td>
-                    <td>{row.value.emissionClass || "—"}</td>
-                    <td>{row.value.driverName || "—"}</td>
+                    {isTyre ? (
+                      <>
+                        <td>{row.value.serial || "—"}</td>
+                        <td>
+                          <BrandMark brand={row.value.brand} />
+                        </td>
+                        <td>{row.value.type ? t(row.value.type) : "—"}</td>
+                        <td>
+                          {row.value.construction
+                            ? t(`construction_${row.value.construction}`)
+                            : "—"}
+                        </td>
+                        <td>{n(row.value.distance)}</td>
+                      </>
+                    ) : (
+                      <>
+                        <td>{row.displayRegistration || "—"}</td>
+                        <td>{row.value.name || "—"}</td>
+                        <td>
+                          {Number.isSafeInteger(row.value.odometer)
+                            ? n(row.value.odometer)
+                            : "—"}
+                        </td>
+                        <td>
+                          {typeof row.value.hasSpare === "boolean"
+                            ? t(row.value.hasSpare ? "yes" : "no")
+                            : "—"}
+                        </td>
+                        <td>{row.value.emissionClass || "—"}</td>
+                        <td>{row.value.driverName || "—"}</td>
+                      </>
+                    )}
                     <td>
                       {row.errors.length
                         ? row.errors.map((code) => t(code)).join(" ")
@@ -2447,7 +2492,9 @@ function TyreDetails({ id, onClose }) {
               ? "new"
               : tyre.status === "scrapped"
                 ? "scrapped"
-                : "installed"
+                : tyre.status === "sold"
+                  ? "sold"
+                  : "installed"
           }
         >
           {t(
@@ -2501,8 +2548,13 @@ function TyreDetails({ id, onClose }) {
       <section className="nsd-summary">
         <h3>{t("nsd")}</h3>
         <strong>
-          {tyre.nsd ? `${tyre.nsd.minimumPercent}%` : t("notRecorded")}
+          {averageNsd(tyre.nsd) !== null
+            ? `${averageNsd(tyre.nsd)}%`
+            : t("notRecorded")}
         </strong>
+        {!tyre.lastNsdOn && averageNsd(tyre.nsd) === 100 && (
+          <p>{t("nsdAutoBaseline")}</p>
+        )}
         {tyre.lastNsdOn && (
           <p>
             {t("measuredOn")}: {date(tyre.lastNsdOn)} · {t("nextNsd")}:{" "}
@@ -2514,7 +2566,7 @@ function TyreDetails({ id, onClose }) {
             {t("nsdDue")} · {t("advisoryOnly")}
           </p>
         )}
-        {tyre.status !== "scrapped" && (
+        {tyre.status === "installed" && (
           <Button
             secondary
             icon={Ruler}
@@ -2532,7 +2584,7 @@ function TyreDetails({ id, onClose }) {
           {tyre.scrapDetail ? ` · ${tyre.scrapDetail}` : ""}
         </p>
       )}
-      {tyre.status !== "scrapped" && (
+      {tyre.status !== "sold" && tyre.status !== "scrapped" && (
         <div className="tyre-actions">
           {tyre.status === "installed" ? (
             <Button
@@ -2584,6 +2636,21 @@ function TyreDetails({ id, onClose }) {
             </>
           )}
         </div>
+      )}
+      {tyre.status === "sold" && (
+        <p className="sale-record">
+          {t("sold")}: {date(tyre.soldAt, true)} · {tyre.soldBy}
+          {tyre.saleNote ? ` · ${tyre.saleNote}` : ""}
+        </p>
+      )}
+      {["stock", "scrapped"].includes(tyre.status) && (
+        <Button
+          secondary
+          disabled={offline}
+          onClick={() => setModal({ type: "sell", tyreId: tyre.id })}
+        >
+          {t("sell")}
+        </Button>
       )}
       <h3 className="history-heading">{t("tyreHistory")}</h3>
       {state.events
@@ -2653,11 +2720,10 @@ function RecordForm({ modal: m, onClose }) {
       if (m.type === "addVehicle") p.hasSpare = p.hasSpare === "on";
       if (m.type === "addTyre") {
         if (p.brand === "other") p.brand = p.customBrand;
-        p.nsd = { inner: p.nsdInner, center: p.nsdCenter, outer: p.nsdOuter };
       }
       if (m.type === "measureNsd") {
         p.measuredOn = parseDisplayDate(p.measuredOn);
-        p.nsd = { inner: p.nsdInner, center: p.nsdCenter, outer: p.nsdOuter };
+        p.nsd = { averagePercent: p.nsdAverage };
       }
       if (m.type === "password") {
         if (p.password !== p.confirm) throw { code: "passwordsDiffer" };
@@ -2775,7 +2841,7 @@ function RecordForm({ modal: m, onClose }) {
               </select>
             </Field>
             <KmInput label="previousKm" name="distance" value={0} />
-            <NsdInputs t={t} optional />
+            <p className="form-info">{t("nsdStockBaseline")}</p>
           </>
         )}
         {m.type === "addVehicle" && (
@@ -2834,6 +2900,11 @@ function RecordForm({ modal: m, onClose }) {
               />
             </Field>
           </>
+        )}
+        {m.type === "sell" && (
+          <p className="form-info">
+            {tyre?.serial} · {t("sellHint")}
+          </p>
         )}
         {m.type === "measureNsd" && (
           <>
@@ -3114,28 +3185,21 @@ async function downloadCsv(name, rows) {
     "text/csv;charset=utf-8",
   );
 }
-function NsdInputs({ t, optional = false }) {
+function NsdInputs({ t }) {
   return (
-    <fieldset className="nsd-inputs">
-      <legend>{t(optional ? "initialNsd" : "nsd")}</legend>
-      <div className="nsd-fields">
-        {["inner", "center", "outer"].map((key) => (
-          <label className="field" key={key}>
-            <span>{t(key)} (%)</span>
-            <input
-              name={`nsd${key[0].toUpperCase() + key.slice(1)}`}
-              type="number"
-              min={0}
-              max={100}
-              step="0.01"
-              inputMode="decimal"
-              placeholder="0–100"
-            />
-          </label>
-        ))}
-      </div>
-      <p className="small muted">{t("nsdPercentHint")}</p>
-    </fieldset>
+    <Field label="nsdAverage">
+      <input
+        name="nsdAverage"
+        type="number"
+        min={0}
+        max={100}
+        step="0.01"
+        required
+        inputMode="decimal"
+        placeholder="0–100"
+      />
+      <small>{t("nsdPercentHint")}</small>
+    </Field>
   );
 }
 function MaintenanceReminders() {
@@ -3143,7 +3207,7 @@ function MaintenanceReminders() {
   const drivers = state.vehicles.filter((v) => v.pendingTyreCheck);
   const due = state.tyres.filter(
     (t) =>
-      t.status !== "scrapped" &&
+      t.status === "installed" &&
       t.nextNsdCheckOn &&
       t.nextNsdCheckOn <= dayKey(),
   );
@@ -3353,27 +3417,25 @@ function InspectionForm({ modal, onClose }) {
                   </strong>
                   <BrandMark brand={tyre.brand} />
                 </div>
-                {["inner", "center", "outer"].map((key) => (
-                  <label className="field" key={key}>
-                    <span>{t(key)} %</span>
-                    <input
-                      aria-label={`${tyre.serial} ${t(key)} %`}
-                      type="number"
-                      min={0}
-                      max={100}
-                      step="0.01"
-                      inputMode="decimal"
-                      placeholder="—"
-                      value={readings[tyre.id]?.[key] || ""}
-                      onChange={(e) =>
-                        setReadings((old) => ({
-                          ...old,
-                          [tyre.id]: { ...old[tyre.id], [key]: e.target.value },
-                        }))
-                      }
-                    />
-                  </label>
-                ))}
+                <label className="field">
+                  <span>{t("nsdAverage")}</span>
+                  <input
+                    aria-label={`${tyre.serial} ${t("nsdAverage")}`}
+                    type="number"
+                    min={0}
+                    max={100}
+                    step="0.01"
+                    inputMode="decimal"
+                    placeholder="—"
+                    value={readings[tyre.id]?.averagePercent ?? ""}
+                    onChange={(e) =>
+                      setReadings((old) => ({
+                        ...old,
+                        [tyre.id]: { averagePercent: e.target.value },
+                      }))
+                    }
+                  />
+                </label>
               </div>
             ))}
           </div>

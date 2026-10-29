@@ -1,5 +1,6 @@
 import readExcelFile from "read-excel-file/browser";
 import writeExcelFile from "write-excel-file/browser";
+import { TYRE_HEADERS } from "../shared/tyre-import.js";
 import { VEHICLE_HEADERS } from "../shared/vehicle-import.js";
 
 export async function readVehicleWorkbook(file) {
@@ -32,6 +33,24 @@ export function makeVehicleTemplate() {
         { width: 28 },
         { width: 28 },
       ],
+    },
+  ).toBlob();
+}
+
+export function makeTyreTemplate() {
+  return writeExcelFile(
+    [
+      TYRE_HEADERS.map((value) => ({
+        value,
+        type: String,
+        fontWeight: "bold",
+        backgroundColor: "#bd1018",
+        color: "#ffffff",
+      })),
+    ],
+    {
+      sheet: "Tyres",
+      columns: [28, 28, 32, 30, 22].map((width) => ({ width })),
     },
   ).toBlob();
 }

@@ -41,22 +41,22 @@ test("display dates use dd/mm/yyyy, validate leap days and clamp two calendar mo
   assert.equal(addCalendarMonths("2026-12-31", 2), "2027-02-28");
   assert.equal(addCalendarMonths("2023-12-31", 2), "2024-02-29");
 });
-test("NSD is entered directly as percentage; zero, partial readings and backdated history are preserved", () => {
+test("NSD is entered directly as percentage; single average readings and backdated history are preserved", () => {
   let { s, tyreId } = fixture();
   s = run(s, "measureNsd", {
     tyreId,
-    measuredOn: "2026-08-31",
-    nsd: { inner: 80, center: 70.5, outer: 0 },
+    measuredOn: "2026-10-23",
+    nsd: { averagePercent: 0 },
   });
-  assert.equal(s.tyres[0].nsd.minimumPercent, 0);
-  assert.equal(s.tyres[0].nextNsdCheckOn, "2026-10-31");
+  assert.equal(s.tyres[0].nsd.averagePercent, 0);
+  assert.equal(s.tyres[0].nextNsdCheckOn, "2026-12-23");
   s = run(s, "measureNsd", {
     tyreId,
-    measuredOn: "2026-08-30",
-    nsd: { inner: 90 },
+    measuredOn: "2026-10-22",
+    nsd: { averagePercent: 90 },
   });
-  assert.equal(s.tyres[0].lastNsdOn, "2026-08-31");
-  assert.equal(s.events.at(-1).nsdMeasurements[0].minimumPercent, 90);
+  assert.equal(s.tyres[0].lastNsdOn, "2026-10-23");
+  assert.equal(s.events.at(-1).nsdMeasurements[0].averagePercent, 90);
   for (const invalid of [-1, 101, true, "1e1", "abc", {}, 1.123]) {
     const copy = structuredClone(s);
     assert.throws(
@@ -64,7 +64,7 @@ test("NSD is entered directly as percentage; zero, partial readings and backdate
         run(s, "measureNsd", {
           tyreId,
           measuredOn: "2026-10-23",
-          nsd: { inner: invalid },
+          nsd: { averagePercent: invalid },
         }),
       /invalidNsd/,
     );
@@ -226,14 +226,14 @@ test("reports filter performed inspection date, class and staff and distinguish 
   assert.equal(september.totals.nsdChecks, 1);
   const october = reportFor(s, {
     from: "2026-10-01",
-    to: "2026-10-31",
+    to: "2026-12-23",
     emissionClass: "BS6",
   });
   assert.equal(october.totals.fitments, 1);
   assert.equal(october.totals.inspections, 0);
   assert.equal(october.totals.tyreKm, 150);
   assert.equal(
-    reportFor(s, { from: "2026-10-31", to: "2026-10-01" }).error,
+    reportFor(s, { from: "2026-12-23", to: "2026-10-01" }).error,
     "invalidDateRange",
   );
   assert.deepEqual(presetRange("lastMonth", "2026-01-10"), {

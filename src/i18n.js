@@ -22,9 +22,9 @@ export const en = {
   importUnreadable:
     "This workbook could not be read. Try saving it again as an unprotected .xlsx file.",
   importEmpty:
-    "This worksheet has no vehicle rows. Fill in the template below its header row.",
+    "This worksheet has no data rows. Fill in the template below its header row.",
   importTooMany:
-    "Import at most 200 vehicle rows at a time. Split this worksheet into smaller batches.",
+    "Import at most 200 rows at a time. Split this worksheet into smaller batches.",
   importDuplicateHeader:
     "Two columns describe the same field. Keep only one column for each template field.",
   importMissingHeader:
@@ -379,13 +379,12 @@ export const en = {
   inspectionRequired:
     "Mark tyres checked, add an issue, record NSD, or enter inspection notes.",
   sameDriver: "This is already the current driver.",
-  nsd: "NSD — tread remaining (%)",
+
   initialNsd: "Initial tread remaining (%) — optional",
   inner: "Inner",
   center: "Centre",
   outer: "Outer",
-  nsdPercentHint:
-    "Enter estimated tread remaining from 0% to 100%. At least one reading is needed when recording NSD.",
+
   nsdReminderHint:
     "The next NSD reminder is two calendar months after this measurement. It never blocks entries.",
   measureNsd: "Record NSD",
@@ -432,6 +431,40 @@ export const en = {
   issue_looseNuts: "Loose wheel nuts",
   issue_missingTyre: "Missing tyre",
   issue_other: "Other",
+  nsd: "NSD — average tread remaining (%)",
+  nsdAverage: "Average NSD (%)",
+  nsdPercentHint:
+    "Enter one average tread remaining percentage, from 0% to 100%.",
+  nsdStockBaseline:
+    "New and freshly remolded tyres start at 100%. Update NSD after fitting the tyre on a vehicle.",
+  nsdOnlyFitted:
+    "NSD can only be updated while the tyre is fitted on a vehicle.",
+  sell: "Record tyre sale",
+  sold: "Sold",
+  sellHint:
+    "This removes the tyre from active stock and keeps its full history in Sold. Add buyer/reference details in the notes if needed.",
+  sellStockOnly:
+    "Remove the tyre from the vehicle or complete remolding before selling it.",
+  move_sell: "Tyre sold",
+  importTyres: "Import tyres from Excel",
+  importTyreSuccess: "Imported {count} tyres",
+  importTyreConfirm: "Import {count} tyres",
+  importTyreHelp:
+    "Import tyres from an Excel workbook (.xlsx). Download the template, fill one tyre per row, and review the preview before saving.",
+  importTyreDefaults:
+    "Tyre ID and manufacturer are required. Blank condition = New, blank tyre type = Radial, blank previous km = 0. Use New/Used/Remold and Radial/Horse. Up to 200 rows and 2 MB. Format tyre IDs as text to keep leading zeros.",
+  importTyrePreviewHint:
+    "Only Ready rows will be added to garage stock. Duplicate IDs and invalid rows are skipped. Existing tyres and their history stay intact. New and freshly remolded tyres start at 100% NSD.",
+  importTyreMissingHeader:
+    "Include Tyre ID and Manufacturer columns, or use the tyre template.",
+  importTyreIdInvalid: "Enter a tyre ID as text, up to 70 characters.",
+  importTyreBrandInvalid: "Enter a manufacturer name, up to 80 characters.",
+  nsdAutoBaseline: "Automatic starting value",
+  saleDate: "Sold on",
+  saleBy: "Sold by",
+  saleFrom: "Previous status",
+  averageLegacyHint:
+    "Older three-point readings are shown as their average; the original readings remain in stored history.",
 };
 export const hi = {
   ...en,
@@ -803,13 +836,12 @@ export const hi = {
   inspectionRequired:
     "जाँच पूरी का निशान लगाएँ, समस्या/NSD दर्ज करें या निरीक्षण का नोट लिखें।",
   sameDriver: "यह पहले से वर्तमान ड्राइवर है।",
-  nsd: "NSD — बचा हुआ ट्रेड (%)",
+
   initialNsd: "शुरू का बचा ट्रेड (%) — वैकल्पिक",
   inner: "अंदर",
   center: "बीच",
   outer: "बाहर",
-  nsdPercentHint:
-    "बचा हुआ ट्रेड 0% से 100% तक लिखें। NSD दर्ज करने के लिए कम से कम एक रीडिंग जरूरी है।",
+
   nsdReminderHint:
     "अगला NSD रिमाइंडर इस माप के दो कैलेंडर महीने बाद आएगा। इससे कोई एंट्री नहीं रुकेगी।",
   measureNsd: "NSD दर्ज करें",
@@ -855,4 +887,35 @@ export const hi = {
   issue_looseNuts: "व्हील नट ढीले",
   issue_missingTyre: "टायर नहीं है",
   issue_other: "अन्य",
+  nsd: "NSD — औसत बचा ट्रेड (%)",
+  nsdAverage: "औसत NSD (%)",
+  nsdPercentHint: "बचे हुए ट्रेड का एक औसत प्रतिशत 0% से 100% तक दर्ज करें।",
+  nsdStockBaseline:
+    "नए और ताज़ा रीमोल्ड टायर 100% से शुरू होते हैं। वाहन पर लगाने के बाद NSD अपडेट करें।",
+  nsdOnlyFitted: "NSD केवल वाहन पर लगे टायर का अपडेट कर सकते हैं।",
+  sell: "टायर की बिक्री दर्ज करें",
+  sold: "बेचे गए",
+  sellHint:
+    "यह टायर सक्रिय स्टॉक से हटेगा और पूरा इतिहास बेचे गए में रहेगा। खरीदार या संदर्भ की जानकारी नोट में लिख सकते हैं।",
+  sellStockOnly: "बेचने से पहले टायर वाहन से निकालें या रीमोल्डिंग पूरी करें।",
+  move_sell: "टायर बेचा गया",
+  importTyres: "Excel से टायर जोड़ें",
+  importTyreSuccess: "{count} टायर जोड़े गए",
+  importTyreConfirm: "{count} टायर जोड़ें",
+  importTyreHelp:
+    "Excel वर्कबुक (.xlsx) से टायर जोड़ें। टेम्पलेट डाउनलोड करें, हर पंक्ति में एक टायर भरें और सेव करने से पहले प्रीव्यू जाँचें।",
+  importTyreDefaults:
+    "टायर आईडी और निर्माता ज़रूरी हैं। खाली स्थिति = New, खाली प्रकार = Radial, खाली पिछले किमी = 0। New/Used/Remold और Radial/Horse लिखें। अधिकतम 200 पंक्तियाँ, 2 MB। शुरुआती शून्य बचाने के लिए आईडी को Excel में Text रखें।",
+  importTyrePreviewHint:
+    "केवल तैयार पंक्तियाँ गैराज स्टॉक में जुड़ेंगी। डुप्लिकेट और गलत आईडी छोड़ी जाएँगी। पुराने टायर और इतिहास सुरक्षित रहेंगे। नए और ताज़ा रीमोल्ड टायर 100% NSD से शुरू होंगे।",
+  importTyreMissingHeader:
+    "Tyre ID और Manufacturer कॉलम रखें या टायर टेम्पलेट इस्तेमाल करें।",
+  importTyreIdInvalid: "टायर आईडी Text में लिखें, अधिकतम 70 अक्षर।",
+  importTyreBrandInvalid: "निर्माता का नाम लिखें, अधिकतम 80 अक्षर।",
+  nsdAutoBaseline: "अपने आप दर्ज शुरुआती मान",
+  saleDate: "बिक्री की तारीख",
+  saleBy: "बिक्री दर्जकर्ता",
+  saleFrom: "पिछली स्थिति",
+  averageLegacyHint:
+    "पुरानी तीन रीडिंग का औसत दिखता है; मूल रीडिंग इतिहास में सुरक्षित हैं।",
 };

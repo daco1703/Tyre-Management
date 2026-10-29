@@ -26,7 +26,7 @@
   padding: 9px 16px;
   background: #e8f0dd;
   color: #4d7038;
-  font-size: 12px;
+  font-size: 14px;
 }
 .dialog.wide {
   max-width: 850px;
@@ -61,7 +61,7 @@
   }
   .dialog-footer > button {
     flex: 1;
-    font-size: 12px;
+    font-size: 14px;
   }
   .import-swipe {
     display: block;
@@ -84,7 +84,7 @@
   color: white;
   border-radius: 10px;
   padding: 11px 16px;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
   min-height: 44px;
@@ -108,7 +108,7 @@
 .import-filename {
   margin: 16px 0;
   overflow-wrap: anywhere;
-  font-size: 12px;
+  font-size: 14px;
 }
 .import-summary {
   display: flex;
@@ -118,7 +118,7 @@
   margin: 18px 0 10px;
   background: #eef4e7;
   border-radius: 9px;
-  font-size: 12px;
+  font-size: 14px;
 }
 .import-summary span {
   color: #947345;
@@ -134,7 +134,7 @@
   border-collapse: collapse;
   width: 100%;
   min-width: 650px;
-  font-size: 11px;
+  font-size: 13px;
   text-align: left;
 }
 .import-table th {
@@ -166,10 +166,10 @@
   .import-controls > button,
   .import-file {
     flex: 1;
-    font-size: 11px;
+    font-size: 13px;
   }
   .import-summary {
-    font-size: 11px;
+    font-size: 13px;
   }
 }
 .offline-choice {
@@ -185,7 +185,7 @@
   padding: 14px;
   background: #eef3e4;
   border-radius: 10px;
-  font-size: 12px !important;
+  font-size: 14px !important;
 }
 .connect-page form > .secondary {
   width: 100%;
@@ -275,7 +275,7 @@ h3 {
 }
 small,
 .small {
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.6;
 }
 .muted {
@@ -288,7 +288,7 @@ hr {
 }
 p {
   color: var(--muted);
-  font-size: 14px;
+  font-size: 16px;
 }
 strong {
   font-weight: 600;
@@ -307,7 +307,7 @@ button.secondary,
   border-radius: 10px;
   min-height: 44px;
   padding: 11px 17px;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   white-space: normal;
   text-align: center;
@@ -346,7 +346,7 @@ button.secondary,
   align-items: center;
   gap: 5px;
   background: transparent;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   color: #47754f;
 }
@@ -357,7 +357,7 @@ button.secondary,
   color: #aa4b42 !important;
 }
 .eyebrow {
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 1.6px;
   text-transform: uppercase;
   font-weight: 650;
@@ -405,7 +405,7 @@ button.secondary,
 }
 .brand small {
   display: block;
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 500;
   letter-spacing: 1.8px;
   margin-top: 0;
@@ -421,19 +421,19 @@ button.secondary,
   gap: 6px;
 }
 .tiny-label {
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: 1.5px;
   color: #92b3a4;
 }
 .workspace-label strong {
-  font-size: 14px;
+  font-size: 16px;
   overflow-wrap: anywhere;
 }
 .workspace-dot {
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 10px;
+  font-size: 12px;
   color: #b9cbbd;
 }
 .workspace-dot i {
@@ -453,7 +453,7 @@ button.secondary,
   gap: 12px;
   background: transparent;
   color: #c0d2c6;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 500;
   min-height: 47px;
   padding: 12px 14px;
@@ -486,12 +486,12 @@ button.secondary,
   align-items: center;
 }
 .support-mark strong {
-  font-size: 11px;
+  font-size: 13px;
   display: block;
   color: #cddacb;
 }
 .support-mark span {
-  font-size: 10px;
+  font-size: 12px;
   display: block;
 }
 .profile {
@@ -514,7 +514,7 @@ button.secondary,
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: 14px;
   flex-shrink: 0;
 }
 .profile > span:nth-child(2) {
@@ -522,13 +522,13 @@ button.secondary,
   min-width: 0;
 }
 .profile strong {
-  font-size: 12px;
+  font-size: 14px;
   display: block;
   overflow-wrap: anywhere;
 }
 .profile small {
   display: block;
-  font-size: 10px;
+  font-size: 12px;
   color: #b6c7b9;
 }
 .main-shell {
@@ -550,7 +550,7 @@ button.secondary,
   display: flex;
   align-items: center;
   gap: 14px;
-  font-size: 12px;
+  font-size: 14px;
   color: #8a948b;
 }
 .desktop-crumb strong {
@@ -566,7 +566,7 @@ button.secondary,
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 10px;
+  font-size: 12px;
   color: #748571;
 }
 .live-dot {
@@ -587,7 +587,7 @@ button.secondary,
   display: flex;
   gap: 7px;
   align-items: center;
-  font-size: 12px;
+  font-size: 14px;
   white-space: nowrap;
 }
 .mobile-brand,
@@ -610,7 +610,7 @@ main {
 }
 .page-heading p {
   margin-top: 8px;
-  font-size: 13px;
+  font-size: 15px;
   max-width: 620px;
 }
 .heading-actions {
@@ -641,7 +641,7 @@ main {
   box-shadow: 0 3px 10px #243f3410;
 }
 .stat-label {
-  font-size: 12px;
+  font-size: 14px;
   color: #74816f;
   display: block;
 }
@@ -654,7 +654,7 @@ main {
   font-weight: 650;
 }
 .stat-foot {
-  font-size: 10px;
+  font-size: 12px;
   color: #9aab95;
   display: block;
   line-height: 1.4;
@@ -707,7 +707,7 @@ main {
   color: #90a48a;
 }
 .card-title-row p {
-  font-size: 12px;
+  font-size: 14px;
   margin-top: 4px;
 }
 .daily-card {
@@ -740,7 +740,7 @@ main {
   color: #c5dcac;
 }
 .daily-card > p {
-  font-size: 11px;
+  font-size: 13px;
   margin-top: 7px;
   color: #b7ccb5;
 }
@@ -749,7 +749,7 @@ main {
   align-items: center;
   gap: 10px;
   margin-top: 22px;
-  font-size: 10px;
+  font-size: 12px;
   color: #c5d7bd;
 }
 .date-control input {
@@ -759,7 +759,7 @@ main {
   background: #ffffff0d;
   border: 1px solid #ffffff27;
   color: #edf3e8;
-  font-size: 11px;
+  font-size: 13px;
   border-radius: 7px;
   color-scheme: dark;
 }
@@ -786,7 +786,7 @@ main {
   color: #deeeaf;
 }
 .daily-numbers span {
-  font-size: 11px;
+  font-size: 13px;
   color: #c0cfbd;
 }
 .daily-foot {
@@ -796,7 +796,7 @@ main {
   border-top: 1px solid #ffffff1a;
   margin-top: 22px;
   padding-top: 13px;
-  font-size: 9px;
+  font-size: 11px;
   color: #b5cbb0;
 }
 .daily-foot > span:first-child {
@@ -823,7 +823,7 @@ main {
   letter-spacing: -1px;
 }
 .stock-total span {
-  font-size: 11px;
+  font-size: 13px;
   color: #8e9a86;
 }
 .stock-bar {
@@ -865,7 +865,7 @@ main {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: 13px;
   color: #7a8773;
 }
 .stock-legend i,
@@ -880,7 +880,7 @@ main {
   font-weight: 500;
 }
 .stock-mix > .small {
-  font-size: 10px;
+  font-size: 12px;
   border-top: 1px solid var(--border);
   padding-top: 13px;
 }
@@ -901,10 +901,10 @@ main {
   gap: 15px;
 }
 .start-guide h3 {
-  font-size: 14px;
+  font-size: 16px;
 }
 .start-guide p {
-  font-size: 12px;
+  font-size: 14px;
   margin-top: 4px;
 }
 .start-guide .empty-icon {
@@ -923,7 +923,7 @@ main {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 10px;
+  font-size: 12px;
 }
 .guide-steps b {
   background: #d3dfc0;
@@ -933,7 +933,7 @@ main {
   justify-content: center;
   height: 21px;
   width: 21px;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 500;
 }
 .lower {
@@ -984,25 +984,25 @@ main {
   flex: 1;
 }
 .activity-row strong {
-  font-size: 12px;
+  font-size: 14px;
   display: block;
   font-weight: 550;
 }
 .activity-row > div > span {
-  font-size: 11px;
+  font-size: 13px;
   display: block;
   color: #74816c;
   overflow-wrap: anywhere;
   margin-top: 2px;
 }
 .activity-row small {
-  font-size: 10px;
+  font-size: 12px;
   color: #a0aa9a;
   display: block;
   margin-top: 4px;
 }
 .activity-note {
-  font-size: 11px;
+  font-size: 13px;
   margin-top: 8px;
   background: #f8f9f4;
   padding: 7px 10px;
@@ -1030,10 +1030,10 @@ main {
   margin-bottom: 18px;
 }
 .empty-state h3 {
-  font-size: 15px;
+  font-size: 16px;
 }
 .empty-state p {
-  font-size: 12px;
+  font-size: 14px;
   max-width: 340px;
   margin-top: 9px;
   line-height: 1.8;
@@ -1064,7 +1064,7 @@ main {
   font-size: 22px;
 }
 .fleet-alert span {
-  font-size: 11px;
+  font-size: 13px;
 }
 .fleet-row {
   display: flex;
@@ -1091,11 +1091,11 @@ main {
   flex-shrink: 0;
 }
 .fleet-row strong {
-  font-size: 12px;
+  font-size: 14px;
   display: block;
 }
 .fleet-row small {
-  font-size: 10px;
+  font-size: 12px;
   color: #93a187;
   display: block;
   margin-top: 3px;
@@ -1124,12 +1124,12 @@ main {
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 10px;
+  font-size: 12px;
   color: #9da893;
 }
 .page-footer > span {
   margin-left: auto;
-  font-size: 9px;
+  font-size: 11px;
 }
 .toolbar {
   display: flex;
@@ -1159,7 +1159,7 @@ main {
   box-shadow: none;
   background: transparent;
   padding: 8px 0;
-  font-size: 12px;
+  font-size: 14px;
   min-height: 40px;
 }
 .search-input .icon-button {
@@ -1189,7 +1189,7 @@ main {
   overflow-wrap: anywhere;
 }
 .vehicle-card > p {
-  font-size: 12px;
+  font-size: 14px;
   min-height: 18px;
   margin-top: 5px;
 }
@@ -1199,7 +1199,7 @@ main {
   align-items: center;
   flex-wrap: wrap;
   margin-top: 25px;
-  font-size: 11px;
+  font-size: 13px;
   color: #7c8e70;
 }
 .vehicle-progress strong {
@@ -1222,7 +1222,7 @@ main {
   display: flex;
   justify-content: space-between;
   gap: 10px;
-  font-size: 10px;
+  font-size: 12px;
   color: #8a9b7d;
   border-top: 1px solid var(--border);
   margin-top: 20px;
@@ -1237,7 +1237,7 @@ main {
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 10px;
+  font-size: 12px;
   color: #b09966;
   margin-top: 15px;
 }
@@ -1274,7 +1274,7 @@ main {
   box-shadow: inset 0 -12px #d8e3cd;
 }
 .truck-cab span {
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: 2px;
   margin-top: 6px;
 }
@@ -1282,7 +1282,7 @@ main {
   display: flex;
   justify-content: space-between;
   padding: 0 10%;
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: 2px;
   color: #a1ae95;
   margin-bottom: 10px;
@@ -1317,7 +1317,7 @@ main {
   width: 22px;
   height: 22px;
   text-align: center;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 22px;
   z-index: 1;
 }
@@ -1338,12 +1338,12 @@ main {
   min-height: 93px;
 }
 .wheel strong {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 650;
   margin: 4px 0 1px;
 }
 .wheel small {
-  font-size: 8px;
+  font-size: 11px;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1395,7 +1395,7 @@ main {
   margin-top: 25px;
   padding-top: 20px;
   color: #94a387;
-  font-size: 12px;
+  font-size: 14px;
 }
 .spare-position .wheel {
   width: 67px;
@@ -1408,7 +1408,7 @@ main {
   margin-top: 25px;
   padding-top: 18px;
   border-top: 1px solid var(--border);
-  font-size: 10px;
+  font-size: 12px;
   color: #859679;
   flex-wrap: wrap;
 }
@@ -1428,20 +1428,20 @@ main {
   letter-spacing: -1px;
 }
 .vehicle-summary h2 small {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 400;
 }
 .vehicle-summary > p {
-  font-size: 12px;
+  font-size: 14px;
 }
 .vehicle-summary > div {
   display: flex;
   justify-content: space-between;
-  font-size: 12px;
+  font-size: 14px;
   margin: 12px 0;
 }
 .vehicle-summary > .small {
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.8;
   margin-top: 20px;
 }
@@ -1462,7 +1462,7 @@ main {
   gap: 8px;
   padding: 18px 0;
   background: transparent;
-  font-size: 12px;
+  font-size: 14px;
   white-space: nowrap;
   border-bottom: 2px solid transparent;
   color: #89977e;
@@ -1472,7 +1472,7 @@ main {
   border-bottom-color: #55763d;
 }
 .tabs button > span {
-  font-size: 9px;
+  font-size: 11px;
   border-radius: 5px;
   background: #f2f4ed;
   color: #8c9c7b;
@@ -1499,7 +1499,7 @@ main {
   background: #fff;
   border: 1px solid var(--border);
   border-radius: 7px;
-  font-size: 10px;
+  font-size: 12px;
   color: #7a8c6a;
   white-space: nowrap;
 }
@@ -1549,11 +1549,11 @@ main {
 }
 .tyre-main strong {
   display: block;
-  font-size: 13px;
+  font-size: 15px;
   overflow-wrap: anywhere;
 }
 .tyre-main small {
-  font-size: 11px;
+  font-size: 13px;
   color: #9ba88e;
   display: block;
   overflow-wrap: anywhere;
@@ -1567,7 +1567,7 @@ main {
   gap: 7px;
 }
 .badge {
-  font-size: 9px;
+  font-size: 11px;
   display: inline-flex;
   padding: 3px 8px;
   border-radius: 5px;
@@ -1598,17 +1598,17 @@ main {
   color: #5e8e76;
 }
 .tyre-status > small {
-  font-size: 10px;
+  font-size: 12px;
   color: #85947b;
 }
 .tyre-distance {
-  font-size: 14px;
+  font-size: 16px;
   min-width: 75px;
   color: #59704b;
   text-align: right;
 }
 .tyre-distance small {
-  font-size: 9px;
+  font-size: 11px;
   display: block;
   color: #9cab8d;
 }
@@ -1626,10 +1626,10 @@ main {
   align-items: center;
   gap: 9px;
   color: #8ba177;
-  font-size: 10px;
+  font-size: 12px;
 }
 .log-date input {
-  font-size: 11px;
+  font-size: 13px;
   max-width: 150px;
   padding: 8px;
   min-height: 40px;
@@ -1639,17 +1639,17 @@ main {
   justify-content: space-between;
   border-bottom: 1px solid var(--border);
   padding: 18px 0 12px;
-  font-size: 11px;
+  font-size: 13px;
   color: #94a284;
 }
 .log-list .activity-row {
   padding: 20px 0;
 }
 .log-list .activity-row strong {
-  font-size: 13px;
+  font-size: 15px;
 }
 .log-list .activity-row small {
-  font-size: 11px;
+  font-size: 13px;
 }
 .settings-grid {
   display: grid;
@@ -1666,11 +1666,11 @@ main {
   align-items: center;
 }
 .settings-card > p {
-  font-size: 12px;
+  font-size: 14px;
   margin: 17px 0;
 }
 .settings-card > .small {
-  font-size: 11px;
+  font-size: 13px;
 }
 .business-info {
   display: flex;
@@ -1682,13 +1682,13 @@ main {
   margin: 24px 0;
 }
 .business-info strong {
-  font-size: 14px;
+  font-size: 16px;
   display: block;
   overflow-wrap: anywhere;
 }
 .business-info small {
   display: block;
-  font-size: 11px;
+  font-size: 13px;
   color: #8c9c7e;
   margin-top: 4px;
 }
@@ -1701,11 +1701,11 @@ main {
   border-top: 1px solid var(--border);
 }
 .team-row strong {
-  font-size: 13px;
+  font-size: 15px;
 }
 .team-row small {
   display: block;
-  font-size: 10px;
+  font-size: 12px;
   color: #9baa8b;
   margin-top: 3px;
 }
@@ -1718,7 +1718,7 @@ main {
   justify-content: space-between;
   gap: 15px;
   padding: 20px 0;
-  font-size: 13px;
+  font-size: 15px;
 }
 .segmented {
   display: flex;
@@ -1730,7 +1730,7 @@ main {
 }
 .segmented > button {
   padding: 8px 15px;
-  font-size: 12px;
+  font-size: 14px;
   border-radius: 7px;
   background: transparent;
   color: #899b76;
@@ -1748,7 +1748,7 @@ main {
   width: 100%;
   background: transparent;
   padding: 17px 0;
-  font-size: 12px;
+  font-size: 14px;
   border-top: 1px solid var(--border);
 }
 .setting-button span {
@@ -1800,12 +1800,12 @@ main {
   margin-bottom: 17px;
 }
 .field > span {
-  font-size: 12px;
+  font-size: 14px;
   color: #62744e;
   font-weight: 550;
 }
 .field > small {
-  font-size: 10px;
+  font-size: 12px;
   color: #95a583;
 }
 .password-input {
@@ -1845,7 +1845,7 @@ main {
   border: 1px solid #ecd5ce;
   background: #fdf3ee;
   color: #ae6e5b;
-  font-size: 12px;
+  font-size: 14px;
   border-radius: 8px;
   line-height: 1.7;
   margin-bottom: 15px;
@@ -1854,7 +1854,7 @@ main {
   background: #f1f5e9;
   padding: 13px;
   border-radius: 10px;
-  font-size: 12px;
+  font-size: 14px;
   color: #7e9466;
   display: flex;
   align-items: center;
@@ -1866,7 +1866,7 @@ main {
   display: flex;
   gap: 10px;
   align-items: center;
-  font-size: 13px;
+  font-size: 15px;
   margin: 19px 0;
 }
 .checkbox-field input {
@@ -1883,14 +1883,14 @@ main {
   padding: 13px;
   background: #f5f7f0;
   border-radius: 9px;
-  font-size: 12px;
+  font-size: 14px;
   margin-bottom: 21px;
 }
 .selected-record > svg {
   color: #91a37b;
 }
 .selected-record > span {
-  font-size: 11px;
+  font-size: 13px;
   color: #93a27f;
 }
 .tyre-detail-hero {
@@ -1909,7 +1909,7 @@ main {
   flex: 1;
 }
 .tyre-detail-hero p {
-  font-size: 12px;
+  font-size: 14px;
   margin: 3px 0 8px;
 }
 .tyre-detail-hero h3 {
@@ -1930,7 +1930,7 @@ main {
   gap: 6px;
 }
 .detail-stats span {
-  font-size: 10px;
+  font-size: 12px;
   color: #91a17c;
 }
 .detail-stats strong {
@@ -1938,12 +1938,12 @@ main {
   font-weight: 500;
 }
 .detail-stats small {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 400;
   color: #9aaa87;
 }
 .detail-list {
-  font-size: 12px;
+  font-size: 14px;
   margin-bottom: 18px;
 }
 .detail-list > div {
@@ -1967,11 +1967,11 @@ main {
 }
 .tyre-actions .primary,
 .tyre-actions .secondary {
-  font-size: 11px;
+  font-size: 13px;
   padding: 10px 12px;
 }
 .history-heading {
-  font-size: 13px;
+  font-size: 15px;
   margin-top: 28px;
   border-top: 1px solid var(--border);
   padding-top: 21px;
@@ -1999,7 +1999,7 @@ main {
   box-shadow: 0 5px 30px #153b2833;
   padding: 12px 14px;
   border-radius: 11px;
-  font-size: 12px;
+  font-size: 14px;
   max-width: 90vw;
   width: max-content;
 }
@@ -2020,7 +2020,7 @@ main {
   background: #fff3d9;
   color: #a18347;
   padding: 10px 24px;
-  font-size: 11px;
+  font-size: 13px;
 }
 .offline-banner .text-button {
   margin-left: 10px;
@@ -2090,7 +2090,7 @@ main {
 }
 .story-main > p {
   color: #adbfaa;
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.9;
   max-width: 400px;
 }
@@ -2132,7 +2132,7 @@ main {
   gap: 8px;
   border-radius: 10px;
   padding: 14px 16px;
-  font-size: 11px;
+  font-size: 13px;
   box-shadow: 0 10px 25px #092c2633;
 }
 .floating-stock {
@@ -2149,7 +2149,7 @@ main {
   flex-direction: column;
   gap: 13px;
   color: #c1d0b4;
-  font-size: 12px;
+  font-size: 14px;
   margin-top: 12px;
 }
 .feature-list > div {
@@ -2162,7 +2162,7 @@ main {
 }
 .auth-story > small {
   color: #8fad98;
-  font-size: 10px;
+  font-size: 12px;
 }
 .auth-form-side {
   padding: 32px 48px;
@@ -2194,7 +2194,7 @@ main {
   margin: 14px 0 8px;
 }
 .auth-card > p {
-  font-size: 13px;
+  font-size: 15px;
   line-height: 1.8;
   margin-bottom: 27px;
 }
@@ -2216,7 +2216,7 @@ main {
   display: flex;
   align-items: flex-start;
   gap: 7px;
-  font-size: 10px;
+  font-size: 12px;
   color: #9aaa8b;
   margin-top: 25px;
   line-height: 1.8;
@@ -2295,7 +2295,7 @@ main {
     gap: 7px;
   }
   .heading-actions button {
-    font-size: 11px;
+    font-size: 13px;
     padding: 10px 12px;
   }
   .stats-grid {
@@ -2313,10 +2313,10 @@ main {
     width: 19px;
   }
   .stat-foot {
-    font-size: 9px;
+    font-size: 11px;
   }
   .stat-label {
-    font-size: 11px;
+    font-size: 13px;
   }
   .start-guide {
     flex-direction: column;
@@ -2407,7 +2407,7 @@ main {
     width: 35px;
   }
   .sidebar .brand small {
-    font-size: 6px;
+    font-size: 11px;
     letter-spacing: 1.2px;
   }
   .main-shell {
@@ -2419,7 +2419,7 @@ main {
   }
   .nav-items button {
     padding: 12px 10px;
-    font-size: 12px;
+    font-size: 14px;
     gap: 9px;
   }
   .page-heading {
@@ -2433,10 +2433,10 @@ main {
     padding: 20px;
   }
   .stat-label {
-    font-size: 12px;
+    font-size: 14px;
   }
   .stat-foot {
-    font-size: 10px;
+    font-size: 12px;
   }
   .stat-icon {
     width: 43px;
@@ -2508,10 +2508,10 @@ main {
   }
   .tyre-distance {
     min-width: 45px;
-    font-size: 12px;
+    font-size: 14px;
   }
   .tyre-main strong {
-    font-size: 12px;
+    font-size: 14px;
   }
   .auth-story {
     padding: 30px;
@@ -2520,11 +2520,11 @@ main {
     font-size: 35px;
   }
   .floating-truck {
-    font-size: 9px;
+    font-size: 11px;
     padding: 11px 12px;
   }
   .floating-stock {
-    font-size: 9px;
+    font-size: 11px;
     padding: 11px 12px;
   }
   .auth-form-side {
@@ -2534,14 +2534,14 @@ main {
     font-size: 24px;
   }
   .auth-card > p {
-    font-size: 12px;
+    font-size: 14px;
   }
   .toast {
     left: calc(50% + 85px);
   }
   .desktop-crumb {
     gap: 8px;
-    font-size: 10px;
+    font-size: 12px;
   }
   .top-actions {
     gap: 12px;
@@ -2599,7 +2599,7 @@ main {
   }
   .language-switch {
     padding: 6px 8px;
-    font-size: 11px;
+    font-size: 13px;
     border-radius: 7px;
     background: transparent;
   }
@@ -2619,7 +2619,7 @@ main {
     letter-spacing: -0.7px;
   }
   .page-heading p {
-    font-size: 12px;
+    font-size: 14px;
     margin-top: 7px;
     line-height: 1.8;
   }
@@ -2630,7 +2630,7 @@ main {
   .heading-actions > .primary,
   .heading-actions > .secondary {
     flex: 1;
-    font-size: 12px;
+    font-size: 14px;
     min-height: 42px;
     padding: 10px 12px;
   }
@@ -2644,7 +2644,7 @@ main {
     gap: 7px;
   }
   .stat-label {
-    font-size: 11px;
+    font-size: 13px;
   }
   .stat-card strong {
     font-size: 30px;
@@ -2659,7 +2659,7 @@ main {
     width: 18px;
   }
   .stat-foot {
-    font-size: 8px;
+    font-size: 11px;
     line-height: 1.6;
   }
   .dashboard-columns {
@@ -2674,7 +2674,7 @@ main {
     font-size: 21px;
   }
   .daily-card > p {
-    font-size: 10px;
+    font-size: 12px;
   }
   .date-control {
     margin-top: 20px;
@@ -2689,10 +2689,10 @@ main {
     padding-left: 22px;
   }
   .daily-numbers span {
-    font-size: 10px;
+    font-size: 12px;
   }
   .daily-foot {
-    font-size: 8px;
+    font-size: 11px;
     margin-top: 20px;
     gap: 8px;
   }
@@ -2710,7 +2710,7 @@ main {
     font-size: 32px;
   }
   .stock-total span {
-    font-size: 10px;
+    font-size: 12px;
   }
   .stock-legend {
     gap: 13px;
@@ -2719,7 +2719,7 @@ main {
     font-size: 21px;
   }
   .stock-legend span {
-    font-size: 10px;
+    font-size: 12px;
   }
   .stock-legend > div {
     flex-direction: column;
@@ -2729,7 +2729,7 @@ main {
     padding-right: 10px;
   }
   .stock-mix > .small {
-    font-size: 9px;
+    font-size: 11px;
   }
   .start-guide {
     padding: 19px;
@@ -2741,10 +2741,10 @@ main {
     gap: 12px;
   }
   .start-guide h3 {
-    font-size: 13px;
+    font-size: 15px;
   }
   .start-guide p {
-    font-size: 10px;
+    font-size: 12px;
     line-height: 1.8;
   }
   .start-guide .empty-icon {
@@ -2759,13 +2759,13 @@ main {
     justify-content: space-between;
   }
   .guide-steps span {
-    font-size: 9px;
+    font-size: 11px;
     gap: 5px;
   }
   .guide-steps b {
     height: 18px;
     width: 18px;
-    font-size: 9px;
+    font-size: 11px;
   }
   .card-title-row h2 {
     font-size: 16px;
@@ -2774,10 +2774,10 @@ main {
     padding: 32px 12px;
   }
   .empty-state h3 {
-    font-size: 14px;
+    font-size: 16px;
   }
   .empty-state p {
-    font-size: 11px;
+    font-size: 13px;
   }
   .empty-icon {
     height: 50px;
@@ -2790,13 +2790,13 @@ main {
     padding: 15px 0;
   }
   .activity-row strong {
-    font-size: 12px;
+    font-size: 14px;
   }
   .activity-row > div > span {
-    font-size: 10px;
+    font-size: 12px;
   }
   .activity-row small {
-    font-size: 9px;
+    font-size: 11px;
   }
   .activity-icon {
     width: 32px;
@@ -2810,7 +2810,7 @@ main {
     gap: 8px;
   }
   .fleet-alert span {
-    font-size: 10px;
+    font-size: 12px;
   }
   .fleet-alert strong {
     font-size: 21px;
@@ -2819,14 +2819,14 @@ main {
     padding: 15px 0;
   }
   .fleet-row strong {
-    font-size: 12px;
+    font-size: 14px;
   }
   .page-footer {
     padding: 10px 19px 22px;
-    font-size: 8px;
+    font-size: 11px;
   }
   .page-footer > span {
-    font-size: 8px;
+    font-size: 11px;
   }
   .bottom-nav {
     display: block;
@@ -2854,7 +2854,7 @@ main {
     align-items: center;
     justify-content: center;
     gap: 5px;
-    font-size: 9px;
+    font-size: 11px;
     min-width: 72px;
     padding: 4px 7px;
     position: relative;
@@ -2885,7 +2885,7 @@ main {
     gap: 12px;
   }
   .toolbar > .small {
-    font-size: 10px;
+    font-size: 12px;
     white-space: nowrap;
   }
   .search-input {
@@ -2893,7 +2893,7 @@ main {
     min-height: 42px;
   }
   .search-input input {
-    font-size: 11px;
+    font-size: 13px;
   }
   .vehicle-grid {
     grid-template-columns: 1fr;
@@ -2914,13 +2914,13 @@ main {
     font-size: 20px;
   }
   .vehicle-card > p {
-    font-size: 11px;
+    font-size: 13px;
   }
   .vehicle-progress {
     margin-top: 21px;
   }
   .vehicle-readiness {
-    font-size: 10px;
+    font-size: 12px;
   }
   .vehicle-detail-columns {
     gap: 18px;
@@ -2940,10 +2940,10 @@ main {
     padding-top: 10px;
   }
   .wheel strong {
-    font-size: 9px;
+    font-size: 11px;
   }
   .wheel small {
-    font-size: 7px;
+    font-size: 11px;
   }
   .axle-row > div {
     gap: 6px;
@@ -2958,11 +2958,11 @@ main {
     width: 58px;
   }
   .wheel-map > .card-title-row > div > p {
-    font-size: 10px;
+    font-size: 12px;
     max-width: 240px;
   }
   .wheel-map .badge {
-    font-size: 10px;
+    font-size: 12px;
   }
   .inventory-card {
     padding: 0;
@@ -2972,12 +2972,12 @@ main {
     padding: 0 17px;
   }
   .tabs button {
-    font-size: 10px;
+    font-size: 12px;
     padding: 17px 0;
     gap: 5px;
   }
   .tabs button > span {
-    font-size: 8px;
+    font-size: 11px;
   }
   .inventory-toolbar {
     padding: 17px;
@@ -2987,7 +2987,7 @@ main {
     gap: 6px;
   }
   .filter-chips button {
-    font-size: 10px;
+    font-size: 12px;
     padding: 6px 12px;
   }
   .tyre-list {
@@ -3013,10 +3013,10 @@ main {
     grid-row: 1;
   }
   .tyre-main strong {
-    font-size: 12px;
+    font-size: 14px;
   }
   .tyre-main small {
-    font-size: 9px;
+    font-size: 11px;
     margin-top: 4px;
   }
   .tyre-status {
@@ -3029,20 +3029,20 @@ main {
     margin-top: 9px;
   }
   .tyre-status > .badge {
-    font-size: 8px;
+    font-size: 11px;
     padding: 2px 7px;
   }
   .tyre-status > small {
-    font-size: 9px;
+    font-size: 11px;
   }
   .tyre-distance {
     grid-column: 3;
     grid-row: 1;
     text-align: right;
-    font-size: 12px;
+    font-size: 14px;
   }
   .tyre-distance small {
-    font-size: 8px;
+    font-size: 11px;
   }
   .tyre-row > svg {
     grid-column: 4;
@@ -3062,16 +3062,16 @@ main {
     max-width: 160px;
   }
   .log-date span {
-    font-size: 10px;
-  }
-  .log-summary {
-    font-size: 10px;
-  }
-  .log-list .activity-row strong {
     font-size: 12px;
   }
+  .log-summary {
+    font-size: 12px;
+  }
+  .log-list .activity-row strong {
+    font-size: 14px;
+  }
   .log-list .activity-row small {
-    font-size: 10px;
+    font-size: 12px;
   }
   .log-list .activity-row {
     padding: 18px 0;
@@ -3083,41 +3083,41 @@ main {
     margin-bottom: 17px;
   }
   .settings-card h2 {
-    font-size: 15px;
+    font-size: 16px;
   }
   .settings-card > p {
-    font-size: 11px;
+    font-size: 13px;
   }
   .settings-card > .small {
-    font-size: 10px;
+    font-size: 12px;
   }
   .setting-line {
-    font-size: 12px;
+    font-size: 14px;
   }
   .setting-line .segmented > button {
     padding: 7px 11px;
-    font-size: 11px;
+    font-size: 13px;
   }
   .settings-card .secondary {
-    font-size: 11px;
+    font-size: 13px;
   }
   .business-info {
     padding: 13px;
   }
   .business-info strong {
-    font-size: 13px;
+    font-size: 15px;
   }
   .business-info small {
-    font-size: 10px;
-  }
-  .team-row strong {
     font-size: 12px;
   }
+  .team-row strong {
+    font-size: 14px;
+  }
   .team-row small {
-    font-size: 9px;
+    font-size: 11px;
   }
   .team-row > .text-button {
-    font-size: 10px;
+    font-size: 12px;
   }
   .dialog {
     width: calc(100% - 20px);
@@ -3134,15 +3134,15 @@ main {
     padding: 20px 18px;
   }
   .field > span {
-    font-size: 12px;
+    font-size: 14px;
   }
   .field > small {
-    font-size: 10px;
+    font-size: 12px;
   }
   .field input,
   .field select,
   .field textarea {
-    font-size: 14px;
+    font-size: 16px;
     min-height: 47px;
   }
   .form-grid {
@@ -3152,7 +3152,7 @@ main {
     gap: 10px;
   }
   .form-actions > button {
-    font-size: 12px;
+    font-size: 14px;
     flex: 1;
   }
   .tyre-detail-hero {
@@ -3163,10 +3163,10 @@ main {
     height: 54px;
   }
   .tyre-detail-hero h3 {
-    font-size: 15px;
+    font-size: 16px;
   }
   .tyre-detail-hero p {
-    font-size: 11px;
+    font-size: 13px;
   }
   .detail-stats {
     padding: 16px;
@@ -3176,10 +3176,10 @@ main {
     font-size: 23px;
   }
   .detail-stats span {
-    font-size: 9px;
+    font-size: 11px;
   }
   .detail-list {
-    font-size: 11px;
+    font-size: 13px;
   }
   .tyre-actions {
     gap: 10px;
@@ -3200,7 +3200,7 @@ main {
   .toast {
     bottom: calc(80px + env(safe-area-inset-bottom));
     left: 50%;
-    font-size: 11px;
+    font-size: 13px;
     padding: 10px 11px;
     width: max-content;
     max-width: calc(100vw - 28px);
@@ -3209,13 +3209,13 @@ main {
     margin-left: auto;
   }
   .offline-banner {
-    font-size: 10px;
+    font-size: 12px;
     padding: 10px 17px;
     align-items: flex-start;
     gap: 8px;
   }
   .offline-banner .text-button {
-    font-size: 10px;
+    font-size: 12px;
     margin-left: 0;
     white-space: nowrap;
   }
@@ -3246,10 +3246,10 @@ main {
     margin-top: 12px;
   }
   .auth-card > .eyebrow {
-    font-size: 9px;
+    font-size: 11px;
   }
   .auth-card > p {
-    font-size: 13px;
+    font-size: 15px;
   }
   .auth-card > .segmented {
     margin: 22px 0;
@@ -3261,10 +3261,10 @@ main {
     margin-bottom: 19px;
   }
   .auth-card form > .primary {
-    font-size: 13px;
+    font-size: 15px;
   }
   .auth-foot {
-    font-size: 10px;
+    font-size: 12px;
     line-height: 1.8;
   }
   .connect-page {
@@ -3302,7 +3302,7 @@ main {
 
 .login-help {
   margin: 4px 0 16px;
-  font-size: 13px;
+  font-size: 15px;
 }
 .login-help p {
   margin-top: 8px;
@@ -3448,7 +3448,7 @@ textarea:focus {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   color: #6d4040;
   border: 1px solid var(--border);
@@ -3489,7 +3489,7 @@ textarea:focus {
   color: #a3131c;
 }
 .report-metrics span {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--muted);
 }
 .report-exports {
@@ -3504,7 +3504,7 @@ textarea:focus {
 .report-table {
   border-collapse: collapse;
   width: 100%;
-  font-size: 12px;
+  font-size: 14px;
 }
 .report-table th,
 .report-table td {
@@ -3525,7 +3525,7 @@ textarea:focus {
   gap: 4px;
   padding: 14px 0;
   border-bottom: 1px solid var(--border);
-  font-size: 13px;
+  font-size: 15px;
   overflow-wrap: anywhere;
 }
 .report-event span,
@@ -3558,7 +3558,7 @@ textarea:focus {
   border-radius: 10px;
   background: #fffaed;
   color: #765218;
-  font-size: 13px;
+  font-size: 15px;
 }
 .advisory-banner button,
 .maintenance-notice button {
@@ -3573,7 +3573,7 @@ textarea:focus {
   flex-wrap: wrap;
   gap: 14px;
   margin: 14px 0;
-  font-size: 12px;
+  font-size: 14px;
 }
 .inspection-finding {
   display: grid;
@@ -3606,7 +3606,7 @@ textarea:focus {
   gap: 6px;
   min-width: 0;
   overflow-wrap: anywhere;
-  font-size: 13px;
+  font-size: 15px;
 }
 .inspection-nsd-row .field {
   margin: 0;
@@ -3620,7 +3620,7 @@ textarea:focus {
   min-width: 0;
 }
 .nsd-inputs legend {
-  font-size: 12px;
+  font-size: 14px;
   padding: 0 5px;
 }
 .nsd-fields {
@@ -3642,7 +3642,7 @@ textarea:focus {
   font-size: 24px;
 }
 .nsd-summary p {
-  font-size: 12px;
+  font-size: 14px;
 }
 @media (max-width: 700px) {
   .mobile-nav-items {
@@ -3652,7 +3652,7 @@ textarea:focus {
     min-width: 0;
     padding: 4px 2px;
     flex-basis: 0;
-    font-size: 8px;
+    font-size: 11px;
     overflow-wrap: anywhere;
   }
   .mobile-nav-items button.selected {
@@ -3777,4 +3777,190 @@ textarea:focus {
 .auth-top .brand small,
 .connect-page .brand small {
   color: #9b5252;
+}
+
+/* Fixed company artwork, clearer type and distinct inventory colours. */
+.company-logo {
+  width: 42px;
+  height: 62px;
+  object-fit: contain;
+  background: white;
+  border-radius: 3px;
+}
+.company-wordmark {
+  min-width: 0;
+  max-width: 170px;
+  padding: 8px;
+  border-radius: 5px;
+  background: #fff;
+  color: #a8111b;
+}
+.company-wordmark > img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 40px;
+  object-fit: contain;
+}
+.company-wordmark small {
+  color: #831621 !important;
+  font-size: 11px;
+  letter-spacing: 1px;
+  margin-top: 5px;
+}
+.sidebar .brand {
+  gap: 8px;
+}
+.company-banner-login {
+  max-height: 70px;
+}
+.inspection-nsd-row {
+  grid-template-columns: minmax(0, 1fr) minmax(110px, 170px);
+}
+.inspection-nsd-row > div:first-child {
+  grid-column: auto;
+}
+.badge-new,
+.tyre-new,
+.stat-icon.green {
+  background: #dcfce7;
+  color: #08783f;
+}
+.badge-used,
+.tyre-used,
+.stat-icon.amber {
+  background: #fff0ba;
+  color: #965500;
+}
+.badge-remold,
+.tyre-remold,
+.stat-icon.purple {
+  background: #ede0ff;
+  color: #6725c4;
+}
+.badge-installed,
+.stat-icon.blue {
+  background: #d9efff;
+  color: #0066ac;
+}
+.badge-scrapped {
+  background: #ffe0dd;
+  color: #a51c22;
+}
+.badge-sold {
+  background: #dbeafe;
+  color: #174ab5;
+}
+.dot-new {
+  background: #16ba64;
+}
+.dot-used {
+  background: #ffb000;
+}
+.dot-remold {
+  background: #9052ef;
+}
+.wheel-new {
+  background: #ddfce9;
+  border-color: #0ba857;
+  color: #07773e;
+}
+.wheel-used {
+  background: #fff2c2;
+  border-color: #f2a000;
+  color: #8d5600;
+}
+.wheel-remold {
+  background: #eee2ff;
+  border-color: #8a3fea;
+  color: #6522bc;
+}
+.wheel-empty {
+  border-color: #c3cbd5;
+  background: #f8fafc;
+  color: #718096;
+}
+.activity-fit {
+  background: #dcfce7;
+  color: #067a42;
+}
+.activity-remove {
+  background: #fff0ba;
+  color: #935300;
+}
+.activity-remold {
+  background: #eee0ff;
+  color: #6f22c5;
+}
+.activity-sell {
+  background: #dbeafe;
+  color: #174ab5;
+}
+.activity-inspectVehicle,
+.activity-measureNsd {
+  background: #d9efff;
+  color: #0066ac;
+}
+.sale-record {
+  padding: 16px;
+  background: #e6efff;
+  color: #174ab5;
+  border-radius: 10px;
+  margin: 16px 0;
+}
+.manufacturer-mark {
+  font-size: inherit;
+}
+.tyre-main small,
+.activity-row small,
+.activity-row > div > span {
+  color: #536172;
+}
+.form-info,
+.selected-record {
+  background: #fff8f4;
+  color: #765252;
+}
+@media (max-width: 700px) {
+  .company-logo {
+    width: 34px;
+    height: 48px;
+  }
+  .company-wordmark {
+    max-width: 145px;
+    padding: 5px;
+  }
+  .company-wordmark small {
+    font-size: 10px;
+    letter-spacing: 0.6px;
+  }
+  .inspection-nsd-row {
+    grid-template-columns: minmax(0, 1fr) minmax(100px, 140px);
+  }
+  .inspection-nsd-row > div:first-child {
+    grid-column: auto;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .mobile-nav-items {
+    height: 74px;
+  }
+  .mobile-nav-items button {
+    font-size: 11px;
+    line-height: 1.3;
+  }
+  .page-footer {
+    overflow-wrap: anywhere;
+  }
+  .topbar {
+    gap: 8px;
+  }
+}
+
+.manufacturer-initials {
+  white-space: nowrap;
+  overflow-wrap: normal !important;
+}
+.wheel .manufacturer-initials {
+  font-size: 10px;
 }

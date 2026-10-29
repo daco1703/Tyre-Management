@@ -233,6 +233,12 @@ async function main() {
   await staff
     .getByRole("heading", { name: "Your fleet, at a glance" })
     .waitFor();
+  assert.equal(
+    await staff
+      .getByRole("button", { name: "Add vehicle", exact: true })
+      .count(),
+    0,
+  );
   await staff
     .locator(".mobile-nav-items")
     .getByRole("button", { name: "Tyre inventory", exact: true })
@@ -266,6 +272,18 @@ async function main() {
     .locator(".mobile-nav-items")
     .getByRole("button", { name: "Vehicles", exact: true })
     .click();
+  assert.equal(
+    await staff
+      .getByRole("button", { name: "Add vehicle", exact: true })
+      .count(),
+    0,
+  );
+  assert.equal(
+    await staff
+      .getByRole("button", { name: "Import from Excel", exact: true })
+      .count(),
+    0,
+  );
   await staff.getByRole("button", { name: /RJ14AB1234/ }).click();
   await staff
     .getByRole("button", { name: "Record tyre inspection", exact: true })
@@ -280,16 +298,15 @@ async function main() {
   await staff
     .getByLabel("Issue 1", { exact: true })
     .selectOption("misalignment");
-  await staff.getByLabel("TYR-002 Inner %", { exact: true }).fill("75");
-  await staff.getByLabel("TYR-002 Centre %", { exact: true }).fill("65");
-  await staff.getByLabel("TYR-002 Outer %", { exact: true }).fill("70");
+  assert.equal(await staff.locator("dialog input[type=number]").count(), 1);
+  await staff.getByLabel("TYR-002 Average NSD (%)", { exact: true }).fill("65");
   await staff.getByRole("button", { name: "Save record", exact: true }).click();
   await staff.locator("dialog").waitFor({ state: "detached" });
   state = await (await context.request.get(base + "/api/state")).json();
   assert.equal(state.vehicles[0].pendingTyreCheck, false);
   assert.equal(state.events.at(-1).actor, "garage_staff");
   assert.equal(state.events.at(-1).driverCheckCompleted, true);
-  assert.equal(state.tyres[1].nsd.minimumPercent, 65);
+  assert.equal(state.tyres[1].nsd.averagePercent, 65);
   await page
     .locator(".vehicle-inspection-summary")
     .getByText("Wheel misalignment", { exact: false })
@@ -330,7 +347,9 @@ async function main() {
     await staff.setViewportSize({ width, height: 900 });
     assert.ok(
       await staff.evaluate(
-        () => document.documentElement.scrollWidth <= window.innerWidth,
+        () =>
+          document.documentElement.scrollWidth <=
+          document.documentElement.clientWidth,
       ),
       `Report overflow at ${width}`,
     );
@@ -342,6 +361,92 @@ async function main() {
   console.log(
     "PASS: staff inspection records issue, direct tread percentages and completed driver check; per-vehicle date-filtered report and CSV work on mobile",
   );
+  await staff
+    .locator(".mobile-nav-items")
+    .getByRole("button", { name: "Tyre inventory", exact: true })
+    .click();
+  await staff
+    .getByRole("button", { name: "Import tyres from Excel", exact: true })
+    .click();
+  const { default: writeExcelFile } = await import("write-excel-file/node");
+  const { TYRE_HEADERS } = await import("../shared/tyre-import.js");
+  const workbook = await writeExcelFile(
+    [
+      TYRE_HEADERS,
+      ["00099", "JK Tyre", "New", "Radial", 0],
+      ["IMPORT-R", "Apollo", "Remold", "Horse", 500],
+      ["TYR-001", "MRF"],
+      ["BAD", ""],
+    ].map((row) =>
+      row.map((value) => ({
+        value,
+        type: typeof value === "number" ? Number : String,
+      })),
+    ),
+    { sheet: "Tyres" },
+  ).toBuffer();
+  await staff
+    .getByLabel("Choose Excel file", { exact: true })
+    .setInputFiles({
+      name: "tyres.xlsx",
+      mimeType:
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      buffer: workbook,
+    });
+  await staff
+    .getByRole("button", { name: "Import 2 tyres", exact: true })
+    .waitFor();
+  await staff
+    .getByRole("button", { name: "Import 2 tyres", exact: true })
+    .click();
+  await staff.locator("dialog").waitFor({ state: "detached" });
+  state = await (await context.request.get(base + "/api/state")).json();
+  assert.equal(state.tyres.length, 5);
+  assert.equal(
+    state.tyres.find((t) => t.serial === "00099").nsd.averagePercent,
+    100,
+  );
+  assert.equal(
+    state.tyres.find((t) => t.serial === "IMPORT-R").nsd.averagePercent,
+    100,
+  );
+  await staff.getByRole("button", { name: /00099/ }).click();
+  assert.equal(
+    await staff
+      .getByRole("button", { name: "Record NSD", exact: true })
+      .count(),
+    0,
+  );
+  assert.match(await staff.locator("dialog .nsd-summary").innerText(), /100%/);
+  await staff
+    .getByRole("button", { name: "Record tyre sale", exact: true })
+    .click();
+  await staff
+    .locator("dialog textarea[name=note]")
+    .fill("Buyer ABC invoice 42");
+  await staff.getByRole("button", { name: "Save record", exact: true }).click();
+  await staff.locator("dialog").waitFor({ state: "detached" });
+  await staff.getByRole("button", { name: /^Sold/ }).click();
+  assert.equal(await staff.locator(".tyre-row").count(), 1);
+  await staff.getByRole("button", { name: /00099/ }).click();
+  await staff
+    .getByText(/Buyer ABC invoice 42/)
+    .first()
+    .waitFor();
+  assert.equal(
+    await staff
+      .getByRole("button", { name: "Record tyre sale", exact: true })
+      .count(),
+    0,
+  );
+  state = await (await context.request.get(base + "/api/state")).json();
+  assert.equal(state.events.at(-1).actor, "garage_staff");
+  assert.equal(state.events.at(-1).tally.total, 4);
+  assert.equal(state.events.at(-1).tally.sold, 1);
+  await staff.locator("dialog").getByRole("button", { name: "Close", exact: true }).click();
+  console.log(
+    "PASS: staff cannot add/import vehicles; real tyre Excel import preserves IDs, skips duplicates, defaults NSD, and sold history leaves active stock",
+  );
   // Add explicit test fixtures to exercise populated layouts; never touch the application database.
   async function apiAction(kind, payload) {
     const s = await (await context.request.get(base + "/api/state")).json();
@@ -350,11 +455,6 @@ async function main() {
     });
     assert.equal(res.status(), 200, JSON.stringify(await res.json()));
   }
-  await apiAction("measureNsd", {
-    tyreId: state.tyres[2].id,
-    measuredOn: "2025-12-31",
-    nsd: { inner: 30 },
-  });
   for (const [registration, hasSpare] of [
     ["RJ14GC2071", true],
     ["HR55AB8921", false],
@@ -393,10 +493,7 @@ async function main() {
     .getByRole("button", { name: "Dashboard", exact: true })
     .click();
   mkdirSync(path.join(root, "artifacts"), { recursive: true });
-  await page
-    .locator(".maintenance-reminders")
-    .getByRole("button", { name: /TYR-003/ })
-    .waitFor();
+
   await page.screenshot({
     path: path.join(root, "artifacts/dashboard-desktop.png"),
     fullPage: true,
@@ -439,7 +536,9 @@ async function main() {
     await staff.setViewportSize({ width, height: 900 });
     assert.ok(
       await staff.evaluate(
-        () => document.documentElement.scrollWidth <= window.innerWidth,
+        () =>
+          document.documentElement.scrollWidth <=
+          document.documentElement.clientWidth,
       ),
       `No horizontal overflow at ${width}px`,
     );
@@ -459,24 +558,16 @@ async function main() {
     .locator(".nav-items")
     .getByRole("button", { name: "Team & settings", exact: true })
     .click();
-  const testPng = Buffer.from(
-    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a1ZkAAAAASUVORK5CYII=",
-    "base64",
+  assert.equal(
+    await page
+      .getByRole("button", { name: "Save branding", exact: true })
+      .count(),
+    0,
   );
-  await page.getByLabel("Company logo", { exact: true }).setInputFiles({
-    name: "test-logo.png",
-    mimeType: "image/png",
-    buffer: testPng,
-  });
-  await page.getByLabel("Company banner", { exact: true }).setInputFiles({
-    name: "test-banner.png",
-    mimeType: "image/png",
-    buffer: testPng,
-  });
-  await page
-    .getByRole("button", { name: "Save branding", exact: true })
-    .click();
-  await page.locator(".company-logo").first().waitFor();
+  assert.equal(
+    await page.locator(".company-logo").first().getAttribute("src"),
+    "/branding/shepards-logo.png",
+  );
   const brandContext = await browser.newContext();
   const loginPage = await brandContext.newPage();
   await loginPage.goto(base);
@@ -484,7 +575,7 @@ async function main() {
   assert.ok((await loginPage.locator(".company-logo").count()) > 0);
   await brandContext.close();
   console.log(
-    "PASS: admin can upload company logo/banner and both load on the public login",
+    "PASS: permanent company logo/banner load without any user upload",
   );
   const backupDownload = page.waitForEvent("download");
   await page

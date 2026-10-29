@@ -4,6 +4,7 @@ import { reportFor, presetRange, effectiveDay } from "../shared/reports.js";
 import { dayKey, positionLabel } from "../shared/model.js";
 import { displayDate } from "../shared/dates.js";
 import { vehicleClasses } from "../shared/catalogue.js";
+import { averageNsd } from "../shared/nsd.js";
 import { BrandMark } from "./branding.jsx";
 import { DateField } from "./date-field.jsx";
 export function Reports({ app, initialVehicleId, onExport }) {
@@ -68,8 +69,7 @@ export function Reports({ app, initialVehicleId, onExport }) {
                   `${positionLabel(f.slot)}: ${t(`issue_${f.issue}`)} ${f.detail || ""}`,
               ),
               ...(e.nsdMeasurements || []).map(
-                (m) =>
-                  `${m.tyre}: ${m.minimumPercent}% (${m.inner ?? "—"}/${m.center ?? "—"}/${m.outer ?? "—"})`,
+                (m) => `${m.tyre}: ${averageNsd(m)}%`,
               ),
             ]
               .filter(Boolean)
@@ -273,9 +273,7 @@ export function Reports({ app, initialVehicleId, onExport }) {
                 )}
                 {(e.nsdMeasurements || []).map((m, i) => (
                   <small key={i}>
-                    {m.tyre} · {t("nsd")}: {m.minimumPercent}% · {t("inner")}:{" "}
-                    {m.inner ?? "—"} / {t("center")}: {m.center ?? "—"} /{" "}
-                    {t("outer")}: {m.outer ?? "—"}
+                    {m.tyre} · {t("nsd")}: {averageNsd(m)}%
                   </small>
                 ))}
                 <small>
