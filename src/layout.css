@@ -1,0 +1,453 @@
+/* Structured identities and cards take precedence over legacy compact rows. */
+.brand {
+  --brand-panel-height: 72px;
+  align-items: center;
+  gap: 8px;
+}
+.brand .company-logo {
+  box-sizing: border-box;
+  height: var(--brand-panel-height);
+  width: 48px;
+  padding: 6px;
+  object-fit: contain;
+  border-radius: 6px;
+  flex: none;
+}
+.brand .company-wordmark {
+  box-sizing: border-box;
+  height: var(--brand-panel-height);
+  width: 150px;
+  max-width: none;
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border-radius: 6px;
+}
+.brand .company-wordmark > img {
+  width: 100%;
+  max-height: 30px;
+  flex: none;
+}
+.brand .company-wordmark small {
+  margin: 0;
+  font-size: 10px;
+  letter-spacing: 0.9px;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.manufacturer-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  max-width: 100%;
+  line-height: 1.5;
+  text-align: left;
+}
+.manufacturer-mark .manufacturer-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+.manufacturer-mark .manufacturer-name.canonical {
+  overflow-wrap: normal;
+  white-space: nowrap;
+}
+.manufacturer-mark > img {
+  width: 76px;
+  height: 44px;
+  object-fit: contain;
+  flex: none;
+  padding: 3px;
+}
+.manufacturer-initials {
+  flex: none;
+}
+.tyre-detail-summary {
+  padding: 18px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #fff;
+}
+.tyre-detail-brand {
+  min-width: 0;
+}
+.tyre-detail-brand .manufacturer-mark {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 16px;
+  width: 100%;
+}
+.tyre-detail-brand .manufacturer-mark > img {
+  width: 96px;
+  height: 72px;
+  padding: 3px;
+}
+.tyre-detail-brand .manufacturer-name {
+  font-size: 18px;
+  font-weight: 650;
+  color: #263244;
+}
+.tyre-detail-brand .manufacturer-initials {
+  width: 72px;
+  height: 64px;
+  font-size: 20px;
+}
+.tyre-detail-tags,
+.tyre-card-tags {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.tyre-detail-tags {
+  padding-top: 16px;
+  margin-top: 16px;
+  border-top: 1px solid #edf0f5;
+}
+.tyre-detail-tags > *,
+.tyre-card-tags > * {
+  max-width: 100%;
+  white-space: normal;
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 5px 9px;
+  border-radius: 7px;
+}
+.construction-tag {
+  display: inline-block;
+  color: #475467;
+  background: #f0f3f8;
+  font-size: 12px;
+  font-weight: 600;
+}
+.badge-stock {
+  color: #126a4a;
+  background: #e4f7ed;
+}
+.badge-remolding {
+  color: #722cb2;
+  background: #f0e5ff;
+}
+.tyre-summary-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(115px, 1fr));
+  gap: 16px;
+  background: #f4f7fb;
+  border: 1px solid #e7edf5;
+  padding: 16px;
+  margin: 18px 0;
+}
+.tyre-summary-stats > div {
+  min-width: 0;
+  gap: 8px;
+}
+.tyre-summary-stats span {
+  font-size: 12px;
+  color: #667085;
+  line-height: 1.5;
+}
+.tyre-summary-stats strong {
+  font-size: 25px;
+  color: #263244;
+  font-weight: 650;
+  line-height: 1.3;
+  white-space: normal;
+  overflow-wrap: normal;
+}
+.tyre-summary-stats strong.long-value {
+  font-size: 20px;
+}
+.tyre-summary-stats small {
+  font-size: 13px;
+  color: #667085;
+}
+.inventory-card {
+  background: transparent;
+  box-shadow: none;
+  border: 0;
+  padding: 0;
+}
+.inventory-card > .tabs {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 0 16px;
+}
+.inventory-toolbar {
+  padding: 18px 0;
+}
+.tyre-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr));
+  align-items: start;
+  gap: 14px;
+  padding: 0;
+}
+.tyre-row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  width: 100%;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid #dfe5ee;
+  border-radius: 14px;
+  background: #fff;
+  text-align: left;
+  box-shadow: 0 2px 6px #172b4904;
+}
+.tyre-row:hover {
+  background: #fff;
+  border-color: #b8c5d7;
+  box-shadow: 0 4px 12px #172b4909;
+}
+.tyre-card-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.tyre-card-top > svg {
+  color: #8995a8;
+  margin-left: auto;
+  flex: none;
+}
+.tyre-card-id {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 16px;
+  font-weight: 700;
+  color: #263244;
+  font-variant-numeric: tabular-nums;
+}
+.tyre-card-brand {
+  display: block;
+  min-width: 0;
+}
+.tyre-card-brand .manufacturer-mark {
+  width: 100%;
+  font-size: 14px;
+  font-weight: 600;
+  color: #475467;
+}
+.tyre-card-footer {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding-top: 12px;
+  border-top: 1px solid #edf0f5;
+  min-width: 0;
+}
+.tyre-card-assignment {
+  min-width: 0;
+  flex: 1 1 150px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #667085;
+  overflow-wrap: anywhere;
+}
+.tyre-card-distance {
+  flex: none;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 650;
+  color: #344054;
+  font-variant-numeric: tabular-nums;
+}
+.tyre-card-distance small {
+  font-size: 12px;
+  font-weight: 500;
+}
+.tyre-map-scroll {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #b5c2d6 #f2f5fa;
+  padding-bottom: 12px;
+  border-radius: 10px;
+}
+.map-scroll-hint {
+  color: #667085;
+  font-size: 12px;
+  line-height: 1.6;
+  margin-top: 16px;
+  padding: 10px 12px;
+  background: #f2f6fc;
+  border-radius: 8px;
+}
+.tyre-map-scroll .truck-map {
+  width: 100%;
+  max-width: none;
+  min-width: calc(4 * var(--wheel-width) + 60px);
+  margin: 24px auto 12px;
+  padding: 0 8px;
+}
+.truck-map .axle-row > div {
+  max-width: none;
+  gap: 8px;
+  flex: none;
+}
+.truck-map .wheel,
+.truck-map .spare-position .wheel {
+  box-sizing: border-box;
+  width: var(--wheel-width);
+  min-width: var(--wheel-width);
+  flex: none;
+  min-height: 100px;
+  padding: 9px 5px 10px;
+  gap: 4px;
+}
+.truck-map .wheel .tyre-serial {
+  display: block;
+  width: 100%;
+  max-width: none;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.6;
+  letter-spacing: 0;
+}
+.truck-map .wheel strong {
+  font-size: 14px;
+  margin: 0;
+  line-height: 1.4;
+}
+.truck-map .wheel .manufacturer-mark {
+  min-height: 28px;
+  width: 100%;
+}
+.truck-map .wheel .manufacturer-mark > img {
+  width: 52px;
+  max-width: 52px;
+  height: 28px;
+}
+.wheel-map,
+.vehicle-side {
+  min-width: 0;
+}
+.vehicle-grid {
+  align-items: start;
+}
+.vehicle-card {
+  min-width: 0;
+}
+.vehicle-card h2,
+.vehicle-card p {
+  overflow-wrap: anywhere;
+}
+.vehicle-card .vehicle-meta {
+  align-items: flex-start;
+  gap: 12px;
+}
+.vehicle-card .vehicle-meta > span {
+  min-width: 0;
+}
+@media (max-width: 700px) {
+  .brand,
+  .brand.compact {
+    --brand-panel-height: 48px;
+    gap: 6px;
+  }
+  .brand .company-logo {
+    width: 34px;
+    padding: 4px;
+  }
+  .brand .company-wordmark {
+    width: 140px;
+    padding: 5px 7px;
+    gap: 4px;
+  }
+  .brand .company-wordmark > img {
+    max-height: 22px;
+  }
+  .brand .company-wordmark small {
+    font-size: 9px;
+    letter-spacing: 0.6px;
+  }
+  .topbar {
+    padding: 0 14px;
+    gap: 8px;
+  }
+  .top-actions {
+    gap: 7px;
+  }
+  .tyre-detail-summary {
+    padding: 14px;
+  }
+  .tyre-detail-brand .manufacturer-mark {
+    grid-template-columns: 88px minmax(0, 1fr);
+    gap: 12px;
+  }
+  .tyre-detail-brand .manufacturer-mark > img {
+    width: 88px;
+    height: 64px;
+  }
+  .tyre-detail-brand .manufacturer-name {
+    font-size: 16px;
+  }
+  .tyre-row {
+    padding: 16px;
+    gap: 13px;
+  }
+  .tyre-list {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .tyre-card-top .tyre-card-id {
+    font-size: 16px;
+  }
+  .tyre-card-brand .manufacturer-mark > img {
+    width: 76px;
+    height: 42px;
+  }
+  .inventory-toolbar {
+    padding: 16px 0;
+  }
+  .tyre-summary-stats {
+    padding: 14px;
+    gap: 12px;
+  }
+}
+@media (max-width: 360px) {
+  .brand .company-wordmark {
+    width: 124px;
+  }
+  .brand .company-wordmark small {
+    font-size: 8.5px;
+  }
+  .language-switch {
+    padding: 6px;
+    gap: 4px;
+  }
+  .topbar {
+    padding: 0 12px;
+  }
+}
+@media (min-width: 701px) and (max-width: 1200px) {
+  .sidebar .brand {
+    --brand-panel-height: 64px;
+  }
+  .sidebar .brand .company-logo {
+    width: 40px;
+  }
+  .sidebar .brand .company-wordmark {
+    padding: 8px 5px;
+  }
+  .sidebar .brand .company-wordmark small {
+    font-size: 9px;
+    letter-spacing: 0.5px;
+  }
+}

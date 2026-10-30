@@ -27,7 +27,7 @@ English/Hindi tyre logbook for Shepards Shipping Services. The app uses one shar
 - **Admin only → Vehicle → Vehicle Sold** reviews the currently fitted tyres, asks for the final odometer, optional buyer/reference notes and a confirmation. The vehicle moves out of active lists/counts and into **Sold vehicles**. Its fitted road tyres and spare move to tyre **Sold** together, with final cycle/lifetime kilometres and per-tyre sale entries linked to the vehicle sale. Garage stock is unaffected. History remains in read-only vehicle detail and reports. Sold registrations and tyre IDs stay reserved, and the server rejects new fitments/inspections/odometer/driver changes for sold vehicles. Changing the fitted tyres while a sale form is open requires reopening/reviewing it; backward odometers and stale revisions fail without partial changes.
 - CSV log reports and JSON inventory exports are available; there is no JSON restore/import screen. Movements cannot be edited/deleted in the UI.
 
-## Inspections, reminders and reports (1.7)
+## Inspections, reminders and reports (1.8)
 
 - The company logo and wordmark are permanently bundled in the website, login, main navigation, Android launcher and splash assets. Cleaned artwork was prepared from the supplied reference images. No account upload or branding setup is required. Earlier uploaded branding remains in the database for compatibility but is no longer used by this client. Smaller text is larger and condition/status colours use brighter green, amber, purple and blue alongside the red company theme.
 - New vehicles require BS3, BS4 or BS6, and allow a separate current driver name. Older vehicle records with no class remain unclassified rather than receiving an invented class.
@@ -37,9 +37,17 @@ English/Hindi tyre logbook for Shepards Shipping Services. The app uses one shar
 - **Vehicle report** and **Reports** count fitments, inspections, issues, NSD readings, removals, driver changes/checks vehicle sales and recorded tyre kilometres from removals/vehicle sales. Filter by vehicle, BS class, staff and dates: This month, Last month, Last year (previous calendar year), or Custom. Summary and detailed CSV exports are available. Inspection/NSD report dates use the performed date, while the logbook retains the recorded timestamp. Tyre kilometres sum completed removal/vehicle-sale cycles in the selected period, not distance driven during that period.
 - Display dates and CSV report dates use **dd/mm/yyyy**, with timestamps in India time. Internal JSON dates retain ISO format for compatibility. Existing records/accounts remain intact.
 
+## Layout review (1.8)
+
+Tyre details have a dedicated identity section and a separate status/condition/construction row. Known brand names stay together; long custom names can wrap. Inventory entries and movement histories use separate cards, with stable label/value spacing. Settings, staff controls, inspection rows and reports handle long text in either language. Logo and wordmark panels share one explicit height at each breakpoint.
+
+The tyre map preserves the Horse/Trolley positions and shows full tyre IDs on one line in a readable monospace font. Four full identifiers cannot fit across a narrow phone screen without making the text too small, so only the diagram scrolls horizontally; swipe it to see both sides. The rest of the page remains within the screen. Tile width adapts to the longest fitted identifier. No IDs are shortened with ellipses.
+
+`test:layout` uses an isolated database and covers all seven brands × three conditions × two constructions × five statuses in English and Hindi, plus the exact reported regression and long custom values. It reviews 562 screen/form states across 320, 360, 390, 430, 700, 701, 960, 1200 and 1440 pixels, including branding alignment, full map IDs, metric text, long staff names, inspection and sale dialogs, card/control overlaps and page overflow. Viewport screenshots and a coverage summary are saved in ignored `artifacts/layout-review/`. These are automated Chromium checks; actual Android font/display settings and touch scrolling still need phone verification.
+
 ## Android update
 
-[Download Shepards Tyre Management 1.7.0](https://github.com/daco1703/Tyre-Management/blob/main/downloads/Shepards-Tyre-Management-1.7-test.apk?raw=true).
+[Download Shepards Tyre Management 1.8.0](https://github.com/daco1703/Tyre-Management/blob/main/downloads/Shepards-Tyre-Management-1.8-test.apk?raw=true).
 
 Install as an update over the earlier APK. The package ID and test signing certificate are unchanged. Open the app and sign in directly to the live server with admin or assigned staff credentials. **Forgot username/password** displays **Contact the admin.** Under Team & settings, admin can add/remove staff. Existing offline preferences do not restore offline access. **Change server** can configure another HTTPS origin if needed.
 
@@ -57,9 +65,10 @@ npm run build
 # Supply an installed Chromium, or install it with npx playwright install chromium.
 BROWSER_PATH=/usr/bin/chromium npm run test:ui
 BROWSER_PATH=/usr/bin/chromium npm run test:login
+BROWSER_PATH=/usr/bin/chromium npm run test:layout
 ```
 
-The development server listens on port 3000 and seeds an admin only for a new database. Do not expose the development server publicly. Browser suites use temporary databases/test-only passwords on ports 3100/3120, not real fleet data. Screenshots go in ignored `artifacts/`.
+The development server listens on port 3000 and seeds an admin only for a new database. Do not expose the development server publicly. Browser suites use temporary databases/test-only passwords on ports 3100/3120/3135, not real fleet data. Screenshots go in ignored `artifacts/`.
 
 Tests cover vehicle-sale permissions/atomicity/final mileage/spares, active fleet exclusion, source-logo checksums, average NSD/defaults/legacy readings, stock-only sales, tyre import validation/atomicity, admin-only vehicle creation/import, inventory/mileage invariants, scrap reasons, positions, Excel normalization/atomicity, accounts and permissions, session revocation, backups, conflicting writes and live updates. Browser checks cover the delayed-startup login regression, failed initial data load/retry, admin-created staff, cross-user live logbook updates, Android bearer login/reopen, English/Hindi layouts and internet-required behavior.
 
@@ -73,9 +82,9 @@ Output: `android/app/build/outputs/apk/debug/app-debug.apk`. Keep the same signi
 
 ## Production server
 
-The fleet's live address is **https://tyre-management.onrender.com/**. The server and Android build must both be updated to 1.7 for admin-only vehicle sales, bundled manufacturer logos and the Horse/Trolley layout. Deploy the repository's `main` branch using the Render service's existing settings; if automatic deployments are disabled, use **Manual Deploy → Deploy latest commit**. The public `GET /api/health` response includes `ok` and the running version; it contains no fleet records. Existing users, inventory and logs stay in the persistent database.
+The fleet's live address is **https://tyre-management.onrender.com/**. The server and Android build must both be updated to 1.8 for the revised layouts and matching header panels. Deploy the repository's `main` branch using the Render service's existing settings; if automatic deployments are disabled, use **Manual Deploy → Deploy latest commit**. The public `GET /api/health` response includes `ok` and the running version; it contains no fleet records. Existing users, inventory and logs stay in the persistent database.
 
-Version **1.7.0** includes the earlier fix for browser login behind Render's HTTPS proxy. The server reads Render's built-in `RENDER_EXTERNAL_URL` as its allowed public website origin and detects the standard Render proxy automatically. For a custom domain or another host, set `PUBLIC_ORIGIN` to the exact HTTPS origin (for example `https://tyres.example.com`, without a path). An explicit `TRUST_PROXY=0/1` overrides automatic proxy detection. Foreign website origins remain rejected. After deploying, `/api/health` should report version `1.7.0`.
+Version **1.8.0** includes the earlier fix for browser login behind Render's HTTPS proxy. The server reads Render's built-in `RENDER_EXTERNAL_URL` as its allowed public website origin and detects the standard Render proxy automatically. For a custom domain or another host, set `PUBLIC_ORIGIN` to the exact HTTPS origin (for example `https://tyres.example.com`, without a path). An explicit `TRUST_PROXY=0/1` overrides automatic proxy detection. Foreign website origins remain rejected. After deploying, `/api/health` should report version `1.8.0`.
 
 Use one instance with persistent storage and HTTPS. The supplied `render.yaml` prepares a Node 24 service and 1 GB persistent disk; new deployments require the owner's Render account and review of current charges. Build with `npm ci --include=dev && npm test && npm run build && npm prune --omit=dev`, start with `npm start`. On Render set `DATABASE_PATH=/var/data/tyresaathi.sqlite`, `NODE_ENV=production`, `TRUST_PROXY=1`, and retain the disk mounted at `/var/data`.
 

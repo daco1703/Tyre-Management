@@ -1,0 +1,271 @@
+/* Long values in tyre details keep their own label/value columns. */
+.detail-list {
+  margin: 18px 0;
+}
+.detail-list > div {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  align-items: start;
+  gap: 12px;
+  margin: 0;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.detail-list > div:last-child {
+  border-bottom: 0;
+}
+.detail-list dt,
+.detail-list dd {
+  min-width: 0;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.detail-list dt {
+  color: #667085;
+}
+.detail-list dd {
+  margin: 0;
+  color: #344054;
+  font-weight: 500;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Names can grow without pushing account controls out of their cards. */
+.business-info > div {
+  flex: 1;
+  min-width: 0;
+}
+.business-info strong,
+.business-info small {
+  overflow-wrap: anywhere;
+  line-height: 1.6;
+}
+.team-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 0;
+}
+.team-row > div {
+  min-width: 0;
+}
+.team-row strong,
+.team-row small {
+  overflow-wrap: anywhere;
+  line-height: 1.6;
+}
+.team-row > .text-button {
+  max-width: 120px;
+  min-height: 40px;
+  justify-content: flex-end;
+  white-space: normal;
+  text-align: right;
+  line-height: 1.5;
+}
+.setting-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+.setting-line > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.6;
+}
+.setting-line .segmented {
+  max-width: 100%;
+}
+.setting-button {
+  gap: 12px;
+  line-height: 1.6;
+  text-align: left;
+}
+.setting-button > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.settings-card > .primary,
+.settings-card > .secondary {
+  max-width: 100%;
+  line-height: 1.5;
+}
+
+/* Advisory messages keep text and their optional action in stable positions. */
+div.maintenance-notice {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: start;
+  gap: 10px 12px;
+}
+div.maintenance-notice > div {
+  min-width: 0;
+}
+div.maintenance-notice strong,
+div.maintenance-notice p,
+p.maintenance-notice {
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+div.maintenance-notice > button {
+  grid-column: 2;
+  justify-self: start;
+  margin: 0;
+  max-width: 100%;
+  line-height: 1.5;
+}
+.maintenance-reminders > div {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+.maintenance-reminders > div > button {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  line-height: 1.6;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* Inspection rows reserve space for a full identifier, brand and reading. */
+.inspection-finding {
+  align-items: start;
+}
+.inspection-finding > .field {
+  min-width: 0;
+}
+.inspection-finding .field > span,
+.inspection-finding .field > small {
+  line-height: 1.6;
+}
+.inspection-nsd-row {
+  align-items: center;
+  gap: 14px;
+}
+.inspection-nsd-row > div:first-child {
+  min-width: 0;
+  gap: 6px;
+}
+.inspection-nsd-row > div:first-child > strong {
+  min-width: 0;
+  color: #344054;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.inspection-nsd-row .manufacturer-mark {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  max-width: 100%;
+}
+.inspection-nsd-row .manufacturer-mark > span:last-child {
+  max-width: 100%;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.inspection-nsd-row .manufacturer-mark > img {
+  max-width: 80px;
+  max-height: 32px;
+}
+.inspection-nsd-row .field > span {
+  line-height: 1.5;
+}
+
+/* Each history entry has its own boundary, including detailed tyre history. */
+.activity-list {
+  display: grid;
+  gap: 12px;
+}
+.activity-list > .activity-row,
+.log-list > .activity-row,
+.dialog-body > .activity-row {
+  margin: 0;
+  padding: 15px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+}
+.log-list > .activity-row + .activity-row,
+.dialog-body > .activity-row + .activity-row {
+  margin-top: 12px;
+}
+.activity-list > .activity-row > div,
+.log-list > .activity-row > div,
+.dialog-body > .activity-row > div {
+  min-width: 0;
+}
+.activity-list > .activity-row strong,
+.log-list > .activity-row strong,
+.dialog-body > .activity-row strong {
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.activity-list > .activity-row small,
+.log-list > .activity-row small,
+.dialog-body > .activity-row small {
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+.report-history > .report-event {
+  margin-top: 12px;
+  padding: 15px;
+  gap: 7px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #f8fafc;
+}
+.report-history > .report-event strong,
+.report-history > .report-event > span,
+.report-history > .report-event > small {
+  min-width: 0;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 900px) {
+  div.maintenance-notice {
+    grid-template-columns: 20px minmax(0, 1fr) auto;
+  }
+  div.maintenance-notice > button {
+    grid-column: 3;
+  }
+  .maintenance-reminders > div {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .inspection-finding {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+    padding: 14px;
+  }
+  .inspection-finding > .field,
+  .inspection-finding > button {
+    grid-column: 1;
+  }
+  .team-row > .text-button {
+    max-width: 100px;
+    font-size: 12px;
+  }
+  .setting-line {
+    gap: 10px;
+  }
+  .activity-list > .activity-row,
+  .log-list > .activity-row,
+  .dialog-body > .activity-row {
+    gap: 10px;
+    padding: 13px;
+  }
+  .report-history > .report-event {
+    padding: 14px;
+  }
+}

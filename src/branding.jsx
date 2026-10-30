@@ -24,7 +24,20 @@ export function BrandMark({ brand, compact = false }) {
             .toUpperCase()}
         </span>
       )}
-      {!compact && <span>{brand}</span>}
+      {!compact && (
+        <span
+          className={`manufacturer-name ${
+            make?.name.toLowerCase() ===
+            String(brand || "")
+              .trim()
+              .toLowerCase()
+              ? "canonical"
+              : ""
+          }`}
+        >
+          {brand}
+        </span>
+      )}
     </span>
   );
 }

@@ -667,7 +667,7 @@ async function main() {
     .click();
   await staff.getByRole("button", { name: /^Sold/ }).click();
   await staff.getByRole("button", { name: /VSROAD/ }).click();
-  await staff.getByText(/Sold with vehicle: RJ14SALE1/).waitFor();
+  await staff.locator("dialog").getByText(/Sold with vehicle: RJ14SALE1/).waitFor();
   await staff
     .locator("dialog")
     .getByRole("button", { name: "Close", exact: true })

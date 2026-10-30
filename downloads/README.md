@@ -1,12 +1,12 @@
 # Android test update
 
-[Download Shepards Tyre Management 1.7.0](https://github.com/daco1703/Tyre-Management/blob/main/downloads/Shepards-Tyre-Management-1.7-test.apk?raw=true)
+[Download Shepards Tyre Management 1.8.0](https://github.com/daco1703/Tyre-Management/blob/main/downloads/Shepards-Tyre-Management-1.8-test.apk?raw=true)
 
 Install over the earlier build without uninstalling. The package ID and test signing certificate are unchanged. The app opens the login for **https://tyre-management.onrender.com/** directly. Use admin or an assigned staff username/password. Forgot username/password displays Contact the admin.
 
 **Admin:** Team & settings → Add staff → enter a unique username, password and confirmation. Only admin can add or remove staff. Removing access retains the employee's historical log entries.
 
-All accounts share live vehicle/tyre records. Each entry includes the authenticated username and timestamp. Losing internet displays **You are offline. Please connect to the internet.** and blocks entries until reconnection. Offline login and public staff signup have been removed. The server must also run version 1.7; deploy the latest main commit on Render if automatic deployment is disabled.
+All accounts share live vehicle/tyre records. Each entry includes the authenticated username and timestamp. Losing internet displays **You are offline. Please connect to the internet.** and blocks entries until reconnection. Offline login and public staff signup have been removed. The server must also run version 1.8; deploy the latest main commit on Render if automatic deployment is disabled.
 
 Old phone-only records are not deleted or automatically uploaded to the server. Export any needed local records using the old version before upgrading. This version uses shared-server records only.
 
@@ -23,3 +23,5 @@ Version 1.6 bundles cleaned logo/banner artwork permanently, including the Andro
 Version 1.7 refines cards, spacing, buttons, readable colours and logo sizing. The manufacturer dropdown is MRF, Apollo, CEAT, JK Tyre, Bridgestone, Michelin, Goodyear and Custom / other. Their original uploaded logos are bundled at full resolution, with proportions preserved. The tyre map groups positions 1–6 as Horse and 7–18 as Trolley, with a larger gap between rows 2 and 3.
 
 **Admin only:** open a vehicle → **Vehicle Sold**, review the tyre list, enter the final odometer, optionally add buyer/reference notes, confirm and record the sale. The vehicle leaves active fleet counts/lists and is retained in Sold vehicles. Its fitted tyres, including the spare, move to tyre Sold with final mileage and linked history; garage stock remains available. The sold vehicle is read-only and remains available in reports. Update Render to 1.7 before using this action.
+
+Version 1.8 fixes the squeezed tyre-detail header, keeps company logo/wordmark panels at equal heights, and uses distinct inventory/history cards. Brand, status, condition, construction and mileage have separate stable sections. Full tyre IDs stay on one readable line; swipe the Horse/Trolley diagram sideways on a narrow phone to see both sides. The page itself does not scroll sideways. English/Hindi layouts were checked at nine widths with all 210 brand/condition/construction/status combinations per language, custom/long text and the reported regression (562 screen/form checks). Existing accounts, data and sale/inspection workflows are preserved.

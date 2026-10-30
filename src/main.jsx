@@ -72,6 +72,8 @@ import {
   scrapReasons,
 } from "../shared/model";
 import "./style.css";
+import "./secondary-layout.css";
+import "./layout.css";
 import "@fontsource/inter/latin-400.css";
 import "@fontsource/inter/latin-500.css";
 import "@fontsource/inter/latin-600.css";
@@ -510,7 +512,7 @@ function App() {
             <footer className="page-footer">
               <CircleDot size={14} />
               {t("tagline")}
-              <span>Shepards Tyre Management · v1.7</span>
+              <span>Shepards Tyre Management · v1.8</span>
             </footer>
           </div>
           <nav className="bottom-nav">
@@ -1433,6 +1435,10 @@ function VehicleDetail({ id }) {
   const dueNsd = tyres.filter(
     (t) => !sold && t.nextNsdCheckOn && t.nextNsdCheckOn <= dayKey(),
   );
+  const mapTileWidth = Math.max(
+    112,
+    ...tyres.map((tyre) => String(tyre.serial).length * 7.3 + 20),
+  );
   function wheel(slot) {
     const tyre = tyres.find((t) => t.slot === slot);
     return (
@@ -1456,7 +1462,7 @@ function VehicleDetail({ id }) {
           <CircleDot size={22} />
         )}
         <strong>{positionLabel(slot)}</strong>
-        <small>{tyre?.serial || "+"}</small>
+        <small className="tyre-serial">{tyre?.serial || "+"}</small>
       </button>
     );
   }
@@ -1565,65 +1571,76 @@ function VehicleDetail({ id }) {
               {sold ? t("sold") : `${n(count)} / 18`}
             </Badge>
           </div>
-          <div className="truck-map">
-            <div className="truck-cab">
-              <Truck size={28} />
-              <span>{t("front")}</span>
-            </div>
-            <div className="wheel-sides">
-              <span>{t("left")}</span>
-              <span>{t("right")}</span>
-            </div>
-            <section
-              className="tyre-section horse-section"
-              aria-label={t("horseUnit")}
+          <p className="map-scroll-hint">{t("mapPanHint")}</p>
+          <div
+            className="tyre-map-scroll"
+            tabIndex={0}
+            role="region"
+            aria-label={t("road")}
+          >
+            <div
+              className="truck-map"
+              style={{ "--wheel-width": `${mapTileWidth}px` }}
             >
-              <h3>
-                {t("horseUnit")}
-                <span>{t("positions")} 1–6</span>
-              </h3>
-              <div className="axle-row front-axle">
-                {wheel("FL")}
-                <span className="axle-label" aria-hidden="true" />
-                {wheel("FR")}
+              <div className="truck-cab">
+                <Truck size={28} />
+                <span>{t("front")}</span>
               </div>
-              <div className="axle-row">
-                <div>
-                  {wheel("2LO")}
-                  {wheel("2LI")}
-                </div>
-                <span className="axle-label" aria-hidden="true" />
-                <div>
-                  {wheel("2RI")}
-                  {wheel("2RO")}
-                </div>
+              <div className="wheel-sides">
+                <span>{t("left")}</span>
+                <span>{t("right")}</span>
               </div>
-            </section>
-            <section
-              className="tyre-section trolley-section"
-              aria-label={t("trolleyUnit")}
-            >
-              <h3>
-                {t("trolleyUnit")}
-                <span>{t("positions")} 7–18</span>
-              </h3>
-              {[3, 4, 5].map((a) => (
-                <div className="axle-row" key={a}>
+              <section
+                className="tyre-section horse-section"
+                aria-label={t("horseUnit")}
+              >
+                <h3>
+                  {t("horseUnit")}
+                  <span>{t("positions")} 1–6</span>
+                </h3>
+                <div className="axle-row front-axle">
+                  {wheel("FL")}
+                  <span className="axle-label" aria-hidden="true" />
+                  {wheel("FR")}
+                </div>
+                <div className="axle-row">
                   <div>
-                    {wheel(`${a}LO`)}
-                    {wheel(`${a}LI`)}
+                    {wheel("2LO")}
+                    {wheel("2LI")}
                   </div>
                   <span className="axle-label" aria-hidden="true" />
                   <div>
-                    {wheel(`${a}RI`)}
-                    {wheel(`${a}RO`)}
+                    {wheel("2RI")}
+                    {wheel("2RO")}
                   </div>
                 </div>
-              ))}
-            </section>
-            <div className="spare-position">
-              <span>{t("spare")}</span>
-              {v.hasSpare ? wheel("SP") : <small>{t("noSpare")}</small>}
+              </section>
+              <section
+                className="tyre-section trolley-section"
+                aria-label={t("trolleyUnit")}
+              >
+                <h3>
+                  {t("trolleyUnit")}
+                  <span>{t("positions")} 7–18</span>
+                </h3>
+                {[3, 4, 5].map((a) => (
+                  <div className="axle-row" key={a}>
+                    <div>
+                      {wheel(`${a}LO`)}
+                      {wheel(`${a}LI`)}
+                    </div>
+                    <span className="axle-label" aria-hidden="true" />
+                    <div>
+                      {wheel(`${a}RI`)}
+                      {wheel(`${a}RO`)}
+                    </div>
+                  </div>
+                ))}
+              </section>
+              <div className="spare-position">
+                <span>{t("spare")}</span>
+                {v.hasSpare ? wheel("SP") : <small>{t("noSpare")}</small>}
+              </div>
             </div>
           </div>
           <div className="map-legend">
@@ -1839,31 +1856,28 @@ function Inventory() {
                   key={tyre.id}
                   onClick={() => setModal({ type: "tyre", id: tyre.id })}
                 >
-                  <span className={`tyre-icon tyre-${tyre.type}`}>
-                    <CircleDot size={26} />
+                  <span className="tyre-card-top">
+                    <strong className="tyre-card-id">{tyre.serial}</strong>
+                    <ChevronRight size={18} />
                   </span>
-                  <span className="tyre-main">
-                    <strong>{tyre.serial}</strong>
-                    <small>
-                      <BrandMark brand={tyre.brand} /> ·{" "}
-                      {tyre.construction
-                        ? t(`construction_${tyre.construction}`)
-                        : t("notRecorded")}
-                    </small>
+                  <span className="tyre-card-brand">
+                    <BrandMark brand={tyre.brand} />
                   </span>
-                  <span className="tyre-status">
-                    <Badge type={tyre.type} />
-                    <small>
+                  <span className="tyre-card-tags">
+                    <TyreTags tyre={tyre} />
+                  </span>
+                  <span className="tyre-card-footer">
+                    <span className="tyre-card-assignment">
                       {v
-                        ? `${v.registration} · ${positionLabel(tyre.slot)}`
-                        : t(tyre.status === "stock" ? "garage" : tyre.status)}
-                    </small>
+                        ? `${v.registration} · ${t("position")} ${positionLabel(tyre.slot)}`
+                        : tyre.soldVehicle
+                          ? `${t("withVehicle")}: ${tyre.soldVehicle}`
+                          : t("currentKm")}
+                    </span>
+                    <span className="tyre-card-distance">
+                      {n(tyreKm(tyre, state))} <small>{t("km")}</small>
+                    </span>
                   </span>
-                  <span className="tyre-distance">
-                    {n(tyreKm(tyre, state))}
-                    <small>{t("km")}</small>
-                  </span>
-                  <ChevronRight size={17} />
                 </button>
               );
             })}
@@ -2583,6 +2597,28 @@ function ConfirmModal({ title, text, run, success = "saved", onClose }) {
     </Dialog>
   );
 }
+function TyreTags({ tyre }) {
+  const { t } = useApp();
+  return (
+    <>
+      <Badge type={tyre.status}>
+        {t(
+          tyre.status === "stock"
+            ? "garage"
+            : tyre.status === "installed"
+              ? "onRoad"
+              : tyre.status,
+        )}
+      </Badge>
+      <Badge type={tyre.type} />
+      <span className="construction-tag">
+        {tyre.construction
+          ? t(`construction_${tyre.construction}`)
+          : t("notRecorded")}
+      </span>
+    </>
+  );
+}
 function TyreDetails({ id, onClose }) {
   const { t, n, date, state, setModal, action, offline } = useApp();
   const tyre = state.tyres.find((t) => t.id === id);
@@ -2590,45 +2626,22 @@ function TyreDetails({ id, onClose }) {
   const vehicle = state.vehicles.find((v) => v.id === tyre.vehicleId);
   return (
     <Dialog title={tyre.serial} onClose={onClose}>
-      <div className="tyre-detail-hero">
-        <span className={`tyre-icon tyre-${tyre.type}`}>
-          <CircleDot size={36} />
-        </span>
-        <div>
-          <h3>
-            <BrandMark brand={tyre.brand} />
-          </h3>
-          <p>
-            {tyre.construction
-              ? t(`construction_${tyre.construction}`)
-              : t("notRecorded")}
-          </p>
-          <Badge type={tyre.type} />
+      <section className="tyre-detail-summary">
+        <div className="tyre-detail-brand">
+          <BrandMark brand={tyre.brand} />
         </div>
-        <Badge
-          type={
-            tyre.status === "stock"
-              ? "new"
-              : tyre.status === "scrapped"
-                ? "scrapped"
-                : tyre.status === "sold"
-                  ? "sold"
-                  : "installed"
-          }
-        >
-          {t(
-            tyre.status === "stock"
-              ? "garage"
-              : tyre.status === "installed"
-                ? "onRoad"
-                : tyre.status,
-          )}
-        </Badge>
-      </div>
-      <div className="detail-stats">
+        <div className="tyre-detail-tags">
+          <TyreTags tyre={tyre} />
+        </div>
+      </section>
+      <div className="detail-stats tyre-summary-stats">
         <div>
           <span>{t("currentKm")}</span>
-          <strong>
+          <strong
+            className={
+              String(n(tyreKm(tyre, state))).length > 8 ? "long-value" : ""
+            }
+          >
             {n(tyreKm(tyre, state))} <small>{t("km")}</small>
           </strong>
         </div>

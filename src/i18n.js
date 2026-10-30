@@ -1,4 +1,6 @@
 export const en = {
+  mapPanHint:
+    "Swipe the diagram sideways to see both sides. Tyre numbers are shown in full.",
   importVehicles: "Import from Excel",
   importTemplate: "Download template",
   importChoose: "Choose Excel file",
@@ -494,6 +496,8 @@ export const en = {
 };
 export const hi = {
   ...en,
+  mapPanHint:
+    "दोनों ओर देखने के लिए चित्र को दाएँ-बाएँ खिसकाएँ। टायर नंबर पूरे दिखाए गए हैं।",
   importVehicles: "Excel से वाहन जोड़ें",
   importTemplate: "टेम्पलेट डाउनलोड करें",
   importChoose: "Excel फ़ाइल चुनें",
