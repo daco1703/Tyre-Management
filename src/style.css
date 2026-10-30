@@ -411,37 +411,6 @@ button.secondary,
   margin-top: 0;
   color: #b5c7b8;
 }
-.workspace-label {
-  margin: 34px 5px 28px;
-  border-top: 1px solid #ffffff1c;
-  border-bottom: 1px solid #ffffff1c;
-  padding: 20px 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.tiny-label {
-  font-size: 11px;
-  letter-spacing: 1.5px;
-  color: #92b3a4;
-}
-.workspace-label strong {
-  font-size: 16px;
-  overflow-wrap: anywhere;
-}
-.workspace-dot {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 12px;
-  color: #b9cbbd;
-}
-.workspace-dot i {
-  width: 5px;
-  height: 5px;
-  background: #bfe28b;
-  border-radius: 50%;
-}
 .nav-items {
   display: flex;
   flex-direction: column;
@@ -2414,9 +2383,6 @@ main {
     margin-left: 185px;
     width: calc(100% - 185px);
   }
-  .workspace-label {
-    margin-top: 25px;
-  }
   .nav-items button {
     padding: 12px 10px;
     font-size: 14px;
@@ -3367,19 +3333,14 @@ main {
 .brand small,
 .story-main > p,
 .story-main > .eyebrow,
-.eyebrow.light,
-.workspace-dot {
+.eyebrow.light {
   color: #f6d8d5;
-}
-.workspace-label .tiny-label {
-  color: #efbdb9;
 }
 .nav-items button.selected {
   background: #fff0ea;
   color: #9c111b;
 }
-.nav-indicator,
-.workspace-dot i {
+.nav-indicator {
   background: #f9aaa4;
 }
 .primary:hover:not(:disabled) {

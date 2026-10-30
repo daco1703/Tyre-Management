@@ -1,6 +1,6 @@
 {
   "name": "tyresaathi",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "private": true,
   "type": "module",
   "engines": {
@@ -16,7 +16,8 @@
     "test:ui": "node tests/ui-smoke.cjs",
     "backup": "node server/backup.js",
     "test:login": "node tests/login-ui.cjs",
-    "test:layout": "node tests/layout-ui.cjs"
+    "test:layout": "node tests/layout-ui.cjs",
+    "test:sidebar": "node tests/sidebar-ui.cjs"
   },
   "dependencies": {
     "@capacitor/android": "7.6.9",

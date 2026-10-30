@@ -422,16 +422,8 @@ function App() {
         />
       ) : (
         <div className="app-shell">
-          <aside className="sidebar">
+          <aside className="sidebar" aria-label={t("app")} tabIndex={0}>
             <Brand />
-            <div className="workspace-label">
-              <span className="tiny-label">FLEET WORKSPACE</span>
-              <strong>{session.fleetName}</strong>
-              <span className="workspace-dot">
-                <i />
-                {t("sync")}
-              </span>
-            </div>
             <Navigation page={page} navigate={navigate} />
             <div className="sidebar-bottom">
               <div className="support-mark">
@@ -512,7 +504,7 @@ function App() {
             <footer className="page-footer">
               <CircleDot size={14} />
               {t("tagline")}
-              <span>Shepards Tyre Management · v1.8</span>
+              <span>Shepards Tyre Management · v1.8.1</span>
             </footer>
           </div>
           <nav className="bottom-nav">
@@ -578,7 +570,10 @@ const navItems = [
 function Navigation({ page, navigate, mobile }) {
   const { t } = useApp();
   return (
-    <nav className={mobile ? "mobile-nav-items" : "nav-items"}>
+    <nav
+      className={mobile ? "mobile-nav-items" : "nav-items"}
+      aria-label={t("navigation")}
+    >
       {navItems
         .filter((item) => !mobile || item.id !== "settings")
         .map(({ id, Icon }) => (

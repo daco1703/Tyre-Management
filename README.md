@@ -4,7 +4,7 @@ English/Hindi tyre logbook for Shepards Shipping Services. The app uses one shar
 
 ## Accounts and live records
 
-- A new database seeds the requested **admin** owner account and fleet name **Shepards Shipping Services**. Use the initial password supplied by the owner. Existing server accounts and changed passwords are preserved on deployment/restart. There is no setup key.
+- A new database seeds the requested **admin** owner account and fleet name **Shepards Shipping Services**. Use the initial password supplied by the owner. Existing server accounts and changed passwords are preserved on deployment/restart when the database is on persistent storage. There is no setup key.
 - Only the admin can create staff accounts under **Team & settings → Add staff**, entering a unique username, password and confirmation. Usernames are case-insensitive and remain reserved after removal. Staff sign in directly with their assigned credentials. Public signup and invitation-code signup are disabled.
 - Only the admin can add vehicles manually or import vehicles from Excel; the server rejects staff requests for both actions. Staff can view vehicles and record tyre work.
 - Only the admin can **Remove staff**. This revokes all that staff member's sessions, including waiting live connections. Historical entries are retained. Staff can change their own passwords and record inventory movements, but cannot create/remove accounts.
@@ -45,6 +45,8 @@ The tyre map preserves the Horse/Trolley positions and shows full tyre IDs on on
 
 `test:layout` uses an isolated database and covers all seven brands × three conditions × two constructions × five statuses in English and Hindi, plus the exact reported regression and long custom values. It reviews 562 screen/form states across 320, 360, 390, 430, 700, 701, 960, 1200 and 1440 pixels, including branding alignment, full map IDs, metric text, long staff names, inspection and sale dialogs, card/control overlaps and page overflow. Viewport screenshots and a coverage summary are saved in ignored `artifacts/layout-review/`. These are automated Chromium checks; actual Android font/display settings and touch scrolling still need phone verification.
 
+Web version **1.8.1** removes the redundant Fleet Workspace/company/live-records block from the sidebar. The sidebar scrolls independently when a short window or browser zoom leaves too little height, keeping all six menu items and the profile/settings button accessible by mouse and keyboard. Sidebar branding adapts to its available width. `test:sidebar` covers admin/staff accounts, English/Hindi, desktop widths 701–1440 and heights 320–768, plus the mobile navigation. The downloadable Android APK remains **1.8.0**; this patch addresses the browser sidebar.
+
 ## Android update
 
 [Download Shepards Tyre Management 1.8.0](https://github.com/daco1703/Tyre-Management/blob/main/downloads/Shepards-Tyre-Management-1.8-test.apk?raw=true).
@@ -66,9 +68,10 @@ npm run build
 BROWSER_PATH=/usr/bin/chromium npm run test:ui
 BROWSER_PATH=/usr/bin/chromium npm run test:login
 BROWSER_PATH=/usr/bin/chromium npm run test:layout
+BROWSER_PATH=/usr/bin/chromium npm run test:sidebar
 ```
 
-The development server listens on port 3000 and seeds an admin only for a new database. Do not expose the development server publicly. Browser suites use temporary databases/test-only passwords on ports 3100/3120/3135, not real fleet data. Screenshots go in ignored `artifacts/`.
+The development server listens on port 3000 and seeds an admin only for a new database. Do not expose the development server publicly. Browser suites use temporary databases/test-only passwords on ports 3100/3120/3135/3140, not real fleet data. Screenshots go in ignored `artifacts/`.
 
 Tests cover vehicle-sale permissions/atomicity/final mileage/spares, active fleet exclusion, source-logo checksums, average NSD/defaults/legacy readings, stock-only sales, tyre import validation/atomicity, admin-only vehicle creation/import, inventory/mileage invariants, scrap reasons, positions, Excel normalization/atomicity, accounts and permissions, session revocation, backups, conflicting writes and live updates. Browser checks cover the delayed-startup login regression, failed initial data load/retry, admin-created staff, cross-user live logbook updates, Android bearer login/reopen, English/Hindi layouts and internet-required behavior.
 
@@ -82,11 +85,13 @@ Output: `android/app/build/outputs/apk/debug/app-debug.apk`. Keep the same signi
 
 ## Production server
 
-The fleet's live address is **https://tyre-management.onrender.com/**. The server and Android build must both be updated to 1.8 for the revised layouts and matching header panels. Deploy the repository's `main` branch using the Render service's existing settings; if automatic deployments are disabled, use **Manual Deploy → Deploy latest commit**. The public `GET /api/health` response includes `ok` and the running version; it contains no fleet records. Existing users, inventory and logs stay in the persistent database.
+The fleet's live address is **https://tyre-management.onrender.com/**. The current browser/server version is **1.8.1**, compatible with the **1.8.0** Android APK. Deploy the repository's `main` branch using the Render service's existing settings; if automatic deployments are disabled, use **Manual Deploy → Deploy latest commit**. The public `GET /api/health` response includes `ok` and the running version; it contains no fleet records. Existing users, inventory and logs stay in the database when it is on persistent storage.
 
-Version **1.8.0** includes the earlier fix for browser login behind Render's HTTPS proxy. The server reads Render's built-in `RENDER_EXTERNAL_URL` as its allowed public website origin and detects the standard Render proxy automatically. For a custom domain or another host, set `PUBLIC_ORIGIN` to the exact HTTPS origin (for example `https://tyres.example.com`, without a path). An explicit `TRUST_PROXY=0/1` overrides automatic proxy detection. Foreign website origins remain rejected. After deploying, `/api/health` should report version `1.8.0`.
+Version **1.8.1** retains the earlier fix for browser login behind Render's HTTPS proxy. The server reads Render's built-in `RENDER_EXTERNAL_URL` as its allowed public website origin and detects the standard Render proxy automatically. For a custom domain or another host, set `PUBLIC_ORIGIN` to the exact HTTPS origin (for example `https://tyres.example.com`, without a path). An explicit `TRUST_PROXY=0/1` overrides automatic proxy detection. Foreign website origins remain rejected. After deploying, `/api/health` should report version `1.8.1`.
 
 Use one instance with persistent storage and HTTPS. The supplied `render.yaml` prepares a Node 24 service and 1 GB persistent disk; new deployments require the owner's Render account and review of current charges. Build with `npm ci --include=dev && npm test && npm run build && npm prune --omit=dev`, start with `npm start`. On Render set `DATABASE_PATH=/var/data/tyresaathi.sqlite`, `NODE_ENV=production`, `TRUST_PROXY=1`, and retain the disk mounted at `/var/data`.
+
+Render Free does not provide persistent disks. With the current SQLite backend, an ephemeral database can disappear on restart or redeployment. A committed `render.yaml` does not prove that an existing service has applied its disk configuration. Preserve the live database before changing deployments or paths; CSV/JSON exports retain records but omit staff accounts and have no restore screen. Use a supported persistent disk or migrate to a durable external database before relying on this server for business records. Automatic off-server backups are not configured.
 
 For a VPS, Docker Compose and Caddy configuration are included:
 
