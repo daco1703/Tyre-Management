@@ -85,9 +85,9 @@ npm run android:build
 
 Output: `android/app/build/outputs/apk/debug/app-debug.apk`. Keep the same signing key for updates; do not commit keystores. Use a protected release keystore for production distribution. Android cleartext traffic and device/cloud backups are disabled. Fonts are bundled.
 
-## Vercel deployment (1.9 — no Render dependency)
+## Vercel + PostgreSQL deployment (1.9)
 
-Vercel now hosts both the website and its API. A durable external PostgreSQL database, such as **Neon**, stores accounts, sessions, vehicles, tyres and log entries. `vercel.json` routes `/api/*` to the bundled Node function `api/index.js`; it makes no requests to Render. SQLite remains available for local development and older standalone installations, and is never used as a fallback inside Vercel.
+Vercel hosts both the website and its API. A durable external PostgreSQL database, such as **Neon**, stores accounts, sessions, vehicles, tyres and log entries. `vercel.json` routes `/api/*` to the bundled Node function `api/index.js`. SQLite remains available for local development and older standalone installations, and is never used as a fallback inside Vercel.
 
 ### Connect the database and publish
 
@@ -98,7 +98,7 @@ Vercel now hosts both the website and its API. A durable external PostgreSQL dat
 5. Under **Settings → Deployment Protection**, allow public access on the deployment used by staff/Android. App sign-in still protects fleet data. A redirect to a Vercel account-login page prevents the Android API from working.
 6. Open **https://www.shepards-tyre-management.com/api/health**. It should return **`{"ok":true,"version":"1.9.0"}`**. This performs a live database query. `databaseNotConfigured` means connect the database/environment variable and redeploy; `databaseUnavailable` means the configured database could not be reached. These failures return JSON 503, never a new temporary database.
 
-Connecting a new database starts a new fleet unless a full existing backup is imported. Keep any Render records/accounts or full SQLite backup until migration is verified. The old Render health result `1.8.2` describes that older service, not the new Vercel deployment. No old records have been copied merely by changing the app's address. Render can be retired after the Vercel/database setup and any required import are verified.
+Connecting a new database starts a new fleet unless a full existing backup is imported. Keep existing records/accounts or a full database backup until migration is verified. Changing the app's address does not copy old records. The old server hostname remains only in the Android preference migration so older installations can switch to the current company domain.
 
 ### Shared writes and authentication
 
@@ -157,7 +157,7 @@ This revokes all of that user's sessions. For a standalone SQLite installation w
 
 ### Standalone development/legacy hosting
 
-**npm run dev** uses SQLite at **./data/tyresaathi.sqlite** by default. Set **DATABASE_URL** to use PostgreSQL on a continuously running Node server as well. The included Docker/Compose/Caddy and Render files remain legacy examples; the Vercel deployment does not call those services. SQLite hosting needs a persistent disk/volume and one instance. Never rely on a temporary filesystem for business records or remove the data volume during an upgrade.
+**npm run dev** uses SQLite at **./data/tyresaathi.sqlite** by default. Set **DATABASE_URL** to use PostgreSQL on a continuously running Node server as well. Docker/Compose/Caddy files support optional standalone hosting; production uses Vercel and Neon. SQLite hosting needs a persistent disk/volume and one instance. Never rely on a temporary filesystem for business records or remove the data volume during an upgrade.
 
 ## Limits
 

@@ -6,40 +6,32 @@ import {
   fleetPreviewOrigin,
 } from "../server/config.js";
 
-test("Render built-in variables configure its HTTPS origin and proxy automatically", () => {
-  assert.deepEqual(
-    deploymentOptions({
-      RENDER: "true",
-      RENDER_EXTERNAL_URL: "https://tyre-management.onrender.com/",
-    }),
-    {
-      trustProxy: true,
-      publicOrigin: "https://tyre-management.onrender.com",
-      additionalPublicOrigins: [
-        "https://www.shepards-tyre-management.com",
-        fleetPreviewOrigin,
-      ],
-    },
-  );
+test("standalone hosting uses explicit origin and proxy configuration", () => {
   assert.deepEqual(deploymentOptions({}), {
     trustProxy: false,
     publicOrigin: "",
   });
+  assert.deepEqual(
+    deploymentOptions({
+      PUBLIC_ORIGIN: "https://tyres.example.com/",
+      TRUST_PROXY: "1",
+    }),
+    { trustProxy: true, publicOrigin: "https://tyres.example.com" },
+  );
 });
 test("the configured company origin also allows its exact main-branch preview", () => {
   assert.deepEqual(
     deploymentOptions({
-      RENDER: "true",
+      VERCEL: "1",
       PUBLIC_ORIGIN: "https://www.shepards-tyre-management.com/",
     }).additionalPublicOrigins,
     ["https://www.shepards-tyre-management.com", fleetPreviewOrigin],
   );
 });
-test("explicit public origin and proxy overrides take precedence over Render defaults", () => {
+test("explicit public origin and proxy overrides take precedence over Vercel defaults", () => {
   assert.deepEqual(
     deploymentOptions({
-      RENDER: "true",
-      RENDER_EXTERNAL_URL: "https://service.onrender.com",
+      VERCEL: "1",
       PUBLIC_ORIGIN: "https://tyres.example.com/",
       TRUST_PROXY: "0",
     }),
@@ -51,7 +43,7 @@ test("explicit public origin and proxy overrides take precedence over Render def
   assert.equal(deploymentOptions({ TRUST_PROXY: "1" }).trustProxy, true);
   assert.equal(
     deploymentOptions({
-      RENDER: "true",
+      VERCEL: "1",
       PUBLIC_ORIGIN: "https://tyres.example.com",
     }).additionalPublicOrigins,
     undefined,

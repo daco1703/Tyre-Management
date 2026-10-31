@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { defaultSharedServer } from "../shared/defaults.js";
 import { resolveSharedServer } from "../src/server-url.js";
 
-test("new phones and existing Render installations use the company domain", () => {
+test("new phones and previous fleet addresses use the company domain", () => {
   assert.equal(defaultSharedServer, "https://www.shepards-tyre-management.com");
   for (const saved of [
     null,

@@ -28,20 +28,44 @@ const seeded = spawnSync(
   },
 );
 assert.equal(seeded.status, 0, seeded.stderr);
-const server = spawn(process.execPath, ["server/index.js"], {
-  cwd: root,
-  env: {
-    ...process.env,
-    NODE_ENV: "production",
-    PORT: "3120",
-    RENDER: "true",
-    RENDER_EXTERNAL_URL: "https://tyre-management.onrender.com/",
-    PUBLIC_ORIGIN: "",
-    TRUST_PROXY: "0",
-    DATABASE_PATH: path.join(temp, "test.sqlite"),
+// Use Vercel's origin configuration with an explicitly standalone runtime for
+// this isolated SQLite fixture. Actual serverless PostgreSQL is covered by the
+// PostgreSQL integration suite; Vercel production never falls back to SQLite.
+const server = spawn(
+  process.execPath,
+  [
+    "--input-type=module",
+    "-e",
+    `
+  import { createRuntime } from './server/runtime.js';
+  import express from 'express';
+  import path from 'node:path';
+  const { app, store } = createRuntime({ serverless: false });
+  app.use(express.static(path.resolve('dist'), { index: false }));
+  app.get('/{*path}', (req, res) => res.sendFile(path.resolve('dist/index.html')));
+  const server = app.listen(Number(process.env.PORT), '127.0.0.1');
+  process.on('SIGTERM', () => server.close(async () => {
+    await store.close();
+    process.exit(0);
+  }));
+`,
+  ],
+  {
+    cwd: root,
+    env: {
+      ...process.env,
+      NODE_ENV: "production",
+      PORT: "3120",
+      VERCEL: "1",
+      PUBLIC_ORIGIN: "",
+      TRUST_PROXY: "0",
+      DATABASE_URL: "",
+      POSTGRES_URL: "",
+      DATABASE_PATH: path.join(temp, "test.sqlite"),
+    },
+    stdio: "pipe",
   },
-  stdio: "pipe",
-});
+);
 let logs = "",
   browser;
 server.stdout.on("data", (d) => (logs += d));
@@ -136,9 +160,9 @@ async function main() {
       : {}),
     args: ["--no-sandbox"],
   });
-  // Exercise the browser form with Render's public HTTPS Origin and an
-  // internal HTTP Host, through the actual server/index.js environment wiring.
-  for (const publicOrigin of [legacyOrigin, canonicalOrigin, previewOrigin]) {
+  // Exercise both public HTTPS origins through an internal Vercel function
+  // hostname, using the runtime's real deployment-origin configuration.
+  for (const publicOrigin of [canonicalOrigin, previewOrigin]) {
     const proxyContext = await browser.newContext({ serviceWorkers: "block" });
     await proxyContext.route("**/api/**", async (route) => {
       const req = route.request();
@@ -150,7 +174,7 @@ async function main() {
             method: req.method(),
             headers: {
               ...req.headers(),
-              host: "internal-render-service:10000",
+              host: "internal-vercel-function:3000",
               origin: publicOrigin,
               "x-forwarded-proto": "https",
             },
@@ -184,7 +208,7 @@ async function main() {
     await proxyPage.locator("input[name=password]").waitFor();
     await proxyContext.close();
     console.log(
-      `PASS: browser login, reload and logout through the internal Render host using public origin ${publicOrigin}`,
+      `PASS: browser login, reload and logout through the internal Vercel host using public origin ${publicOrigin}`,
     );
   }
   const context = await browser.newContext({ serviceWorkers: "block" });

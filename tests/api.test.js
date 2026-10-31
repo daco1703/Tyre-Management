@@ -654,18 +654,18 @@ test("live updates deliver committed staff entries to concurrent users and revok
   assert.equal((await removedWaiting).status, 401);
 });
 
-test("Render HTTPS browser login uses the public origin despite the internal HTTP host", async (t) => {
+test("HTTPS browser login uses the public origin despite the internal HTTP host", async (t) => {
   const { req } = await fixture(t, {
     production: true,
-    publicOrigin: "https://tyre-management.onrender.com/",
+    publicOrigin: "https://www.shepards-tyre-management.com/",
   });
   const logged = await req(
     "/login",
     { username: "owner", password: "correct-password-123" },
     undefined,
     {
-      Origin: "https://tyre-management.onrender.com",
-      Host: "internal-render-service:10000",
+      Origin: "https://www.shepards-tyre-management.com",
+      Host: "internal-vercel-function:3000",
       "X-Forwarded-Proto": "https",
     },
   );
@@ -676,32 +676,30 @@ test("Render HTTPS browser login uses the public origin despite the internal HTT
   assert.equal(
     (
       await req("/logout", {}, logged.cookie, {
-        Origin: "https://tyre-management.onrender.com",
-        Host: "internal-render-service:10000",
+        Origin: "https://www.shepards-tyre-management.com",
+        Host: "internal-vercel-function:3000",
       })
     ).status,
     200,
   );
 });
 
-test("Render custom domain works behind an internal host with exact origin protection", async (t) => {
+test("Vercel custom domain works behind an internal host with exact origin protection", async (t) => {
   const { req, owner } = await fixture(t, {
     production: true,
     ...deploymentOptions({
-      RENDER: "true",
-      RENDER_EXTERNAL_URL: "https://tyre-management.onrender.com/",
+      VERCEL: "1",
     }),
   });
   for (const origin of [
     "https://www.shepards-tyre-management.com",
-    "https://tyre-management.onrender.com",
     "https://tyre-management-git-main-shepards.vercel.app",
   ]) {
     const logged = await req(
       "/login",
       { username: "owner", password: "correct-password-123" },
       undefined,
-      { Origin: origin, Host: "internal-render-service:10000" },
+      { Origin: origin, Host: "internal-vercel-function:3000" },
     );
     assert.equal(logged.status, 200, origin);
     assert.match(logged.headers.get("set-cookie"), /Secure/);
@@ -709,7 +707,7 @@ test("Render custom domain works behind an internal host with exact origin prote
       (
         await req("/logout", {}, logged.cookie, {
           Origin: origin,
-          Host: "internal-render-service:10000",
+          Host: "internal-vercel-function:3000",
         })
       ).status,
       200,
@@ -725,7 +723,7 @@ test("Render custom domain works behind an internal host with exact origin prote
   ]) {
     const response = await req("/logout", {}, owner.cookie, {
       Origin: origin,
-      Host: "internal-render-service:10000",
+      Host: "internal-vercel-function:3000",
       "X-Forwarded-Host": new URL(origin).host,
       "X-Forwarded-Proto": "https",
     });
@@ -739,7 +737,7 @@ test("the company public origin permits only the fleet's exact Vercel preview", 
   const { req } = await fixture(t, {
     production: true,
     ...deploymentOptions({
-      RENDER: "true",
+      VERCEL: "1",
       PUBLIC_ORIGIN: "https://www.shepards-tyre-management.com",
     }),
   });
@@ -748,14 +746,14 @@ test("the company public origin permits only the fleet's exact Vercel preview", 
     "/login",
     { username: "owner", password: "correct-password-123" },
     undefined,
-    { Origin: preview, Host: "internal-render-service:10000" },
+    { Origin: preview, Host: "internal-vercel-function:3000" },
   );
   assert.equal(logged.status, 200);
   assert.equal(
     (
       await req("/logout", {}, logged.cookie, {
         Origin: "https://another-project.vercel.app",
-        Host: "internal-render-service:10000",
+        Host: "internal-vercel-function:3000",
       })
     ).status,
     403,
@@ -764,7 +762,7 @@ test("the company public origin permits only the fleet's exact Vercel preview", 
     (
       await req("/logout", {}, logged.cookie, {
         Origin: preview,
-        Host: "internal-render-service:10000",
+        Host: "internal-vercel-function:3000",
       })
     ).status,
     200,
@@ -774,21 +772,19 @@ test("the company public origin permits only the fleet's exact Vercel preview", 
 test("an explicit public origin disables the automatic company-domain fallback", async (t) => {
   const { req, owner } = await fixture(t, {
     ...deploymentOptions({
-      RENDER: "true",
-      RENDER_EXTERNAL_URL: "https://tyre-management.onrender.com",
+      VERCEL: "1",
       PUBLIC_ORIGIN: "https://another-fleet.example",
     }),
   });
   for (const origin of [
     "https://www.shepards-tyre-management.com",
-    "https://tyre-management.onrender.com",
     "https://tyre-management-git-main-shepards.vercel.app",
   ])
     assert.equal(
       (
         await req("/logout", {}, owner.cookie, {
           Origin: origin,
-          Host: "internal-render-service:10000",
+          Host: "internal-vercel-function:3000",
         })
       ).status,
       403,
@@ -797,7 +793,7 @@ test("an explicit public origin disables the automatic company-domain fallback",
     (
       await req("/logout", {}, owner.cookie, {
         Origin: "https://another-fleet.example",
-        Host: "internal-render-service:10000",
+        Host: "internal-vercel-function:3000",
       })
     ).status,
     200,
@@ -806,17 +802,17 @@ test("an explicit public origin disables the automatic company-domain fallback",
 
 test("configured public origin still rejects foreign sites and forged forwarding headers", async (t) => {
   const { req, owner } = await fixture(t, {
-    publicOrigin: "https://tyre-management.onrender.com",
+    publicOrigin: "https://www.shepards-tyre-management.com",
   });
   for (const origin of [
     "https://evil.example",
-    "https://tyre-management.onrender.com.evil.example",
-    "http://tyre-management.onrender.com",
+    "https://www.shepards-tyre-management.com.evil.example",
+    "http://www.shepards-tyre-management.com",
     "null",
   ]) {
     const result = await req("/logout", {}, owner.cookie, {
       Origin: origin,
-      Host: "internal-render-service:10000",
+      Host: "internal-vercel-function:3000",
       "X-Forwarded-Host": origin.replace(/^https?:\/\//, ""),
       "X-Forwarded-Proto": "https",
     });
