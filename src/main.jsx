@@ -53,6 +53,7 @@ import {
 import { lastInspection, vehicleEvents } from "../shared/reports.js";
 import { defaultFleetName, defaultUsername } from "../shared/defaults.js";
 import { resolveSharedServer } from "./server-url.js";
+import { createApiRequest } from "./api-request.js";
 import { en, hi } from "./i18n";
 import { averageNsd } from "../shared/nsd.js";
 import { previewTyreImport } from "../shared/tyre-import.js";
@@ -105,31 +106,11 @@ if (native && savedServer !== server) {
   // Require fresh sign-in before sending credentials to a changed origin.
   store("ts-token", null);
 }
-async function request(url, body, options = {}) {
-  try {
-    const token = native ? read("ts-token", "") : "";
-    const res = await fetch(`${server}/api${url}`, {
-      method: body === undefined ? "GET" : "POST",
-      headers: {
-        ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      credentials: native ? "omit" : "same-origin",
-      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
-      signal: options.signal || AbortSignal.timeout(15000),
-    });
-    const data = await res.json();
-    if (!res.ok)
-      throw Object.assign(new Error(data.error || "serverError"), {
-        code: data.error || "serverError",
-        status: res.status,
-      });
-    return data;
-  } catch (e) {
-    if (e.code) throw e;
-    throw Object.assign(new Error("notConnected"), { code: "notConnected" });
-  }
-}
+const request = createApiRequest({
+  native,
+  getServer: () => server,
+  getToken: () => read("ts-token", ""),
+});
 const Context = React.createContext();
 const useApp = () => React.useContext(Context);
 function App() {
@@ -215,7 +196,9 @@ function App() {
     if (native && !server) return;
     setBootError("");
     try {
-      const config = await request("/bootstrap");
+      const config = await request("/bootstrap", undefined, {
+        timeoutMs: 60000,
+      });
       if (version !== initVersion.current) return;
       setBoot(config);
       setOffline(false);
@@ -233,7 +216,7 @@ function App() {
     } catch (e) {
       if (version !== initVersion.current) return;
       setBootError(e.code);
-      if (e.code === "notConnected") setOffline(true);
+      setOffline(e.code === "offlineHint" || !navigator.onLine);
     }
   }
   useEffect(() => {
@@ -253,8 +236,13 @@ function App() {
       if (e.status === 401) {
         resetSession();
         setOffline(false);
+        setBootError("");
         setToast({ text: t("unauthorized"), error: true });
-      } else setOffline(true);
+      } else {
+        setOffline(e.code === "offlineHint" || !navigator.onLine);
+        setBootError(e.code || "notConnected");
+        setModal(null);
+      }
       return null;
     }
   }
@@ -277,7 +265,7 @@ function App() {
     };
   }, [session]);
   useEffect(() => {
-    if (!session || offline) return;
+    if (!session || offline || bootError) return;
     const controller = new AbortController();
     const version = initVersion.current;
     async function watch() {
@@ -303,7 +291,8 @@ function App() {
             resetSession();
             setToast({ text: t("unauthorized"), error: true });
           } else {
-            setOffline(true);
+            setOffline(e.code === "offlineHint" || !navigator.onLine);
+            setBootError(e.code || "notConnected");
             setModal(null);
           }
           return;
@@ -312,7 +301,7 @@ function App() {
     }
     watch();
     return () => controller.abort();
-  }, [session, offline]);
+  }, [session, offline, bootError]);
   async function action(kind, payload) {
     if (offline) throw { code: "offlineHint" };
     try {
@@ -326,8 +315,18 @@ function App() {
       return data;
     } catch (e) {
       if (e.status === 409) await refresh();
-      if (e.code === "notConnected") {
-        setOffline(true);
+      if (
+        [
+          "notConnected",
+          "offlineHint",
+          "serverTimeout",
+          "serverUnavailable",
+          "invalidServerResponse",
+        ].includes(e.code)
+      ) {
+        setOffline(e.code === "offlineHint" || !navigator.onLine);
+        setBootError(e.code);
+        setModal(null);
         e.code = "connectionLost";
         await refresh();
       }
@@ -393,14 +392,8 @@ function App() {
         <div className="connection-page">
           <Brand />
           <LanguageSwitch />
-          <WifiOff size={48} />
-          <h1>
-            {t(
-              offline || bootError === "notConnected"
-                ? "offlineHint"
-                : bootError,
-            )}
-          </h1>
+          {offline ? <WifiOff size={48} /> : <AlertCircle size={48} />}
+          <h1>{t(offline ? "offlineHint" : bootError)}</h1>
           <Button onClick={() => (session ? refresh() : initialize())}>
             {t("retry")}
           </Button>
@@ -509,7 +502,7 @@ function App() {
             <footer className="page-footer">
               <CircleDot size={14} />
               {t("tagline")}
-              <span>Shepards Tyre Management · v1.8.2</span>
+              <span>Shepards Tyre Management · v1.8.3</span>
             </footer>
           </div>
           <nav className="bottom-nav">
@@ -731,9 +724,9 @@ function ServerConnect({ onConnect }) {
       await request("/bootstrap");
       store("ts-server", server);
       onConnect();
-    } catch {
+    } catch (error) {
       server = old;
-      setError("notConnected");
+      setError(error.code || "notConnected");
     } finally {
       setBusy(false);
     }
@@ -787,7 +780,7 @@ function Auth({ boot, onAuth, onBeginAuth, changeServer }) {
       const data = await request("/login", p);
       await onAuth(data, version);
     } catch (e) {
-      setError(e.code === "notConnected" ? "offlineHint" : e.code);
+      setError(e.code);
     } finally {
       setBusy(false);
     }

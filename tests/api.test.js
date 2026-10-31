@@ -695,6 +695,7 @@ test("Render custom domain works behind an internal host with exact origin prote
   for (const origin of [
     "https://www.shepards-tyre-management.com",
     "https://tyre-management.onrender.com",
+    "https://tyre-management-git-main-shepards.vercel.app",
   ]) {
     const logged = await req(
       "/login",
@@ -718,6 +719,8 @@ test("Render custom domain works behind an internal host with exact origin prote
     "http://www.shepards-tyre-management.com",
     "https://shepards-tyre-management.com",
     "https://www.shepards-tyre-management.com.evil.example",
+    "https://other-project.vercel.app",
+    "https://tyre-management-git-main-shepards.vercel.app.evil.example",
     "https://evil.example",
   ]) {
     const response = await req("/logout", {}, owner.cookie, {
@@ -732,6 +735,42 @@ test("Render custom domain works behind an internal host with exact origin prote
   assert.equal((await req("/me", undefined, owner.cookie)).status, 200);
 });
 
+test("the company public origin permits only the fleet's exact Vercel preview", async (t) => {
+  const { req } = await fixture(t, {
+    production: true,
+    ...deploymentOptions({
+      RENDER: "true",
+      PUBLIC_ORIGIN: "https://www.shepards-tyre-management.com",
+    }),
+  });
+  const preview = "https://tyre-management-git-main-shepards.vercel.app";
+  const logged = await req(
+    "/login",
+    { username: "owner", password: "correct-password-123" },
+    undefined,
+    { Origin: preview, Host: "internal-render-service:10000" },
+  );
+  assert.equal(logged.status, 200);
+  assert.equal(
+    (
+      await req("/logout", {}, logged.cookie, {
+        Origin: "https://another-project.vercel.app",
+        Host: "internal-render-service:10000",
+      })
+    ).status,
+    403,
+  );
+  assert.equal(
+    (
+      await req("/logout", {}, logged.cookie, {
+        Origin: preview,
+        Host: "internal-render-service:10000",
+      })
+    ).status,
+    200,
+  );
+});
+
 test("an explicit public origin disables the automatic company-domain fallback", async (t) => {
   const { req, owner } = await fixture(t, {
     ...deploymentOptions({
@@ -743,6 +782,7 @@ test("an explicit public origin disables the automatic company-domain fallback",
   for (const origin of [
     "https://www.shepards-tyre-management.com",
     "https://tyre-management.onrender.com",
+    "https://tyre-management-git-main-shepards.vercel.app",
   ])
     assert.equal(
       (

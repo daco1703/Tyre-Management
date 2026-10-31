@@ -1,5 +1,8 @@
 import { defaultSharedServer } from "../shared/defaults.js";
 
+export const fleetPreviewOrigin =
+  "https://tyre-management-git-main-shepards.vercel.app";
+
 export function normalizePublicOrigin(value = "") {
   if (!value) return "";
   try {
@@ -22,19 +25,24 @@ export function normalizePublicOrigin(value = "") {
 }
 
 export function deploymentOptions(env) {
+  const publicOrigin = normalizePublicOrigin(
+    env.PUBLIC_ORIGIN || env.RENDER_EXTERNAL_URL || "",
+  );
+  const fleetDeployment =
+    env.RENDER === "true" &&
+    (!env.PUBLIC_ORIGIN || publicOrigin === defaultSharedServer);
   return {
     // Render terminates HTTPS before forwarding HTTP to Node. Respect an
     // explicit proxy override, and auto-configure its standard single proxy.
     trustProxy:
       env.TRUST_PROXY === "1" ||
       (env.TRUST_PROXY === undefined && env.RENDER === "true"),
-    publicOrigin: normalizePublicOrigin(
-      env.PUBLIC_ORIGIN || env.RENDER_EXTERNAL_URL || "",
-    ),
+    publicOrigin,
     // Existing Render services may not apply new Blueprint env settings.
-    // Permit our exact custom domain too, unless the operator chose an override.
-    ...(env.RENDER === "true" && !env.PUBLIC_ORIGIN
-      ? { additionalPublicOrigins: [defaultSharedServer] }
+    // Allow this fleet's exact public and preview origins. Other operators'
+    // explicit origins retain complete control of their deployment.
+    ...(fleetDeployment
+      ? { additionalPublicOrigins: [defaultSharedServer, fleetPreviewOrigin] }
       : {}),
   };
 }

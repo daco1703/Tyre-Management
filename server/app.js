@@ -211,7 +211,7 @@ export function createApp({
     res.json(branding);
   });
   app.get("/api/health", (req, res) =>
-    res.json({ ok: true, version: "1.8.2" }),
+    res.json({ ok: true, version: "1.8.3" }),
   );
   app.get("/api/bootstrap", (req, res) => res.json({ setupRequired: false }));
   app.post("/api/login", authLimit, (req, res) => {

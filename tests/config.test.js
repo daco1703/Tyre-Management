@@ -1,6 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { deploymentOptions, normalizePublicOrigin } from "../server/config.js";
+import {
+  deploymentOptions,
+  normalizePublicOrigin,
+  fleetPreviewOrigin,
+} from "../server/config.js";
 
 test("Render built-in variables configure its HTTPS origin and proxy automatically", () => {
   assert.deepEqual(
@@ -11,13 +15,25 @@ test("Render built-in variables configure its HTTPS origin and proxy automatical
     {
       trustProxy: true,
       publicOrigin: "https://tyre-management.onrender.com",
-      additionalPublicOrigins: ["https://www.shepards-tyre-management.com"],
+      additionalPublicOrigins: [
+        "https://www.shepards-tyre-management.com",
+        fleetPreviewOrigin,
+      ],
     },
   );
   assert.deepEqual(deploymentOptions({}), {
     trustProxy: false,
     publicOrigin: "",
   });
+});
+test("the configured company origin also allows its exact main-branch preview", () => {
+  assert.deepEqual(
+    deploymentOptions({
+      RENDER: "true",
+      PUBLIC_ORIGIN: "https://www.shepards-tyre-management.com/",
+    }).additionalPublicOrigins,
+    ["https://www.shepards-tyre-management.com", fleetPreviewOrigin],
+  );
 });
 test("explicit public origin and proxy overrides take precedence over Render defaults", () => {
   assert.deepEqual(

@@ -9,6 +9,7 @@ const temp = mkdtempSync(path.join(tmpdir(), "shepards-login-"));
 const base = "http://127.0.0.1:3120";
 const canonicalOrigin = "https://www.shepards-tyre-management.com";
 const legacyOrigin = "https://tyre-management.onrender.com";
+const previewOrigin = "https://tyre-management-git-main-shepards.vercel.app";
 const seeded = spawnSync(
   process.execPath,
   [
@@ -137,7 +138,7 @@ async function main() {
   });
   // Exercise the browser form with Render's public HTTPS Origin and an
   // internal HTTP Host, through the actual server/index.js environment wiring.
-  for (const publicOrigin of [legacyOrigin, canonicalOrigin]) {
+  for (const publicOrigin of [legacyOrigin, canonicalOrigin, previewOrigin]) {
     const proxyContext = await browser.newContext({ serviceWorkers: "block" });
     await proxyContext.route("**/api/**", async (route) => {
       const req = route.request();
@@ -377,22 +378,132 @@ async function main() {
     "PASS: failed initial data load leaves a usable login form; retry succeeds without an offline detour",
   );
 
-  const disconnectedContext = await browser.newContext({
-    serviceWorkers: "block",
-  });
-  await disconnectedContext.route("**/api/login", (route) => route.abort());
-  const disconnected = await disconnectedContext.newPage();
-  await disconnected.goto(base);
-  await disconnected
-    .locator("input[name=password]")
-    .fill("test-admin-password");
-  await disconnected
-    .getByRole("button", { name: "Open my garage", exact: true })
-    .click();
-  assert.equal(
-    await disconnected.getByRole("alert").innerText(),
-    "You are offline. Please connect to the internet.",
-  );
+  const translations = await import("../src/i18n.js");
+  for (const language of ["en", "hi"]) {
+    const t = translations[language];
+    const makeErrorContext = async () => {
+      const isolated = await browser.newContext({ serviceWorkers: "block" });
+      await isolated.addInitScript((lang) => {
+        localStorage.setItem("ts-lang", JSON.stringify(lang));
+      }, language);
+      return isolated;
+    };
+
+    // A rejected request while the browser remains online is a server/address
+    // problem. Keep the form usable and retryable instead of claiming offline.
+    const disconnectedContext = await makeErrorContext();
+    let rejectLogin = true;
+    await disconnectedContext.route("**/api/login", async (route) => {
+      if (rejectLogin) {
+        rejectLogin = false;
+        await route.abort();
+      } else await route.continue();
+    });
+    const disconnected = await disconnectedContext.newPage();
+    await disconnected.goto(base);
+    await disconnected
+      .locator("input[name=password]")
+      .fill("test-admin-password");
+    await disconnected
+      .getByRole("button", { name: t.submitLogin, exact: true })
+      .click();
+    assert.equal(await disconnected.evaluate(() => navigator.onLine), true);
+    assert.equal(
+      await disconnected.getByRole("alert").innerText(),
+      t.notConnected,
+    );
+    assert.notEqual(
+      await disconnected.getByRole("alert").innerText(),
+      t.offlineHint,
+    );
+    await disconnected
+      .getByRole("button", { name: t.submitLogin, exact: true })
+      .click();
+    await disconnected
+      .getByRole("heading", { name: t.fleetOverview, exact: true })
+      .waitFor();
+    await disconnectedContext.close();
+    console.log(
+      `PASS: ${language} online login failure names the server connection problem and retries successfully`,
+    );
+
+    for (const failure of [
+      {
+        name: "HTML 404 from frontend-only hosting",
+        key: "invalidServerResponse",
+        status: 404,
+      },
+      {
+        name: "HTML 503 from the upstream host",
+        key: "serverUnavailable",
+        status: 503,
+      },
+      {
+        name: "rejected bootstrap request while online",
+        key: "notConnected",
+        abort: true,
+      },
+    ]) {
+      assert.equal(
+        typeof t[failure.key],
+        "string",
+        `${language}: missing translated server error ${failure.key}`,
+      );
+      const errorContext = await makeErrorContext();
+      let failBootstrap = true;
+      await errorContext.route("**/api/bootstrap", async (route) => {
+        if (!failBootstrap) return route.continue();
+        failBootstrap = false;
+        if (failure.abort) return route.abort();
+        return route.fulfill({
+          status: failure.status,
+          contentType: "text/html",
+          body: "<!doctype html><html><title>Host response</title><body>Service unavailable or page not found</body></html>",
+        });
+      });
+      const errorPage = await errorContext.newPage();
+      await errorPage.goto(base);
+      await errorPage
+        .getByRole("heading", { name: t[failure.key], exact: true })
+        .waitFor();
+      assert.equal(await errorPage.evaluate(() => navigator.onLine), true);
+      assert.equal(
+        await errorPage
+          .getByRole("heading", { name: t.offlineHint, exact: true })
+          .count(),
+        0,
+      );
+      await errorPage
+        .getByRole("button", { name: t.retry, exact: true })
+        .click();
+      await errorPage.locator("input[name=password]").waitFor();
+      assert.ok(
+        await errorPage
+          .getByRole("button", { name: t.submitLogin, exact: true })
+          .isVisible(),
+      );
+      await errorContext.close();
+      console.log(
+        `PASS: ${language} ${failure.name} shows ${failure.key}, and Retry restores the login form`,
+      );
+    }
+
+    const offlineContext = await makeErrorContext();
+    const offlinePage = await offlineContext.newPage();
+    await offlinePage.goto(base);
+    await offlinePage.locator("input[name=password]").waitFor();
+    await offlineContext.setOffline(true);
+    await offlinePage
+      .getByRole("heading", { name: t.offlineHint, exact: true })
+      .waitFor();
+    assert.equal(await offlinePage.evaluate(() => navigator.onLine), false);
+    await offlineContext.setOffline(false);
+    await offlinePage.locator("input[name=password]").waitFor();
+    await offlineContext.close();
+    console.log(
+      `PASS: ${language} a genuinely offline browser asks for an internet connection and recovers when online`,
+    );
+  }
 
   const nativeContext = await browser.newContext({
     serviceWorkers: "block",

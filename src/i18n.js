@@ -214,6 +214,12 @@ export const en = {
     "Connect this phone to your shared fleet server. All staff use the same address.",
   notConnected:
     "Cannot reach the fleet server. Check the address and your connection.",
+  invalidServerResponse:
+    "The website could not connect to the fleet service. Please retry or contact the admin.",
+  serverUnavailable:
+    "The fleet server is unavailable. Please wait a moment and retry.",
+  serverTimeout:
+    "The server is taking longer to respond. Please wait and retry.",
   installedHint: "Includes road tyres and fitted spare tyres.",
   actions: "Actions",
   changePassword: "Change password",
@@ -705,6 +711,12 @@ export const hi = {
   nativeIntro:
     "इस फोन को साझा सर्वर से जोड़ें। सभी स्टाफ एक ही पता इस्तेमाल करें।",
   notConnected: "सर्वर से संपर्क नहीं हुआ। पता और इंटरनेट जाँचें।",
+  invalidServerResponse:
+    "वेबसाइट का बेड़े की सेवा से संपर्क नहीं हुआ। फिर प्रयास करें या व्यवस्थापक से संपर्क करें।",
+  serverUnavailable:
+    "बेड़े का सर्वर अभी उपलब्ध नहीं है। कुछ देर बाद फिर प्रयास करें।",
+  serverTimeout:
+    "सर्वर से जवाब आने में समय लग रहा है। कुछ देर बाद फिर प्रयास करें।",
   installedHint: "सड़क और स्पेयर में लगे सभी टायर शामिल हैं।",
   actions: "कार्रवाई",
   changePassword: "पासवर्ड बदलें",
