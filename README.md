@@ -59,7 +59,7 @@ This is a debug-signed test APK. Automated browser checks include Android-platfo
 
 ## Development and validation
 
-Node.js 24 or later:
+Node.js 24 (the supported major version is pinned in `package.json`):
 
 ```sh
 npm ci
@@ -87,7 +87,20 @@ Output: `android/app/build/outputs/apk/debug/app-debug.apk`. Keep the same signi
 
 ## Production server
 
-The fleet's shared address is **https://www.shepards-tyre-management.com/**. The current browser/server and Android versions are **1.8.2**. Deploy the repository's `main` branch using the Render service's existing settings; if automatic deployments are disabled, use **Manual Deploy → Deploy latest commit**. The public `GET /api/health` response includes `ok` and the running version; it contains no fleet records. Existing users, inventory and logs stay in the database when it is on persistent storage.
+The fleet's shared address is **https://www.shepards-tyre-management.com/**. The current browser/server and Android versions are **1.8.2**. The website can be hosted on Vercel with the API on Render, or the entire app can be hosted on Render. Both use the existing Express/SQLite backend. Deploy the repository's `main` branch using the Render service's existing settings; if automatic deployments are disabled, use **Manual Deploy → Deploy latest commit**. The public `GET /api/health` response includes `ok` and the running version; it contains no fleet records. Existing users, inventory and logs stay in the database when it is on persistent storage.
+
+### Vercel website with the existing Render backend
+
+`vercel.json` configures Vite, `npm run build`, and output directory `dist`. Requests under `/api/` are rewritten to `https://tyre-management.onrender.com/api/`, so the website can reach login, fleet records and live updates. The direct Render address is deliberate: rewriting to the company domain would loop when that domain points to Vercel. Build logs ending in **Deployment completed** indicate a successful build; publishing only `dist` without the API rewrite leaves the website unable to connect.
+
+1. Import this repository into Vercel, use the repository root, and deploy the latest `main` commit. Keep the Vite preset, build command `npm run build`, output directory `dist`, and Node 24. The npm `cache-dir`/install-script messages in the reported successful build were warnings, not build failures.
+2. Add `www.shepards-tyre-management.com` under the Vercel project's **Settings → Domains** and apply Vercel's DNS instructions at the domain provider. For this arrangement, that hostname points to Vercel; Render remains reachable at its direct `.onrender.com` address. The Render Blueprint's custom-domain entry is only for direct Render website hosting and is unnecessary for this arrangement.
+3. Keep the Render backend running and set its `PUBLIC_ORIGIN=https://www.shepards-tyre-management.com`, `NODE_ENV=production`, and `TRUST_PROXY=1`. Use the company domain to sign in. Unrelated Vercel preview URLs remain rejected by the backend's exact-origin checks. If testing another deployment hostname, the backend's configured public origin must explicitly match it.
+4. Verify `https://www.shepards-tyre-management.com/api/health` returns JSON with `ok: true`, then check browser and Android sign-in. Production access must be public for staff phones to use the API. Website files and API responses should not redirect to a Vercel account-login page.
+
+This configuration hosts the **website on Vercel and the database/API on Render**. Vercel does not run `npm start` as a persistent database server for this Vite deployment. Do not move SQLite to a Vercel Function's `/tmp` directory: that would still be temporary, isolated storage. Moving the whole backend to Vercel requires a durable external database and a storage-layer migration. Keeping a Render Free backend retains the data-loss limitation described below; the API rewrite does not add persistence or automatic backups. Local build and proxy-origin tests do not verify the live Vercel project, DNS, deployment protection, or Render availability.
+
+### Direct Render hosting
 
 Version **1.8.2** retains the earlier fix for browser login behind Render's HTTPS proxy. Set `PUBLIC_ORIGIN=https://www.shepards-tyre-management.com` (without a trailing slash) in the existing Render service. The Blueprint includes that value and the `www.shepards-tyre-management.com` custom domain. Connect/verify the domain under Render **Settings → Custom Domains** and apply Render's DNS instructions at the domain provider; the domain must serve HTTPS before phones can connect. Repository changes do not update DNS or verify a manually configured service.
 
