@@ -4,6 +4,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createApp } from "../server/app.js";
+import { deploymentOptions } from "../server/config.js";
 import { randomBytes, scryptSync } from "node:crypto";
 import { spawnSync } from "node:child_process";
 async function fixture(t, options = {}) {
@@ -676,6 +677,86 @@ test("Render HTTPS browser login uses the public origin despite the internal HTT
     (
       await req("/logout", {}, logged.cookie, {
         Origin: "https://tyre-management.onrender.com",
+        Host: "internal-render-service:10000",
+      })
+    ).status,
+    200,
+  );
+});
+
+test("Render custom domain works behind an internal host with exact origin protection", async (t) => {
+  const { req, owner } = await fixture(t, {
+    production: true,
+    ...deploymentOptions({
+      RENDER: "true",
+      RENDER_EXTERNAL_URL: "https://tyre-management.onrender.com/",
+    }),
+  });
+  for (const origin of [
+    "https://www.shepards-tyre-management.com",
+    "https://tyre-management.onrender.com",
+  ]) {
+    const logged = await req(
+      "/login",
+      { username: "owner", password: "correct-password-123" },
+      undefined,
+      { Origin: origin, Host: "internal-render-service:10000" },
+    );
+    assert.equal(logged.status, 200, origin);
+    assert.match(logged.headers.get("set-cookie"), /Secure/);
+    assert.equal(
+      (
+        await req("/logout", {}, logged.cookie, {
+          Origin: origin,
+          Host: "internal-render-service:10000",
+        })
+      ).status,
+      200,
+    );
+  }
+  for (const origin of [
+    "http://www.shepards-tyre-management.com",
+    "https://shepards-tyre-management.com",
+    "https://www.shepards-tyre-management.com.evil.example",
+    "https://evil.example",
+  ]) {
+    const response = await req("/logout", {}, owner.cookie, {
+      Origin: origin,
+      Host: "internal-render-service:10000",
+      "X-Forwarded-Host": new URL(origin).host,
+      "X-Forwarded-Proto": "https",
+    });
+    assert.equal(response.status, 403, origin);
+    assert.equal(response.data.error, "originDenied");
+  }
+  assert.equal((await req("/me", undefined, owner.cookie)).status, 200);
+});
+
+test("an explicit public origin disables the automatic company-domain fallback", async (t) => {
+  const { req, owner } = await fixture(t, {
+    ...deploymentOptions({
+      RENDER: "true",
+      RENDER_EXTERNAL_URL: "https://tyre-management.onrender.com",
+      PUBLIC_ORIGIN: "https://another-fleet.example",
+    }),
+  });
+  for (const origin of [
+    "https://www.shepards-tyre-management.com",
+    "https://tyre-management.onrender.com",
+  ])
+    assert.equal(
+      (
+        await req("/logout", {}, owner.cookie, {
+          Origin: origin,
+          Host: "internal-render-service:10000",
+        })
+      ).status,
+      403,
+    );
+  assert.equal(
+    (
+      await req("/logout", {}, owner.cookie, {
+        Origin: "https://another-fleet.example",
         Host: "internal-render-service:10000",
       })
     ).status,

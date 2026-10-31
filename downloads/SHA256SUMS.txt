@@ -4,6 +4,7 @@ a7693f524b471ed82d51d000ca3248251c0de2afa3b1dff8b344ab80f2278ec7  Shepards-Tyre-
 8cee554a208f886a04dbda1143c558e41461436bd84df0ace71b544c95833b02  Shepards-Tyre-Management-1.6-test.apk
 2c5e43a57504ea81858d2eedf8c787ac525cec8af062dc8d11fef3aad5ca7608  Shepards-Tyre-Management-1.7-test.apk
 7ba1ab74faba627bfba3fa32f3666892700603d02cb1fbe4ef6b3b4b26684741  Shepards-Tyre-Management-1.8-test.apk
+9f507be700c3edb553cd3dcb6af955fc589a86a38152655811e6347a7ae8b450  Shepards-Tyre-Management-1.8.2-test.apk
 fe1b4a1f6a601879ee7225dc6ed78c45fac908ccd85e487fc6321557faa257bb  Shepards-tyre-template.xlsx
 1af7b8001e0debcd6e47fc610e615fd0d00a555f96493d5563914adafc769fa3  TyreSaathi-1.1-offline-test.apk
 7fb72b647ccc6c74219ef666760d9814fe7048e4fbbca2bcf79fdd8900ab15e8  TyreSaathi-1.2-excel-test.apk

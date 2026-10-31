@@ -4,6 +4,8 @@ services:
     runtime: node
     plan: starter
     branch: main
+    domains:
+      - www.shepards-tyre-management.com
     autoDeploy: true
     buildCommand: npm ci --include=dev && npm test && npm run build && npm prune --omit=dev
     startCommand: npm start
@@ -15,6 +17,8 @@ services:
         value: production
       - key: TRUST_PROXY
         value: "1"
+      - key: PUBLIC_ORIGIN
+        value: https://www.shepards-tyre-management.com
       - key: DATABASE_PATH
         value: /var/data/tyresaathi.sqlite
     disk:

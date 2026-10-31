@@ -11,6 +11,7 @@ test("Render built-in variables configure its HTTPS origin and proxy automatical
     {
       trustProxy: true,
       publicOrigin: "https://tyre-management.onrender.com",
+      additionalPublicOrigins: ["https://www.shepards-tyre-management.com"],
     },
   );
   assert.deepEqual(deploymentOptions({}), {
@@ -32,6 +33,13 @@ test("explicit public origin and proxy overrides take precedence over Render def
     },
   );
   assert.equal(deploymentOptions({ TRUST_PROXY: "1" }).trustProxy, true);
+  assert.equal(
+    deploymentOptions({
+      RENDER: "true",
+      PUBLIC_ORIGIN: "https://tyres.example.com",
+    }).additionalPublicOrigins,
+    undefined,
+  );
 });
 test("public origin must be a single HTTPS website origin", () => {
   assert.equal(

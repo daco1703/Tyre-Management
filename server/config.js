@@ -1,3 +1,5 @@
+import { defaultSharedServer } from "../shared/defaults.js";
+
 export function normalizePublicOrigin(value = "") {
   if (!value) return "";
   try {
@@ -14,7 +16,7 @@ export function normalizePublicOrigin(value = "") {
     return url.origin;
   } catch {
     throw new Error(
-      "PUBLIC_ORIGIN must be an HTTPS origin, such as https://tyre-management.onrender.com",
+      `PUBLIC_ORIGIN must be an HTTPS origin, such as ${defaultSharedServer}`,
     );
   }
 }
@@ -29,5 +31,10 @@ export function deploymentOptions(env) {
     publicOrigin: normalizePublicOrigin(
       env.PUBLIC_ORIGIN || env.RENDER_EXTERNAL_URL || "",
     ),
+    // Existing Render services may not apply new Blueprint env settings.
+    // Permit our exact custom domain too, unless the operator chose an override.
+    ...(env.RENDER === "true" && !env.PUBLIC_ORIGIN
+      ? { additionalPublicOrigins: [defaultSharedServer] }
+      : {}),
   };
 }

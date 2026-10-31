@@ -1,12 +1,12 @@
 # Android test update
 
-[Download Shepards Tyre Management 1.8.0](https://github.com/daco1703/Tyre-Management/blob/main/downloads/Shepards-Tyre-Management-1.8-test.apk?raw=true)
+[Download Shepards Tyre Management 1.8.2](https://github.com/daco1703/Tyre-Management/blob/main/downloads/Shepards-Tyre-Management-1.8.2-test.apk?raw=true)
 
-Install over the earlier build without uninstalling. The package ID and test signing certificate are unchanged. The app opens the login for **https://tyre-management.onrender.com/** directly. Use admin or an assigned staff username/password. Forgot username/password displays Contact the admin.
+Install over the earlier build without uninstalling. The package ID and test signing certificate are unchanged. The app opens the login for **https://www.shepards-tyre-management.com/** directly. Phones using the old default or saved Render address switch to this domain automatically and require fresh sign-in; other chosen custom servers remain selected. Use admin or an assigned staff username/password. Forgot username/password displays Contact the admin.
 
 **Admin:** Team & settings → Add staff → enter a unique username, password and confirmation. Only admin can add or remove staff. Removing access retains the employee's historical log entries.
 
-All accounts share live vehicle/tyre records. Each entry includes the authenticated username and timestamp. Losing internet displays **You are offline. Please connect to the internet.** and blocks entries until reconnection. Offline login and public staff signup have been removed. The server must also run version 1.8; deploy the latest main commit on Render if automatic deployment is disabled.
+All accounts share live vehicle/tyre records. Each entry includes the authenticated username and timestamp. Losing internet displays **You are offline. Please connect to the internet.** and blocks entries until reconnection. Offline login and public staff signup have been removed. Deploy server version **1.8.2** on Render if automatic deployment is disabled. The company domain must be connected to the service and serve HTTPS; use `PUBLIC_ORIGIN=https://www.shepards-tyre-management.com` in Render. Changing the app's address does not move records between servers or configure the domain's DNS.
 
 Old phone-only records are not deleted or automatically uploaded to the server. Export any needed local records using the old version before upgrading. This version uses shared-server records only.
 

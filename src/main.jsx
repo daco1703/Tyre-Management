@@ -52,6 +52,7 @@ import {
 } from "../shared/catalogue.js";
 import { lastInspection, vehicleEvents } from "../shared/reports.js";
 import { defaultFleetName, defaultUsername } from "../shared/defaults.js";
+import { resolveSharedServer } from "./server-url.js";
 import { en, hi } from "./i18n";
 import { averageNsd } from "../shared/nsd.js";
 import { previewTyreImport } from "../shared/tyre-import.js";
@@ -97,9 +98,13 @@ const store = (key, value) => {
     else localStorage.setItem(key, JSON.stringify(value));
   } catch {}
 };
-let server = native
-  ? read("ts-server", "https://tyre-management.onrender.com")
-  : "";
+const savedServer = native ? read("ts-server") : null;
+let server = native ? resolveSharedServer(savedServer) : "";
+if (native && savedServer !== server) {
+  store("ts-server", server);
+  // Require fresh sign-in before sending credentials to a changed origin.
+  store("ts-token", null);
+}
 async function request(url, body, options = {}) {
   try {
     const token = native ? read("ts-token", "") : "";
@@ -504,7 +509,7 @@ function App() {
             <footer className="page-footer">
               <CircleDot size={14} />
               {t("tagline")}
-              <span>Shepards Tyre Management · v1.8.1</span>
+              <span>Shepards Tyre Management · v1.8.2</span>
             </footer>
           </div>
           <nav className="bottom-nav">

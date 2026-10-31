@@ -7,6 +7,8 @@ const assert = require("node:assert/strict");
 const root = path.resolve(__dirname, "..");
 const temp = mkdtempSync(path.join(tmpdir(), "shepards-login-"));
 const base = "http://127.0.0.1:3120";
+const canonicalOrigin = "https://www.shepards-tyre-management.com";
+const legacyOrigin = "https://tyre-management.onrender.com";
 const seeded = spawnSync(
   process.execPath,
   [
@@ -43,6 +45,81 @@ let logs = "",
   browser;
 server.stdout.on("data", (d) => (logs += d));
 server.stderr.on("data", (d) => (logs += d));
+
+async function prepareNative(context, fixture = {}) {
+  await context.addInitScript(({ savedServer, savedToken }) => {
+    window.CapacitorCustomPlatform = { name: "android" };
+    // Seed once so reload exercises persisted settings, never re-seeds an old token.
+    if (!sessionStorage.getItem("native-login-fixture-seeded")) {
+      sessionStorage.setItem("native-login-fixture-seeded", "yes");
+      localStorage.setItem("ts-mode", JSON.stringify("local"));
+      if (savedServer !== undefined)
+        localStorage.setItem("ts-server", JSON.stringify(savedServer));
+      if (savedToken !== undefined)
+        localStorage.setItem("ts-token", JSON.stringify(savedToken));
+    }
+    // Record storage at fetch time, proving migration clears the old token
+    // before even bootstrap can send it to the replacement domain.
+    window.nativeRequestSnapshots = [];
+    const originalFetch = window.fetch;
+    window.fetch = function (...args) {
+      window.nativeRequestSnapshots.push({
+        url: String(args[0]),
+        server: JSON.parse(localStorage.getItem("ts-server")),
+        token: JSON.parse(localStorage.getItem("ts-token")),
+      });
+      return originalFetch.apply(this, args);
+    };
+  }, fixture);
+  const calls = [],
+    unexpected = [];
+  await context.route("**/api/**", async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    calls.push({
+      url: request.url(),
+      authorization: request.headers().authorization,
+    });
+    if (url.origin !== canonicalOrigin) {
+      unexpected.push(request.url());
+      return route.abort();
+    }
+    const cors = {
+      "access-control-allow-origin": base,
+      "access-control-allow-headers": "content-type, authorization",
+      "access-control-allow-methods": "GET, POST, OPTIONS",
+    };
+    if (request.method() === "OPTIONS")
+      return route.fulfill({ status: 204, headers: cors });
+    try {
+      const result = await context.request.fetch(
+        base + url.pathname + url.search,
+        {
+          method: request.method(),
+          headers: {
+            "content-type": "application/json",
+            origin: "https://localhost",
+            // Android does not use website cookies; require its actual bearer token.
+            cookie: "",
+            ...(request.headers().authorization
+              ? { authorization: request.headers().authorization }
+              : {}),
+          },
+          ...(request.postData() ? { data: request.postData() } : {}),
+        },
+      );
+      await route.fulfill({
+        response: result,
+        headers: { ...result.headers(), ...cors },
+      });
+    } catch {
+      // Closing/reloading the phone can cancel an in-flight long poll.
+      await route.abort().catch(() => {});
+    }
+  });
+  return { calls, unexpected };
+}
+
 async function main() {
   for (let i = 0; i < 80; i++) {
     try {
@@ -60,53 +137,55 @@ async function main() {
   });
   // Exercise the browser form with Render's public HTTPS Origin and an
   // internal HTTP Host, through the actual server/index.js environment wiring.
-  const proxyContext = await browser.newContext({ serviceWorkers: "block" });
-  await proxyContext.route("**/api/**", async (route) => {
-    const req = route.request();
-    const url = new URL(req.url());
-    try {
-      const response = await proxyContext.request.fetch(
-        base + url.pathname + url.search,
-        {
-          method: req.method(),
-          headers: {
-            ...req.headers(),
-            host: "internal-render-service:10000",
-            origin: "https://tyre-management.onrender.com",
-            "x-forwarded-proto": "https",
+  for (const publicOrigin of [legacyOrigin, canonicalOrigin]) {
+    const proxyContext = await browser.newContext({ serviceWorkers: "block" });
+    await proxyContext.route("**/api/**", async (route) => {
+      const req = route.request();
+      const url = new URL(req.url());
+      try {
+        const response = await proxyContext.request.fetch(
+          base + url.pathname + url.search,
+          {
+            method: req.method(),
+            headers: {
+              ...req.headers(),
+              host: "internal-render-service:10000",
+              origin: publicOrigin,
+              "x-forwarded-proto": "https",
+            },
+            ...(req.postData() ? { data: req.postData() } : {}),
           },
-          ...(req.postData() ? { data: req.postData() } : {}),
-        },
-      );
-      await route.fulfill({ response });
-    } catch {
-      await route.abort().catch(() => {});
-    }
-  });
-  const proxyPage = await proxyContext.newPage();
-  await proxyPage.goto(base);
-  await proxyPage.locator("input[name=password]").fill("test-admin-password");
-  await proxyPage
-    .getByRole("button", { name: "Open my garage", exact: true })
-    .click();
-  await proxyPage
-    .getByRole("heading", { name: "Your fleet, at a glance" })
-    .waitFor();
-  await proxyPage.reload();
-  await proxyPage
-    .getByRole("heading", { name: "Your fleet, at a glance" })
-    .waitFor();
-  await proxyPage
-    .getByRole("button", { name: "Team & settings", exact: true })
-    .click();
-  await proxyPage
-    .getByRole("button", { name: "Sign out", exact: true })
-    .click();
-  await proxyPage.locator("input[name=password]").waitFor();
-  await proxyContext.close();
-  console.log(
-    "PASS: browser login, reload and logout behind Render's HTTPS-to-HTTP proxy using automatic public-URL configuration",
-  );
+        );
+        await route.fulfill({ response });
+      } catch {
+        await route.abort().catch(() => {});
+      }
+    });
+    const proxyPage = await proxyContext.newPage();
+    await proxyPage.goto(base);
+    await proxyPage.locator("input[name=password]").fill("test-admin-password");
+    await proxyPage
+      .getByRole("button", { name: "Open my garage", exact: true })
+      .click();
+    await proxyPage
+      .getByRole("heading", { name: "Your fleet, at a glance" })
+      .waitFor();
+    await proxyPage.reload();
+    await proxyPage
+      .getByRole("heading", { name: "Your fleet, at a glance" })
+      .waitFor();
+    await proxyPage
+      .getByRole("button", { name: "Team & settings", exact: true })
+      .click();
+    await proxyPage
+      .getByRole("button", { name: "Sign out", exact: true })
+      .click();
+    await proxyPage.locator("input[name=password]").waitFor();
+    await proxyContext.close();
+    console.log(
+      `PASS: browser login, reload and logout through the internal Render host using public origin ${publicOrigin}`,
+    );
+  }
   const context = await browser.newContext({ serviceWorkers: "block" });
   const page = await context.newPage();
   page.setDefaultTimeout(8000);
@@ -319,50 +398,20 @@ async function main() {
     serviceWorkers: "block",
     viewport: { width: 390, height: 844 },
   });
-  await nativeContext.addInitScript(() => {
-    window.CapacitorCustomPlatform = { name: "android" };
-    // A phone upgrading from 1.3 must use the server even if it last used local mode.
-    localStorage.setItem("ts-mode", JSON.stringify("local"));
-  });
+  const nativeTraffic = await prepareNative(nativeContext);
   const nativePage = await nativeContext.newPage();
   const nativeErrors = [];
   nativePage.on("pageerror", (e) => nativeErrors.push(e.message));
-  let nativeCalls = 0;
-  await nativeContext.route(
-    "https://tyre-management.onrender.com/api/**",
-    async (route) => {
-      nativeCalls++;
-      const request = route.request();
-      const cors = {
-        "access-control-allow-origin": base,
-        "access-control-allow-headers": "content-type, authorization",
-        "access-control-allow-methods": "GET, POST, OPTIONS",
-      };
-      if (request.method() === "OPTIONS")
-        return route.fulfill({ status: 204, headers: cors });
-      const result = await nativeContext.request.fetch(
-        base + new URL(request.url()).pathname + new URL(request.url()).search,
-        {
-          method: request.method(),
-          headers: {
-            "content-type": "application/json",
-            origin: "https://localhost",
-            ...(request.headers().authorization
-              ? { authorization: request.headers().authorization }
-              : {}),
-          },
-          ...(request.postData() ? { data: request.postData() } : {}),
-        },
-      );
-      await route.fulfill({
-        response: result,
-        headers: { ...result.headers(), ...cors },
-      });
-    },
-  );
   await nativePage.goto(base);
   await nativePage.locator("input[name=password]").waitFor();
-  assert.ok(nativeCalls > 0);
+  assert.ok(nativeTraffic.calls.length > 0);
+  assert.deepEqual(nativeTraffic.unexpected, []);
+  assert.equal(
+    await nativePage.evaluate(() =>
+      JSON.parse(localStorage.getItem("ts-server")),
+    ),
+    canonicalOrigin,
+  );
   assert.equal(
     await nativePage
       .getByRole("button", { name: "Use offline on this phone", exact: true })
@@ -380,15 +429,25 @@ async function main() {
   await nativePage
     .getByRole("heading", { name: "Your fleet, at a glance" })
     .waitFor();
-  assert.ok(
-    await nativePage.evaluate(() =>
-      /^[a-f0-9]{64}$/.test(JSON.parse(localStorage.getItem("ts-token"))),
-    ),
+  const nativeToken = await nativePage.evaluate(() =>
+    JSON.parse(localStorage.getItem("ts-token")),
   );
+  assert.match(nativeToken, /^[a-f0-9]{64}$/);
+  const callsBeforeNativeReopen = nativeTraffic.calls.length;
   await nativePage.reload();
   await nativePage
     .getByRole("heading", { name: "Your fleet, at a glance" })
     .waitFor();
+  assert.ok(
+    nativeTraffic.calls
+      .slice(callsBeforeNativeReopen)
+      .some(
+        (call) =>
+          new URL(call.url).pathname === "/api/me" &&
+          call.authorization === `Bearer ${nativeToken}`,
+      ),
+    "fresh Android reopen did not use its canonical-domain bearer session",
+  );
   await nativePage
     .getByRole("button", { name: "Team & settings", exact: true })
     .click();
@@ -424,9 +483,107 @@ async function main() {
     "desk_staff",
   );
   assert.deepEqual(nativeErrors, []);
+  assert.deepEqual(nativeTraffic.unexpected, []);
   console.log(
-    "PASS: Android opens the live server login directly; legacy local mode is ignored; bearer login, reopen, logout and direct staff login work",
+    "PASS: Android defaults to the canonical company domain; legacy local mode is ignored; bearer login, reopen, logout and direct staff login work",
   );
+
+  for (const fixture of [
+    {
+      name: "saved legacy URL with trailing slash",
+      savedServer: `${legacyOrigin}/`,
+    },
+    { name: "old implicit default without a saved URL" },
+  ]) {
+    const oldToken = "a".repeat(64);
+    const migratedContext = await browser.newContext({
+      serviceWorkers: "block",
+      viewport: { width: 390, height: 844 },
+    });
+    const migration = await prepareNative(migratedContext, {
+      ...fixture,
+      savedToken: oldToken,
+    });
+    const migratedPage = await migratedContext.newPage();
+    await migratedPage.goto(base);
+    await migratedPage.locator("input[name=password]").waitFor();
+    assert.ok(
+      migration.calls.length > 0,
+      `${fixture.name}: no startup requests`,
+    );
+    assert.deepEqual(
+      migration.unexpected,
+      [],
+      `${fixture.name}: contacted the legacy or an unexpected server`,
+    );
+    assert.ok(
+      migration.calls.every(
+        (call) => call.authorization !== `Bearer ${oldToken}`,
+      ),
+      `${fixture.name}: old bearer token sent to new domain`,
+    );
+    const snapshots = await migratedPage.evaluate(
+      () => window.nativeRequestSnapshots,
+    );
+    assert.ok(snapshots.length > 0);
+    assert.ok(
+      snapshots.every(
+        (snapshot) =>
+          snapshot.server === canonicalOrigin && snapshot.token === null,
+      ),
+      `${fixture.name}: storage was not migrated before startup requests`,
+    );
+    assert.equal(
+      await migratedPage.evaluate(() =>
+        JSON.parse(localStorage.getItem("ts-server")),
+      ),
+      canonicalOrigin,
+    );
+    assert.equal(
+      await migratedPage.evaluate(() => localStorage.getItem("ts-token")),
+      null,
+    );
+    await migratedPage
+      .locator("input[name=password]")
+      .fill("test-admin-password");
+    await migratedPage
+      .getByRole("button", { name: "Open my garage", exact: true })
+      .click();
+    await migratedPage
+      .getByRole("heading", { name: "Your fleet, at a glance" })
+      .waitFor();
+    const token = await migratedPage.evaluate(() =>
+      JSON.parse(localStorage.getItem("ts-token")),
+    );
+    assert.match(token, /^[a-f0-9]{64}$/);
+    assert.notEqual(token, oldToken);
+    const callsBeforeReopen = migration.calls.length;
+    await migratedPage.reload();
+    await migratedPage
+      .getByRole("heading", { name: "Your fleet, at a glance" })
+      .waitFor();
+    assert.ok(
+      migration.calls
+        .slice(callsBeforeReopen)
+        .some(
+          (call) =>
+            new URL(call.url).pathname === "/api/me" &&
+            call.authorization === `Bearer ${token}`,
+        ),
+      `${fixture.name}: reopening did not use the new session`,
+    );
+    assert.equal(
+      await migratedPage.evaluate(() =>
+        JSON.parse(localStorage.getItem("ts-token")),
+      ),
+      token,
+    );
+    assert.deepEqual(migration.unexpected, []);
+    await migratedContext.close();
+    console.log(
+      `PASS: Android migrates ${fixture.name}, clears the old token before all network calls, then signs in and reopens on the canonical domain`,
+    );
+  }
 }
 main()
   .catch((e) => {

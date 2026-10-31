@@ -1,6 +1,6 @@
 # Shepards Tyre Management
 
-English/Hindi tyre logbook for Shepards Shipping Services. The app uses one shared server and requires internet. Android defaults to **https://tyre-management.onrender.com/**. This is an original implementation, inspired by the requested tyre-management workflows.
+English/Hindi tyre logbook for Shepards Shipping Services. The app uses one shared server and requires internet. Android defaults to **https://www.shepards-tyre-management.com/**. This is an original implementation, inspired by the requested tyre-management workflows.
 
 ## Accounts and live records
 
@@ -45,11 +45,13 @@ The tyre map preserves the Horse/Trolley positions and shows full tyre IDs on on
 
 `test:layout` uses an isolated database and covers all seven brands × three conditions × two constructions × five statuses in English and Hindi, plus the exact reported regression and long custom values. It reviews 562 screen/form states across 320, 360, 390, 430, 700, 701, 960, 1200 and 1440 pixels, including branding alignment, full map IDs, metric text, long staff names, inspection and sale dialogs, card/control overlaps and page overflow. Viewport screenshots and a coverage summary are saved in ignored `artifacts/layout-review/`. These are automated Chromium checks; actual Android font/display settings and touch scrolling still need phone verification.
 
-Web version **1.8.1** removes the redundant Fleet Workspace/company/live-records block from the sidebar. The sidebar scrolls independently when a short window or browser zoom leaves too little height, keeping all six menu items and the profile/settings button accessible by mouse and keyboard. Sidebar branding adapts to its available width. `test:sidebar` covers admin/staff accounts, English/Hindi, desktop widths 701–1440 and heights 320–768, plus the mobile navigation. The downloadable Android APK remains **1.8.0**; this patch addresses the browser sidebar.
+Version **1.8.1** removes the redundant Fleet Workspace/company/live-records block from the sidebar. The sidebar scrolls independently when a short window or browser zoom leaves too little height, keeping all six menu items and the profile/settings button accessible by mouse and keyboard. Sidebar branding adapts to its available width. `test:sidebar` covers admin/staff accounts, English/Hindi, desktop widths 701–1440 and heights 320–768, plus the mobile navigation.
 
 ## Android update
 
-[Download Shepards Tyre Management 1.8.0](https://github.com/daco1703/Tyre-Management/blob/main/downloads/Shepards-Tyre-Management-1.8-test.apk?raw=true).
+[Download Shepards Tyre Management 1.8.2](https://github.com/daco1703/Tyre-Management/blob/main/downloads/Shepards-Tyre-Management-1.8.2-test.apk?raw=true).
+
+Version **1.8.2** uses **https://www.shepards-tyre-management.com/** for new installations and migrates phones using the old default or a saved `https://tyre-management.onrender.com` address. The phone saves the new address and clears its old bearer token before its first network request, so sign in again after updating. Separately chosen custom HTTPS servers remain selected. This changes the connection address; it does not copy records between different servers or provision DNS/HTTPS. Browser requests continue to use the website's own origin.
 
 Install as an update over the earlier APK. The package ID and test signing certificate are unchanged. Open the app and sign in directly to the live server with admin or assigned staff credentials. **Forgot username/password** displays **Contact the admin.** Under Team & settings, admin can add/remove staff. Existing offline preferences do not restore offline access. **Change server** can configure another HTTPS origin if needed.
 
@@ -85,9 +87,11 @@ Output: `android/app/build/outputs/apk/debug/app-debug.apk`. Keep the same signi
 
 ## Production server
 
-The fleet's live address is **https://tyre-management.onrender.com/**. The current browser/server version is **1.8.1**, compatible with the **1.8.0** Android APK. Deploy the repository's `main` branch using the Render service's existing settings; if automatic deployments are disabled, use **Manual Deploy → Deploy latest commit**. The public `GET /api/health` response includes `ok` and the running version; it contains no fleet records. Existing users, inventory and logs stay in the database when it is on persistent storage.
+The fleet's shared address is **https://www.shepards-tyre-management.com/**. The current browser/server and Android versions are **1.8.2**. Deploy the repository's `main` branch using the Render service's existing settings; if automatic deployments are disabled, use **Manual Deploy → Deploy latest commit**. The public `GET /api/health` response includes `ok` and the running version; it contains no fleet records. Existing users, inventory and logs stay in the database when it is on persistent storage.
 
-Version **1.8.1** retains the earlier fix for browser login behind Render's HTTPS proxy. The server reads Render's built-in `RENDER_EXTERNAL_URL` as its allowed public website origin and detects the standard Render proxy automatically. For a custom domain or another host, set `PUBLIC_ORIGIN` to the exact HTTPS origin (for example `https://tyres.example.com`, without a path). An explicit `TRUST_PROXY=0/1` overrides automatic proxy detection. Foreign website origins remain rejected. After deploying, `/api/health` should report version `1.8.1`.
+Version **1.8.2** retains the earlier fix for browser login behind Render's HTTPS proxy. Set `PUBLIC_ORIGIN=https://www.shepards-tyre-management.com` (without a trailing slash) in the existing Render service. The Blueprint includes that value and the `www.shepards-tyre-management.com` custom domain. Connect/verify the domain under Render **Settings → Custom Domains** and apply Render's DNS instructions at the domain provider; the domain must serve HTTPS before phones can connect. Repository changes do not update DNS or verify a manually configured service.
+
+Without an explicit `PUBLIC_ORIGIN`, Render's built-in `RENDER_EXTERNAL_URL` remains allowed and the exact HTTPS company domain is additionally allowed, including when Render forwards an internal HTTP Host. An explicit `PUBLIC_ORIGIN` overrides these automatic choices. Unrelated websites, lookalike domains and forged forwarding headers remain rejected. An explicit `TRUST_PROXY=0/1` overrides automatic proxy detection. After deploying, `/api/health` should report version `1.8.2`. `test:login` covers both public browser origins and native fresh-install/upgrade sign-in and token isolation using local fixtures; it does not verify live DNS or TLS.
 
 Use one instance with persistent storage and HTTPS. The supplied `render.yaml` prepares a Node 24 service and 1 GB persistent disk; new deployments require the owner's Render account and review of current charges. Build with `npm ci --include=dev && npm test && npm run build && npm prune --omit=dev`, start with `npm start`. On Render set `DATABASE_PATH=/var/data/tyresaathi.sqlite`, `NODE_ENV=production`, `TRUST_PROXY=1`, and retain the disk mounted at `/var/data`.
 

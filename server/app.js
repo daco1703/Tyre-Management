@@ -27,8 +27,13 @@ export function createApp({
   production = false,
   trustProxy = false,
   publicOrigin = "",
+  additionalPublicOrigins = [],
 } = {}) {
-  const websiteOrigin = normalizePublicOrigin(publicOrigin);
+  const websiteOrigins = new Set(
+    [publicOrigin, ...additionalPublicOrigins]
+      .map(normalizePublicOrigin)
+      .filter(Boolean),
+  );
   if (dbPath !== ":memory:")
     mkdirSync(path.dirname(dbPath), { recursive: true });
   const db = new DatabaseSync(dbPath);
@@ -93,7 +98,7 @@ export function createApp({
         req.method === "POST" &&
         origin &&
         !native &&
-        origin !== websiteOrigin &&
+        !websiteOrigins.has(origin) &&
         origin !== `${req.protocol}://${req.get("host")}`
       )
         return res.status(403).json({ error: "originDenied" });
@@ -206,7 +211,7 @@ export function createApp({
     res.json(branding);
   });
   app.get("/api/health", (req, res) =>
-    res.json({ ok: true, version: "1.8.1" }),
+    res.json({ ok: true, version: "1.8.2" }),
   );
   app.get("/api/bootstrap", (req, res) => res.json({ setupRequired: false }));
   app.post("/api/login", authLimit, (req, res) => {
