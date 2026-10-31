@@ -1,6 +1,6 @@
 {
   "name": "tyresaathi",
-  "version": "1.8.3",
+  "version": "1.9.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -15,6 +15,11 @@
     "android:build": "npm run android:sync && cd android && ./gradlew assembleDebug",
     "test:ui": "node tests/ui-smoke.cjs",
     "backup": "node server/backup.js",
+    "backup:postgres": "node server/backup-postgres.js",
+    "migrate:postgres": "node server/migrate-postgres.js",
+    "restore:postgres": "node server/restore-postgres.js",
+    "reset-password:postgres": "node server/reset-password-postgres.js",
+    "test:postgres": "node --test tests/postgres.test.js tests/recovery.test.js",
     "test:login": "node tests/login-ui.cjs",
     "test:layout": "node tests/layout-ui.cjs",
     "test:sidebar": "node tests/sidebar-ui.cjs"
@@ -29,6 +34,7 @@
     "@fontsource/noto-sans-devanagari": "^5.2.5",
     "express": "5.3.0",
     "lucide-react": "0.468.0",
+    "pg": "8.23.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "read-excel-file": "9.3.12",

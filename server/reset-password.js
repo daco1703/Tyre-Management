@@ -2,6 +2,12 @@ import { DatabaseSync } from "node:sqlite";
 import { randomBytes, scryptSync } from "node:crypto";
 import { existsSync } from "node:fs";
 const source = process.env.DATABASE_PATH || "./data/tyresaathi.sqlite";
+if (process.env.DATABASE_URL || process.env.POSTGRES_URL) {
+  console.error(
+    "PostgreSQL is configured. Use npm run reset-password:postgres -- <username> with FLEET_ADMIN_PASSWORD set securely.",
+  );
+  process.exit(1);
+}
 const username = process.argv[2]?.trim().toLowerCase();
 const password = process.env.FLEET_ADMIN_PASSWORD;
 if (

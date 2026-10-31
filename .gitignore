@@ -2,6 +2,11 @@ node_modules/
 dist/
 data/
 .env
+.env.*
+.vercel/
+backups/
+*.sqlite
+*.sqlite-*
 *.log
 android/.gradle/
 android/local.properties

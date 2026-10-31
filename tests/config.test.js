@@ -78,3 +78,46 @@ test("public origin must be a single HTTPS website origin", () => {
     );
   }
 });
+
+test("Vercel uses the company origin and exact platform-injected deployment hosts", () => {
+  assert.deepEqual(
+    deploymentOptions({
+      VERCEL: "1",
+      VERCEL_URL: "tyre-management-a1b2-shepards.vercel.app",
+      VERCEL_BRANCH_URL: "tyre-management-git-main-shepards.vercel.app",
+      VERCEL_PROJECT_PRODUCTION_URL: "tyre-management-shepards.vercel.app",
+    }),
+    {
+      trustProxy: true,
+      publicOrigin: "https://www.shepards-tyre-management.com",
+      additionalPublicOrigins: [
+        "https://www.shepards-tyre-management.com",
+        "https://tyre-management-git-main-shepards.vercel.app",
+        "https://tyre-management-a1b2-shepards.vercel.app",
+        "https://tyre-management-shepards.vercel.app",
+      ],
+    },
+  );
+  const options = deploymentOptions({
+    VERCEL: "1",
+    PUBLIC_ORIGIN: "https://another-fleet.example",
+    TRUST_PROXY: "0",
+    VERCEL_URL: "tyre-management-a1b2-shepards.vercel.app",
+  });
+  assert.deepEqual(options, {
+    trustProxy: false,
+    publicOrigin: "https://another-fleet.example",
+  });
+  for (const host of [
+    "evil.example",
+    "vercel.app.evil.example",
+    "user:password@fleet.vercel.app",
+    "fleet.vercel.app/path",
+  ]) {
+    assert.deepEqual(
+      deploymentOptions({ VERCEL: "1", VERCEL_URL: host })
+        .additionalPublicOrigins,
+      ["https://www.shepards-tyre-management.com", fleetPreviewOrigin],
+    );
+  }
+});

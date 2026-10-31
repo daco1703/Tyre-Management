@@ -131,6 +131,7 @@ function App() {
     [toast, setToast] = useState(null);
   const [offline, setOffline] = useState(!navigator.onLine),
     [needsServer, setNeedsServer] = useState(native && !server);
+  const [pageVisible, setPageVisible] = useState(!document.hidden);
   const dict = lang === "hi" ? hi : en;
   const t = (key) => dict[key] || en[key] || key;
   const n = (value) =>
@@ -255,24 +256,34 @@ function App() {
       setOffline(true);
       setModal(null);
     };
+    const visibility = () => {
+      setPageVisible(!document.hidden);
+      if (!document.hidden) online();
+    };
     window.addEventListener("online", online);
     window.addEventListener("offline", off);
-    document.addEventListener("visibilitychange", online);
+    document.addEventListener("visibilitychange", visibility);
     return () => {
       window.removeEventListener("online", online);
       window.removeEventListener("offline", off);
-      document.removeEventListener("visibilitychange", online);
+      document.removeEventListener("visibilitychange", visibility);
     };
   }, [session]);
   useEffect(() => {
-    if (!session || offline || bootError) return;
+    if (
+      !session ||
+      offline ||
+      bootError ||
+      (boot?.updatesMode === "poll" && !pageVisible)
+    )
+      return;
     const controller = new AbortController();
     const version = initVersion.current;
     async function watch() {
       while (!controller.signal.aborted && version === initVersion.current) {
         try {
           const data = await request(
-            `/updates?revision=${stateRef.current?.revision ?? 0}`,
+            `/updates?revision=${stateRef.current?.revision ?? 0}${boot?.updatesMode === "poll" ? "&poll=1" : ""}`,
             undefined,
             {
               signal: AbortSignal.any([
@@ -284,6 +295,23 @@ function App() {
           if (controller.signal.aborted || version !== initVersion.current)
             return;
           receiveState(data);
+          if (boot?.updatesMode === "poll") {
+            // Vercel instances share PostgreSQL state, not an in-process
+            // notifier. Wait between reads, and cancel promptly on sign-out.
+            await new Promise((resolve) => {
+              const done = () => {
+                clearTimeout(timer);
+                controller.signal.removeEventListener("abort", done);
+                resolve();
+              };
+              const timer = setTimeout(
+                done,
+                Math.max(1000, Math.min(10000, boot.pollIntervalMs || 5000)),
+              );
+              controller.signal.addEventListener("abort", done, { once: true });
+              if (controller.signal.aborted) done();
+            });
+          }
         } catch (e) {
           if (controller.signal.aborted || version !== initVersion.current)
             return;
@@ -301,7 +329,14 @@ function App() {
     }
     watch();
     return () => controller.abort();
-  }, [session, offline, bootError]);
+  }, [
+    session,
+    offline,
+    bootError,
+    boot?.updatesMode,
+    boot?.pollIntervalMs,
+    pageVisible,
+  ]);
   async function action(kind, payload) {
     if (offline) throw { code: "offlineHint" };
     try {
@@ -502,7 +537,7 @@ function App() {
             <footer className="page-footer">
               <CircleDot size={14} />
               {t("tagline")}
-              <span>Shepards Tyre Management · v1.8.3</span>
+              <span>Shepards Tyre Management · v1.9</span>
             </footer>
           </div>
           <nav className="bottom-nav">

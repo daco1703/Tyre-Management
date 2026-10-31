@@ -9,7 +9,7 @@ English/Hindi tyre logbook for Shepards Shipping Services. The app uses one shar
 - Only the admin can add vehicles manually or import vehicles from Excel; the server rejects staff requests for both actions. Staff can view vehicles and record tyre work.
 - Only the admin can **Remove staff**. This revokes all that staff member's sessions, including waiting live connections. Historical entries are retained. Staff can change their own passwords and record inventory movements, but cannot create/remove accounts.
 - Every vehicle/tyre entry, fitment, removal, remold, scrap, odometer update and imported vehicle is recorded with the authenticated username and server timestamp. Clients cannot choose a different author. The logbook and CSV/JSON reports retain this attribution.
-- All accounts on the server see the same data. Authenticated live-update requests wait for committed changes and deliver them to connected phones immediately. Waiting requests refresh at least every 10 seconds. Revisions and SQLite transactions reject conflicting writes rather than overwrite another user's work.
+- All accounts using the same database see the same data. PostgreSQL/Vercel clients poll committed records every five seconds while the app is visible, and refresh when reopened. Older APKs remain compatible through bounded waiting requests. SQLite installations retain immediate in-process notifications. Database transactions recheck the current session and revision so conflicting staff writes cannot overwrite records.
 - There is no offline-login or offline-entry option. Losing connectivity displays **You are offline. Please connect to the internet.** (with a Hindi translation) and blocks entries. Reconnecting refreshes shared records. The app shell can cache only so this warning can be shown when offline; API data is not service-worker cached.
 - Upgrading from the older offline APK ignores its local-mode preference. Existing IndexedDB records are not erased or automatically uploaded; they are separate from the live server. Export any needed local records using the old version before upgrading. Do not uninstall/clear storage to update.
 
@@ -49,9 +49,9 @@ Version **1.8.1** removes the redundant Fleet Workspace/company/live-records blo
 
 ## Android update
 
-[Download Shepards Tyre Management 1.8.2](https://github.com/daco1703/Tyre-Management/blob/main/downloads/Shepards-Tyre-Management-1.8.2-test.apk?raw=true).
+[Download Shepards Tyre Management 1.9.0](https://github.com/daco1703/Tyre-Management/blob/main/downloads/Shepards-Tyre-Management-1.9-test.apk?raw=true).
 
-Version **1.8.2** uses **https://www.shepards-tyre-management.com/** for new installations and migrates phones using the old default or a saved `https://tyre-management.onrender.com` address. The phone saves the new address and clears its old bearer token before its first network request, so sign in again after updating. Separately chosen custom HTTPS servers remain selected. This changes the connection address; it does not copy records between different servers or provision DNS/HTTPS. Browser requests continue to use the website's own origin.
+Version **1.9.0** uses **https://www.shepards-tyre-management.com/** for new installations and migrates phones using the old default or a saved `https://tyre-management.onrender.com` address. The phone saves the new address and clears its old bearer token before its first network request, so sign in again after updating. Separately chosen custom HTTPS servers remain selected. The app now supports the Vercel/PostgreSQL backend, accurate server-error messages and five-second shared updates. Changing the address does not copy records between different databases or provision DNS/HTTPS. Browser requests continue to use the website's own origin.
 
 Install as an update over the earlier APK. The package ID and test signing certificate are unchanged. Open the app and sign in directly to the live server with admin or assigned staff credentials. **Forgot username/password** displays **Contact the admin.** Under Team & settings, admin can add/remove staff. Existing offline preferences do not restore offline access. **Change server** can configure another HTTPS origin if needed.
 
@@ -85,73 +85,80 @@ npm run android:build
 
 Output: `android/app/build/outputs/apk/debug/app-debug.apk`. Keep the same signing key for updates; do not commit keystores. Use a protected release keystore for production distribution. Android cleartext traffic and device/cloud backups are disabled. Fonts are bundled.
 
-## Production server
+## Vercel deployment (1.9 — no Render dependency)
 
-The fleet's shared address is **https://www.shepards-tyre-management.com/**. The current browser/server version is **1.8.3**, compatible with the **1.8.2** Android APK. The website can be hosted on Vercel with the API on Render, or the entire app can be hosted on Render. Both use the existing Express/SQLite backend. Deploy the repository's `main` branch using the Render service's existing settings; if automatic deployments are disabled, use **Manual Deploy → Deploy latest commit**. The public `GET /api/health` response includes `ok` and the running version; it contains no fleet records. Existing users, inventory and logs stay in the database when it is on persistent storage.
+Vercel now hosts both the website and its API. A durable external PostgreSQL database, such as **Neon**, stores accounts, sessions, vehicles, tyres and log entries. `vercel.json` routes `/api/*` to the bundled Node function `api/index.js`; it makes no requests to Render. SQLite remains available for local development and older standalone installations, and is never used as a fallback inside Vercel.
 
-### Vercel website with the existing Render backend
+### Connect the database and publish
 
-`vercel.json` configures Vite, `npm run build`, and output directory `dist`. Requests under `/api/` are rewritten to `https://tyre-management.onrender.com/api/`, so the website can reach login, fleet records and live updates. The direct Render address is deliberate: rewriting to the company domain would loop when that domain points to Vercel. Build logs ending in **Deployment completed** indicate a successful build; publishing only `dist` without the API rewrite leaves the website unable to connect.
+1. Open the Vercel project, choose **Storage → Create Database** (or browse **Marketplace**) and select **Neon / PostgreSQL**. Create or select a database, then connect it to this project. Review the provider's plan in that UI. The integration should add a private **DATABASE_URL** environment variable. **POSTGRES_URL** is also supported. Do not add a `VITE_` prefix or put credentials in source/chat.
+2. Enable the database connection for **Production** and for **Preview** if testing preview deployments. Production staff should use the production company domain. Provider-managed preview branches may have separate test records; they do not automatically share production data.
+3. Deploy the latest `main` commit. Use the repository root, **Vite**, build command **npm run build**, output directory **dist**, and Node **24.x**. The API creates its tables and seeds the admin exactly once on first connection; changed passwords/accounts are preserved across cold starts and redeploys.
+4. Under **Settings → Domains**, add **www.shepards-tyre-management.com**. Apply the exact DNS targets Vercel displays at the domain registrar and wait for its domain/HTTPS status to become valid. Do not guess a CNAME or IP address.
+5. Under **Settings → Deployment Protection**, allow public access on the deployment used by staff/Android. App sign-in still protects fleet data. A redirect to a Vercel account-login page prevents the Android API from working.
+6. Open **https://www.shepards-tyre-management.com/api/health**. It should return **`{"ok":true,"version":"1.9.0"}`**. This performs a live database query. `databaseNotConfigured` means connect the database/environment variable and redeploy; `databaseUnavailable` means the configured database could not be reached. These failures return JSON 503, never a new temporary database.
 
-1. Import this repository into Vercel, use the repository root, and deploy the latest `main` commit. Keep the Vite preset, build command `npm run build`, output directory `dist`, and Node 24. The npm `cache-dir`/install-script messages in the reported successful build were warnings, not build failures.
-2. Add `www.shepards-tyre-management.com` under the Vercel project's **Settings → Domains** and apply Vercel's DNS instructions at the domain provider. For this arrangement, that hostname points to Vercel; Render remains reachable at its direct `.onrender.com` address. The Render Blueprint's custom-domain entry is only for direct Render website hosting and is unnecessary for this arrangement.
-3. Keep the Render backend running and set its `PUBLIC_ORIGIN=https://www.shepards-tyre-management.com`, `NODE_ENV=production`, and `TRUST_PROXY=1`. Use the company domain or the exact main-branch preview `https://tyre-management-git-main-shepards.vercel.app` to sign in. Other Vercel projects/preview URLs remain rejected by the backend's exact-origin checks. If using a different deployment hostname, configure its origin explicitly.
-4. Verify `https://www.shepards-tyre-management.com/api/health` returns JSON with `ok: true`, then check browser and Android sign-in. Production access must be public for staff phones to use the API. Website files and API responses should not redirect to a Vercel account-login page.
+Connecting a new database starts a new fleet unless a full existing backup is imported. Keep any Render records/accounts or full SQLite backup until migration is verified. The old Render health result `1.8.2` describes that older service, not the new Vercel deployment. No old records have been copied merely by changing the app's address. Render can be retired after the Vercel/database setup and any required import are verified.
 
-This configuration hosts the **website on Vercel and the database/API on Render**. Vercel does not run `npm start` as a persistent database server for this Vite deployment. Do not move SQLite to a Vercel Function's `/tmp` directory: that would still be temporary, isolated storage. Moving the whole backend to Vercel requires a durable external database and a storage-layer migration. Keeping a Render Free backend retains the data-loss limitation described below; the API rewrite does not add persistence or automatic backups. Local build and proxy-origin tests do not verify the live Vercel project, DNS, deployment protection, or Render availability.
+### Shared writes and authentication
 
-Version **1.8.3** distinguishes a device that is offline from a server/network error, an HTML/malformed API response, an unavailable upstream and a request timeout. The website no longer reports that internet is disconnected simply because a server returned an error. The first connection allows up to 60 seconds for a cold backend to start; Retry reloads authoritative records and resumes live updates. These message changes do not restore a suspended service or configure domains.
+Each Vercel instance uses a bounded PostgreSQL pool with certificate verification enabled. Initial schema/seed creation and all account/session/fleet writes share a transaction-scoped advisory lock. A write revalidates the authenticated user and session inside that transaction, checks the revision and commits the full action atomically. Removing staff, changing passwords and revoking sessions therefore applies across instances. Login limits are stored in the database as well. A failed initialization can retry on the next request without poisoning a warm instance.
 
-When troubleshooting deployment, check both `https://tyre-management.onrender.com/api/health` and the Vercel hostname's `/api/health`. They should return JSON, without requiring Vercel account sign-in. A suspended Render service must be resumed for this architecture to work. A Vercel login page indicates **Deployment Protection**, which must permit public access on the deployment used by staff and Android. If the main domain says **This site can't be reached**, add that exact hostname under **Vercel → Settings → Domains**, then use the DNS records/targets Vercel displays at the domain registrar; do not guess an IP or CNAME. A missing domain entry/DNS/HTTPS problem happens before React loads and cannot be fixed in the app's interface.
+The frontend uses a five-second polling interval and stops polling when hidden or signed out. Each poll reads authoritative committed records; it does not rely on another function's memory. Existing APKs that lack polling hints receive bounded waiting responses. The company origin, exact main-branch preview, and exact deployment hostnames injected by Vercel are accepted for this fleet. Other websites and spoofed forwarding headers remain rejected. An explicit **PUBLIC_ORIGIN** for another fleet disables these automatic fleet origins. Set **TRUST_PROXY=0/1** only to override the platform's standard proxy detection.
 
-### Direct Render hosting
+A missing database, suspended/failed service or an HTML error page is shown as a server problem. The offline message is reserved for the device's offline state. The initial connection allows up to 60 seconds; Retry fetches authoritative records and resumes updates. None of this configures the Vercel account, DNS or database integration automatically.
 
-Version **1.8.2** retains the earlier fix for browser login behind Render's HTTPS proxy. Set `PUBLIC_ORIGIN=https://www.shepards-tyre-management.com` (without a trailing slash) in the existing Render service. The Blueprint includes that value and the `www.shepards-tyre-management.com` custom domain. Connect/verify the domain under Render **Settings → Custom Domains** and apply Render's DNS instructions at the domain provider; the domain must serve HTTPS before phones can connect. Repository changes do not update DNS or verify a manually configured service.
+### Validation
 
-Without an explicit `PUBLIC_ORIGIN`, Render's built-in `RENDER_EXTERNAL_URL` remains allowed and the exact HTTPS company domain/main-branch preview are additionally allowed, including when Render forwards an internal HTTP Host. Setting `PUBLIC_ORIGIN` to the company domain also permits that one preview. An explicit public origin for another host overrides the fleet defaults. Unrelated websites, lookalike domains and forged forwarding headers remain rejected. An explicit `TRUST_PROXY=0/1` overrides automatic proxy detection. After deploying, `/api/health` should report version `1.8.3`. `test:login` covers these public browser origins, native fresh-install/upgrade sign-in and token isolation, and server-error/offline recovery in both languages using local fixtures; it does not verify live DNS or TLS.
-
-Use one instance with persistent storage and HTTPS. The supplied `render.yaml` prepares a Node 24 service and 1 GB persistent disk; new deployments require the owner's Render account and review of current charges. Build with `npm ci --include=dev && npm test && npm run build && npm prune --omit=dev`, start with `npm start`. On Render set `DATABASE_PATH=/var/data/tyresaathi.sqlite`, `NODE_ENV=production`, `TRUST_PROXY=1`, and retain the disk mounted at `/var/data`.
-
-Render Free does not provide persistent disks. With the current SQLite backend, an ephemeral database can disappear on restart or redeployment. A committed `render.yaml` does not prove that an existing service has applied its disk configuration. Preserve the live database before changing deployments or paths; CSV/JSON exports retain records but omit staff accounts and have no restore screen. Use a supported persistent disk or migrate to a durable external database before relying on this server for business records. Automatic off-server backups are not configured.
-
-For a VPS, Docker Compose and Caddy configuration are included:
+The default **npm test** suite retains the SQLite/model/API regressions and serverless missing-configuration checks. Optional real PostgreSQL tests require an isolated **local** disposable instance with a role allowed to create test databases; they create/drop unique child databases and refuse a non-loopback test host:
 
 ```sh
-FLEET_DOMAIN=tyres.your-domain.in docker compose up -d --build
+# Set TEST_DATABASE_URL securely to a disposable local PostgreSQL instance.
+npm run test:postgres
+# Include the real React + Vercel handler + two-instance browser check:
+BROWSER_PATH=/usr/bin/chromium npm run test:postgres
 ```
 
-Configure DNS and ports 80/443. Keep the persistent `fleet_data` volume. Never run `docker compose down -v` against business records. Docker deployment still needs verification on the selected host; the Node production workflow and Android build are validated separately.
+Checks cover concurrent initialization, persistence after a cold restart, duplicate/revision races, atomic import/vehicle sales, cross-instance staff/password revocation, native bearer auth, rewritten API paths, recovery refusal/rollback and spaced browser polling. Local tests are not verification of the live Vercel project, provider integration, DNS or deployment-protection settings.
 
-Environment variables: `PORT` (3000), `DATABASE_PATH` (`./data/tyresaathi.sqlite`), `NODE_ENV` (`production` for hosting), and `TRUST_PROXY` (`1` only behind one trusted proxy). Sessions use HttpOnly/SameSite=Strict/Secure cookies on the website and revocable seven-day bearer tokens in Android. Passwords use salted scrypt hashes. Change the initial admin password before sharing access.
+## Backup, migration and recovery
 
-## Backup and restore
+UI JSON/CSV exports are reports: they omit staff password hashes and are **not** the complete backup format used below. The PostgreSQL recovery tools preserve users (including password hashes), fleet settings and all log records. They deliberately omit sessions/rate limits; everyone signs in again after import. Automated off-server backup scheduling and provider recovery retention are separate from the connection setup.
 
-The UI’s CSV/JSON exports are useful reports. JSON includes tyre/vehicle/movement records but **does not include accounts, and there is no JSON import UI**. Use the consistent SQLite backup command for complete recovery, including accounts:
+Use **DATABASE_URL** privately in the operator's environment (or **POSTGRES_URL** for the runtime); never put it in shell arguments or committed files. Every destination backup file must be new; files are created with private permissions. Keep dated copies off the application host.
 
 ```sh
-# For local/Node hosting. The destination must be a new file.
-npm run backup -- /secure/backup/location/fleet-2026-10-22.sqlite
+# Full PostgreSQL account + fleet backup:
+npm run backup:postgres -- /secure/backups/fleet-backup.json
 
-# In the Docker deployment, create a consistent backup then copy it off the host.
-docker compose exec app node server/backup.js /app/data/fleet-backup.sqlite
-docker compose cp app:/app/data/fleet-backup.sqlite ./fleet-backup.sqlite
+# Migrate a supplied COMPLETE SQLite backup into a pristine PostgreSQL database:
+npm run migrate:postgres -- /secure/backups/old-fleet.sqlite
+
+# Restore a full PostgreSQL JSON backup into a pristine PostgreSQL database:
+npm run restore:postgres -- /secure/backups/fleet-backup.json
 ```
 
-Keep dated backups outside the host and restrict access: they contain business data and password hashes. For restore, stop the app, preserve the current database and its `-wal`/`-shm` files as a rollback copy, then replace the database with the backup. Remove old WAL/SHM files from the restored database path **only while the app is stopped and after preserving them**. Preserve correct filesystem ownership and start the app again. Check sign-in and stock totals. A restored backup may restore sessions that were active at backup time; revoke them if the backup was exposed. Verify restore on a separate instance before relying on a backup strategy.
+Imports are atomic and refuse a target with existing records, changed admin credentials, additional staff/settings, or a prior-import marker. They preserve user IDs, usernames, hashes, vehicle/tyre IDs and history, reset the user sequence, and revoke sessions. Invalid data or a failed import rolls back. Test recovery against a separate database before relying on a backup. These tools never write to the old source database or overwrite live PostgreSQL data.
 
-### Account recovery by a server administrator
+For an older standalone SQLite installation, **npm run backup -- /secure/backups/fleet.sqlite** creates a consistent SQLite backup. Preserve the live database and WAL/SHM files before any manual replacement. The SQLite backup and password-reset commands explicitly refuse PostgreSQL configuration so an operator cannot accidentally back up/reset an unrelated local file.
 
-Run locally on the server, after a full backup. Do not put the new password in command arguments or chat. Bash can collect it without echoing or storing it in shell history:
+### Account recovery
+
+After a full backup, an operator can reset an active account without printing the new password:
 
 ```sh
 read -r -s -p 'New password (10+ characters): ' FLEET_ADMIN_PASSWORD
 export FLEET_ADMIN_PASSWORD
-node server/reset-password.js your_username
+npm run reset-password:postgres -- your_username
 unset FLEET_ADMIN_PASSWORD
 ```
 
-Set `DATABASE_PATH` if needed. This resets an existing active account and revokes all its sessions. The command never prints the password. Container operators can pass it through their host’s secure environment mechanism.
+This revokes all of that user's sessions. For a standalone SQLite installation without PostgreSQL configured, use **node server/reset-password.js your_username** with the same private environment variable.
+
+### Standalone development/legacy hosting
+
+**npm run dev** uses SQLite at **./data/tyresaathi.sqlite** by default. Set **DATABASE_URL** to use PostgreSQL on a continuously running Node server as well. The included Docker/Compose/Caddy and Render files remain legacy examples; the Vercel deployment does not call those services. SQLite hosting needs a persistent disk/volume and one instance. Never rely on a temporary filesystem for business records or remove the data volume during an upgrade.
 
 ## Limits
 
-One fleet per server. Large histories or many concurrent users may need a normalized database later. GPS tracking, purchase costs, automatic remote backups, Play Store publication and automatic migration of old phone-only records are not included. Keep dated off-server backups and verify restoration.
+One fleet per database. Large histories or many concurrent users may need a normalized database later. GPS tracking, purchase costs, automatic remote backups, Play Store publication and automatic migration of old phone-only records are not included. Keep dated off-server backups and verify restoration.

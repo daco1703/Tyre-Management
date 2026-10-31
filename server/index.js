@@ -1,14 +1,8 @@
-import { createApp } from "./app.js";
+import { createRuntime } from "./runtime.js";
 import express from "express";
 import path from "node:path";
-import { deploymentOptions } from "./config.js";
 const production = process.env.NODE_ENV === "production";
-const dbPath = process.env.DATABASE_PATH || "./data/tyresaathi.sqlite";
-const { app, db } = createApp({
-  dbPath,
-  production,
-  ...deploymentOptions(process.env),
-});
+const { app, store } = createRuntime();
 if (production) {
   app.use(express.static(path.resolve("dist"), { index: false }));
   app.get("/{*path}", (req, res) =>
@@ -29,8 +23,8 @@ const server = app.listen(Number(process.env.PORT || 3000), "0.0.0.0", () =>
 );
 for (const signal of ["SIGTERM", "SIGINT"])
   process.on(signal, () =>
-    server.close(() => {
-      db.close();
+    server.close(async () => {
+      await store.close();
       process.exit(0);
     }),
   );
