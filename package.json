@@ -29,6 +29,8 @@
     "release:set": "node scripts/release.js set",
     "ios:sync": "npm run build && cap sync ios",
     "ios:open": "cap open ios",
+    "capacitor:sync:after": "node scripts/ios-spm-compat.js",
+    "capacitor:update:after": "node scripts/ios-spm-compat.js",
     "test:ios": "node tests/ios-ui.cjs",
     "bundle:release": "npm run check:versions && npm run build && cap sync android && cap sync ios && node scripts/bundle-release.js"
   },

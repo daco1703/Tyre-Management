@@ -4,6 +4,8 @@ The native project is [App.xcodeproj](../ios/App/App.xcodeproj), with shared sch
 
 The project uses **Swift Package Manager**, with Capacitor pinned to 7.6.9. App, Filesystem and Share plugins reference the installed npm packages, so run `npm ci` before opening Xcode. Xcode resolves Capacitor and the Filesystem plugin's native dependency from GitHub. CocoaPods is not required.
 
+Capacitor 7 generates a Swift 5.9 manifest using the iOS 18 enum that requires PackageDescription 6.0. The repository's `capacitor:sync:after` and `capacitor:update:after` hooks replace that platform declaration with `.iOS("18.0")`, preserving the app's deployment target and all dependencies. Keep these hooks when changing sync commands; a manual edit alone would be overwritten by the next sync.
+
 ## Build and run on a Mac
 
 Install Xcode 16 or newer with an iOS 18-or-newer Simulator runtime, and Node 24. Use an Xcode/SDK version currently accepted by Apple when preparing a store submission. From the repository root:
