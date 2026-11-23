@@ -7,7 +7,8 @@ const assert = require("node:assert/strict");
 const root = path.resolve(__dirname, "..");
 const temp = mkdtempSync(path.join(tmpdir(), "shepards-login-"));
 const base = "http://127.0.0.1:3120";
-const canonicalOrigin = "https://www.shepards-tyre-management.com";
+const canonicalOrigin = "https://tyre-management-shepards.vercel.app";
+const companyOrigin = "https://www.shepards-tyre-management.com";
 const legacyOrigin = "https://tyre-management.onrender.com";
 const previewOrigin = "https://tyre-management-git-main-shepards.vercel.app";
 const seeded = spawnSync(
@@ -162,7 +163,7 @@ async function main() {
   });
   // Exercise both public HTTPS origins through an internal Vercel function
   // hostname, using the runtime's real deployment-origin configuration.
-  for (const publicOrigin of [canonicalOrigin, previewOrigin]) {
+  for (const publicOrigin of [companyOrigin, canonicalOrigin, previewOrigin]) {
     const proxyContext = await browser.newContext({ serviceWorkers: "block" });
     await proxyContext.route("**/api/**", async (route) => {
       const req = route.request();
@@ -620,7 +621,7 @@ async function main() {
   assert.deepEqual(nativeErrors, []);
   assert.deepEqual(nativeTraffic.unexpected, []);
   console.log(
-    "PASS: Android defaults to the canonical company domain; legacy local mode is ignored; bearer login, reopen, logout and direct staff login work",
+    "PASS: Android defaults to the confirmed production server; legacy local mode is ignored; bearer login, reopen, logout and direct staff login work",
   );
 
   for (const fixture of [

@@ -1,4 +1,5 @@
 import { createRuntime } from "./runtime.js";
+import { appVersion } from "../shared/release.js";
 
 // The explicit rewrite parameter also works when the platform passes its
 // destination URL instead of the original URL to a Node function.
@@ -70,7 +71,7 @@ export function createVercelHandler({
             error.code === "databaseNotConfigured"
               ? "databaseNotConfigured"
               : "databaseUnavailable",
-          version: "1.9.0",
+          version: appVersion,
         }),
       );
     }

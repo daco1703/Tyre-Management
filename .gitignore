@@ -14,3 +14,15 @@ android/**/build/
 artifacts/
 *.jks
 *.keystore
+ios/**/build/
+ios/**/DerivedData/
+ios/**/xcuserdata/
+ios/**/Pods/
+ios/App/App/public/
+ios/App/App/capacitor.config.json
+*.p12
+*.p8
+*.pem
+*.key
+*.mobileprovision
+*.ipa

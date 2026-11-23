@@ -1,0 +1,106 @@
+name: Validate website, Android and iOS
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  shared-client:
+    name: Shared client and API checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run check:versions
+      - run: npm test
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:ui
+      - run: npm run test:login
+      - run: npm run test:ios
+      - uses: actions/upload-artifact@v6
+        with:
+          name: web-client-${{ github.sha }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
+
+  android:
+    name: Android compile (CI debug key)
+    needs: shared-client
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - run: npm run check:versions
+      - name: Install Android SDK packages
+        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0"'
+      - run: npm run android:sync
+      - run: bash android/gradlew -p android --no-daemon assembleDebug
+      - uses: actions/upload-artifact@v6
+        with:
+          name: android-ci-debug-NOT-an-installed-app-upgrade
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
+
+  ios-simulator:
+    name: iOS simulator compile (no signing)
+    needs: shared-client
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run check:versions
+      - run: npm run ios:sync
+      - name: Resolve Swift packages
+        run: xcodebuild -resolvePackageDependencies -project ios/App/App.xcodeproj -scheme App
+      - name: Compile unsigned simulator app
+        run: >-
+          xcodebuild -project ios/App/App.xcodeproj -scheme App
+          -configuration Debug -sdk iphonesimulator
+          -destination 'generic/platform=iOS Simulator'
+          -derivedDataPath build/ios-simulator
+          CODE_SIGNING_ALLOWED=NO build
+      - name: Package simulator app
+        run: >-
+          ditto -c -k --sequesterRsrc --keepParent
+          build/ios-simulator/Build/Products/Debug-iphonesimulator/App.app
+          ios-simulator-NOT-installable-on-iPhone.zip
+      - uses: actions/upload-artifact@v6
+        with:
+          name: ios-simulator-NOT-installable-on-iPhone
+          path: ios-simulator-NOT-installable-on-iPhone.zip
+          if-no-files-found: error
+          retention-days: 7

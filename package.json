@@ -1,6 +1,6 @@
 {
   "name": "tyresaathi",
-  "version": "1.9.0",
+  "version": "1.10.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -22,13 +22,22 @@
     "test:postgres": "node --test tests/postgres.test.js tests/recovery.test.js",
     "test:login": "node tests/login-ui.cjs",
     "test:layout": "node tests/layout-ui.cjs",
-    "test:sidebar": "node tests/sidebar-ui.cjs"
+    "test:sidebar": "node tests/sidebar-ui.cjs",
+    "check:versions": "node scripts/release.js check",
+    "release:sync": "node scripts/release.js sync",
+    "release:bump": "node scripts/release.js bump",
+    "release:set": "node scripts/release.js set",
+    "ios:sync": "npm run build && cap sync ios",
+    "ios:open": "cap open ios",
+    "test:ios": "node tests/ios-ui.cjs",
+    "bundle:release": "npm run check:versions && npm run build && cap sync android && cap sync ios && node scripts/bundle-release.js"
   },
   "dependencies": {
     "@capacitor/android": "7.6.9",
     "@capacitor/app": "7.1.2",
     "@capacitor/core": "7.6.9",
     "@capacitor/filesystem": "7.1.9",
+    "@capacitor/ios": "7.6.9",
     "@capacitor/share": "7.0.4",
     "@fontsource/inter": "^5.2.5",
     "@fontsource/noto-sans-devanagari": "^5.2.5",

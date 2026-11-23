@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import { defaultSharedServer } from "../shared/defaults.js";
 import { resolveSharedServer } from "../src/server-url.js";
 
-test("new phones and previous fleet addresses use the company domain", () => {
-  assert.equal(defaultSharedServer, "https://www.shepards-tyre-management.com");
+test("new phones and previous Render addresses use the confirmed production server", () => {
+  assert.equal(defaultSharedServer, "https://tyre-management-shepards.vercel.app");
   for (const saved of [
     null,
     undefined,
@@ -19,6 +19,7 @@ test("new phones and previous fleet addresses use the company domain", () => {
 test("the migration preserves separately chosen HTTPS servers", () => {
   for (const saved of [
     defaultSharedServer,
+    "https://www.shepards-tyre-management.com",
     "https://another-fleet.example",
     "https://another-fleet.example:8443",
     "https://tyre-management.onrender.com.other.example",

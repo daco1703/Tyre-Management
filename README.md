@@ -1,6 +1,18 @@
 # Shepards Tyre Management
 
-English/Hindi tyre logbook for Shepards Shipping Services. The app uses one shared server and requires internet. Android defaults to **https://www.shepards-tyre-management.com/**. This is an original implementation, inspired by the requested tyre-management workflows.
+English/Hindi tyre logbook for Shepards Shipping Services. Website, Android and iOS use one shared server and require internet. Fresh native installations default to the confirmed production server **https://tyre-management-shepards.vercel.app/**; updates retain an explicitly saved HTTPS server. This is an original implementation, inspired by the requested tyre-management workflows.
+
+## iPhone and iPad (1.10)
+
+Without a Mac or Apple developer account, open **https://tyre-management-shepards.vercel.app/** in Safari, choose **Share → Add to Home Screen**, enable **Open as Web App** if offered, and tap **Add**. Open the new icon and use your existing account. Installation help is also available on the iPhone login screen and in Team & settings. This installed website uses the existing fleet records and requires internet.
+
+The shared interface now adapts to iOS with system typography, large titles, a floating translucent tab bar, inset cards, 44-point touch targets, keyboard-friendly form text, light/dark appearance and safe-area spacing. It retains English/Hindi, full tyre identifiers, the horizontally scrolling map, the supplied branding and every existing fleet workflow. The glass effect uses web materials inside Capacitor, rather than UIKit's native Liquid Glass controls. Android and desktop retain their existing design.
+
+The native iOS project lives in `ios/App/App.xcodeproj`, targets **iOS/iPadOS 18 or newer**, and uses Swift Package Manager. [iOS build instructions](docs/IOS_BUILD.md) explain local Xcode and cloud builds. A Linux workspace cannot compile or sign an iPhone app. The downloadable iOS project ZIP is source, **not an installable IPA**. The macOS GitHub workflow builds an unsigned simulator app; the separate manual signing workflow requires the owner's Apple team, distribution certificate and provisioning profile before it can produce a device IPA. App Store/TestFlight publication remains a separate Apple account step.
+
+The iOS browser suite covers 116 screen/workflow checks across iPhone portrait/landscape and iPad, English/Hindi and light/dark, including full 11–20-character tyre IDs, 44-pixel controls, installation guidance and native-origin bearer login/reopening against an isolated server. These are Chromium emulation checks; actual Safari, nonzero hardware safe areas, the keyboard and WKWebView sharing still need device testing.
+
+Future feature changes must cover all three clients, as recorded in [AGENTS.md](AGENTS.md). [Release instructions](docs/RELEASING.md) cover synchronized versions, web/Android/iOS checks and artifacts. Normal client updates use the same Neon database and do not clear fleet records or accounts. This release contains no database migration.
 
 ## Accounts and live records
 
@@ -49,7 +61,9 @@ Version **1.8.1** removes the redundant Fleet Workspace/company/live-records blo
 
 ## Android update
 
-[Download Shepards Tyre Management 1.9.0](https://github.com/daco1703/Tyre-Management/blob/main/downloads/Shepards-Tyre-Management-1.9-test.apk?raw=true).
+[Download Shepards Tyre Management 1.10.0](https://github.com/daco1703/Tyre-Management/blob/main/downloads/Shepards-Tyre-Management-1.10-test.apk?raw=true).
+
+Version **1.10.0** adds the iOS project and iPhone/iPad appearance to the shared client. Fresh Android/iOS installations use **https://tyre-management-shepards.vercel.app/**. Existing saved HTTPS addresses are preserved, including the company domain; the old Render default migrates to the working production address and requires fresh sign-in. Server selection does not move or erase records.
 
 Version **1.9.0** uses **https://www.shepards-tyre-management.com/** for new installations and migrates phones using the old default or a saved `https://tyre-management.onrender.com` address. The phone saves the new address and clears its old bearer token before its first network request, so sign in again after updating. Separately chosen custom HTTPS servers remain selected. The app now supports the Vercel/PostgreSQL backend, accurate server-error messages and five-second shared updates. Changing the address does not copy records between different databases or provision DNS/HTTPS. Browser requests continue to use the website's own origin.
 
@@ -71,9 +85,11 @@ BROWSER_PATH=/usr/bin/chromium npm run test:ui
 BROWSER_PATH=/usr/bin/chromium npm run test:login
 BROWSER_PATH=/usr/bin/chromium npm run test:layout
 BROWSER_PATH=/usr/bin/chromium npm run test:sidebar
+BROWSER_PATH=/usr/bin/chromium npm run test:ios
+npm run check:versions
 ```
 
-The development server listens on port 3000 and seeds an admin only for a new database. Do not expose the development server publicly. Browser suites use temporary databases/test-only passwords on ports 3100/3120/3135/3140, not real fleet data. Screenshots go in ignored `artifacts/`.
+The development server listens on port 3000 and seeds an admin only for a new database. Do not expose the development server publicly. Browser suites use temporary databases/test-only passwords on ports 3100/3120/3135/3140/3145, not real fleet data. Screenshots go in ignored `artifacts/`. The iOS browser suite uses Chromium device emulation; actual Safari/WebKit, native file sharing and device installation also need iPhone/iPad verification.
 
 Tests cover vehicle-sale permissions/atomicity/final mileage/spares, active fleet exclusion, source-logo checksums, average NSD/defaults/legacy readings, stock-only sales, tyre import validation/atomicity, admin-only vehicle creation/import, inventory/mileage invariants, scrap reasons, positions, Excel normalization/atomicity, accounts and permissions, session revocation, backups, conflicting writes and live updates. Browser checks cover the delayed-startup login regression, failed initial data load/retry, admin-created staff, cross-user live logbook updates, Android bearer login/reopen, English/Hindi layouts and internet-required behavior.
 
@@ -96,7 +112,7 @@ Vercel hosts both the website and its API. A durable external PostgreSQL databas
 3. Deploy the latest `main` commit. Use the repository root, **Vite**, build command **npm run build**, output directory **dist**, and Node **24.x**. The API creates its tables and seeds the admin exactly once on first connection; changed passwords/accounts are preserved across cold starts and redeploys.
 4. Under **Settings → Domains**, add **www.shepards-tyre-management.com**. Apply the exact DNS targets Vercel displays at the domain registrar and wait for its domain/HTTPS status to become valid. Do not guess a CNAME or IP address.
 5. Under **Settings → Deployment Protection**, allow public access on the deployment used by staff/Android. App sign-in still protects fleet data. A redirect to a Vercel account-login page prevents the Android API from working.
-6. Open **https://www.shepards-tyre-management.com/api/health**. It should return **`{"ok":true,"version":"1.9.0"}`**. This performs a live database query. `databaseNotConfigured` means connect the database/environment variable and redeploy; `databaseUnavailable` means the configured database could not be reached. These failures return JSON 503, never a new temporary database.
+6. Open **https://tyre-management-shepards.vercel.app/api/health** (or the connected company domain). It should return **`{"ok":true,"version":"1.10.0"}`**. This performs a live database query. `databaseNotConfigured` means connect the database/environment variable and redeploy; `databaseUnavailable` means the configured database could not be reached. These failures return JSON 503, never a new temporary database.
 
 Connecting a new database starts a new fleet unless a full existing backup is imported. Keep existing records/accounts or a full database backup until migration is verified. Changing the app's address does not copy old records. The old server hostname remains only in the Android preference migration so older installations can switch to the current company domain.
 

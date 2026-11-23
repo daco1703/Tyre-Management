@@ -7,6 +7,7 @@ import {
   createHash,
 } from "node:crypto";
 import { normalizePublicOrigin } from "./config.js";
+import { appVersion } from "../shared/release.js";
 import { applyAction, AppError } from "../shared/model.js";
 
 const digest = (value) => createHash("sha256").update(value).digest("hex");
@@ -174,7 +175,7 @@ export function createApp({
   app.get("/api/health", async (req, res) => {
     try {
       await store.get("SELECT 1 AS ok");
-      res.json({ ok: true, version: "1.9.0" });
+      res.json({ ok: true, version: appVersion });
     } catch {
       res.status(503).json({ ok: false, error: "databaseUnavailable" });
     }

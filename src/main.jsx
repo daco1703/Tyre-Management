@@ -54,6 +54,8 @@ import { lastInspection, vehicleEvents } from "../shared/reports.js";
 import { defaultFleetName, defaultUsername } from "../shared/defaults.js";
 import { resolveSharedServer } from "./server-url.js";
 import { createApiRequest } from "./api-request.js";
+import { applyPlatformAppearance } from "./platform.js";
+import { appVersion } from "../shared/release.js";
 import { en, hi } from "./i18n";
 import { averageNsd } from "../shared/nsd.js";
 import { previewTyreImport } from "../shared/tyre-import.js";
@@ -76,6 +78,7 @@ import {
 import "./style.css";
 import "./secondary-layout.css";
 import "./layout.css";
+import "./ios.css";
 import "@fontsource/inter/latin-400.css";
 import "@fontsource/inter/latin-500.css";
 import "@fontsource/inter/latin-600.css";
@@ -86,6 +89,11 @@ import "@fontsource/noto-sans-devanagari/devanagari-600.css";
 import "@fontsource/noto-sans-devanagari/devanagari-700.css";
 
 const native = Capacitor.isNativePlatform();
+const platform = applyPlatformAppearance(document, navigator, {
+  nativePlatform: Capacitor.getPlatform(),
+  standalone: navigator.standalone === true ||
+    window.matchMedia("(display-mode: standalone)").matches,
+});
 const read = (key, fallback = null) => {
   try {
     return JSON.parse(localStorage.getItem(key)) ?? fallback;
@@ -144,7 +152,7 @@ function App() {
     store("ts-lang", lang);
   }, [lang]);
   useEffect(() => {
-    if (!native) return;
+    if (!platform.isAndroid) return;
     const listener = NativeApp.addListener("backButton", () => {
       if (modal) {
         document
@@ -537,7 +545,7 @@ function App() {
             <footer className="page-footer">
               <CircleDot size={14} />
               {t("tagline")}
-              <span>Shepards Tyre Management · v1.9</span>
+              <span>Shepards Tyre Management · v{appVersion}</span>
             </footer>
           </div>
           <nav className="bottom-nav">
@@ -728,6 +736,34 @@ function ForgotLogin() {
     </div>
   );
 }
+function IosInstallHelp() {
+  const { t } = useApp();
+  const [open, setOpen] = useState(false);
+  if (!platform.showInstallHelp) return null;
+  return (
+    <div className="ios-install-help">
+      <button
+        type="button"
+        className="text-button"
+        data-testid="ios-install-help"
+        onClick={() => setOpen(true)}
+      >
+        <Upload size={18} /> {t("iosInstall")}
+      </button>
+      {open && (
+        <Dialog title={t("iosInstall")} onClose={() => setOpen(false)}>
+          <p>{t("iosInstallIntro")}</p>
+          <ol className="ios-install-steps">
+            <li>{t("iosInstallSafari")}</li>
+            <li>{t("iosInstallShare")}</li>
+            <li>{t("iosInstallAdd")}</li>
+          </ol>
+          <p className="muted">{t("iosInstallData")}</p>
+        </Dialog>
+      )}
+    </div>
+  );
+}
 function ServerConnect({ onConnect }) {
   const { t } = useApp();
   const [error, setError] = useState(""),
@@ -901,6 +937,7 @@ function Auth({ boot, onAuth, onBeginAuth, changeServer }) {
             <ShieldCheck size={15} />
             <span>{t("privacy")}</span>
           </div>
+          <IosInstallHelp />
           {native && (
             <button className="text-button" onClick={changeServer}>
               {t("changeServer")}
@@ -2268,13 +2305,13 @@ function SettingsPage({ onChangeServer }) {
             </Button>
             <p className="small muted">{t("privacy")}</p>
           </section>
-          {!native && (
+          {!native && (!platform.isIos || platform.showInstallHelp) && (
             <section className="card settings-card">
               <h2>
                 <CircleDot size={20} />
-                {t("downloadApp")}
+                {t(platform.isIos ? "iosInstall" : "downloadApp")}
               </h2>
-              <p>{t("installHint")}</p>
+              {platform.isIos ? <IosInstallHelp /> : <p>{t("installHint")}</p>}
             </section>
           )}
         </div>

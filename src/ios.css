@@ -1,0 +1,1160 @@
+/* Shared web UI, styled for iOS. Materials are CSS, not native UIKit views. */
+html[data-ui="ios"] {
+  color-scheme: light;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Noto Sans Devanagari",
+    sans-serif;
+  color: var(--ios-text);
+  background: var(--ios-background);
+  -webkit-text-size-adjust: 100%;
+  --ios-background: #f2f2f7;
+  --ios-surface: #ffffff;
+  --ios-elevated: #f8f8fb;
+  --ios-fill: #ededf2;
+  --ios-text: #1c1c1e;
+  --ios-secondary: #5c5c65;
+  --ios-tertiary: #6b6b75;
+  --ios-separator: #dedee6;
+  --ios-brand: #b5162b;
+  --ios-primary: #bd1530;
+  --ios-selected: #fce5eb;
+  --ios-focus: #007aff;
+  --ios-focus-ring: #007aff24;
+  --ios-material: #ffffffe0;
+  --ios-material-border: #ffffffed;
+  --ios-shadow: 0 8px 30px #1b1b3712;
+  --ios-new-bg: #e2f8eb;
+  --ios-new-fg: #086b3a;
+  --ios-new-line: #129756;
+  --ios-used-bg: #fff1c9;
+  --ios-used-fg: #885000;
+  --ios-used-line: #d68a00;
+  --ios-remold-bg: #f0e5ff;
+  --ios-remold-fg: #6d27b0;
+  --ios-remold-line: #8a3fea;
+  --ios-blue-bg: #e1f0ff;
+  --ios-blue-fg: #075ca8;
+  --ios-sold-bg: #e7edff;
+  --ios-sold-fg: #314dab;
+  --ios-danger-bg: #ffe6e8;
+  --ios-danger-fg: #b32638;
+  --ios-sidebar-width: 248px;
+  --ios-tab-bar-height: 78px;
+  --green: var(--ios-primary);
+  --paper: var(--ios-surface);
+  --muted: var(--ios-secondary);
+  --border: var(--ios-separator);
+  scroll-padding-top: calc(96px + env(safe-area-inset-top));
+  scroll-padding-bottom: calc(116px + env(safe-area-inset-bottom));
+}
+
+html[data-ui="ios"] body {
+  background: var(--ios-background);
+}
+
+html[data-ui="ios"] .app-shell {
+  min-height: 100dvh;
+}
+
+html[data-ui="ios"] :is(h1, h2, h3) {
+  color: var(--ios-text);
+}
+
+html[data-ui="ios"] .page-heading h1 {
+  font-size: 2.125rem;
+  line-height: 1.22;
+  letter-spacing: -1px;
+  font-weight: 750;
+}
+
+html[data-ui="ios"][lang="hi"] :is(h1, h2, h3) {
+  letter-spacing: 0;
+  line-height: 1.5;
+}
+
+html[data-ui="ios"] .page-heading p {
+  font-size: 1rem;
+  line-height: 1.65;
+  color: var(--ios-secondary);
+}
+
+html[data-ui="ios"] :is(p, small, .small, .muted) {
+  color: var(--ios-secondary);
+}
+
+html[data-ui="ios"] :is(.primary, .secondary, .import-file) {
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 14px;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  font-weight: 650;
+}
+
+html[data-ui="ios"] :is(.primary, .import-file) {
+  background: var(--ios-primary);
+  color: #ffffff;
+  box-shadow: none;
+}
+
+html[data-ui="ios"] .primary:hover:not(:disabled) {
+  background: #a40e28;
+}
+
+html[data-ui="ios"] .secondary {
+  background: var(--ios-surface);
+  border-color: var(--ios-separator);
+  color: var(--ios-text);
+  box-shadow: none;
+}
+
+html[data-ui="ios"] .secondary:hover:not(:disabled) {
+  background: var(--ios-fill);
+  border-color: var(--ios-tertiary);
+}
+
+html[data-ui="ios"] :is(.icon-button, .language-switch) {
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 50%;
+  color: var(--ios-secondary);
+}
+
+html[data-ui="ios"] .language-switch {
+  border-radius: 22px;
+  background: var(--ios-surface);
+  border-color: var(--ios-separator);
+  font-size: 0.8125rem;
+}
+
+html[data-ui="ios"] :is(.text-button, .setting-button) {
+  min-width: 44px;
+  min-height: 44px;
+  color: var(--ios-brand);
+}
+
+html[data-ui="ios"] .team-row > .text-button {
+  min-height: 44px;
+  font-size: 0.8125rem;
+}
+
+html[data-ui="ios"] .eyebrow {
+  color: var(--ios-brand);
+}
+
+html[data-ui="ios"] .icon-button:hover {
+  background: var(--ios-fill);
+}
+
+html[data-ui="ios"] button:not(:disabled):active {
+  transform: none;
+  filter: brightness(0.94);
+}
+
+html[data-ui="ios"] :is(button, a, .import-file):focus-visible,
+html[data-ui="ios"] .import-file:focus-within {
+  outline: 3px solid var(--ios-focus);
+  outline-offset: 3px;
+}
+
+html[data-ui="ios"] :is(input, select, textarea) {
+  font-size: 1rem;
+  min-height: 48px;
+  background: var(--ios-elevated);
+  border-color: var(--ios-separator);
+  border-radius: 12px;
+  color: var(--ios-text);
+  accent-color: var(--ios-primary);
+  color-scheme: inherit;
+}
+
+html[data-ui="ios"] :is(input, select, textarea):focus {
+  border-color: var(--ios-focus);
+  box-shadow: 0 0 0 3px var(--ios-focus-ring);
+}
+
+html[data-ui="ios"] :is(input, textarea)::placeholder {
+  color: var(--ios-tertiary);
+}
+
+html[data-ui="ios"] :is(.field > span, .checkbox-field) {
+  color: var(--ios-text);
+  font-size: 0.9375rem;
+}
+
+html[data-ui="ios"] .field > small {
+  color: var(--ios-secondary);
+  font-size: 0.8125rem;
+}
+
+html[data-ui="ios"] .checkbox-field {
+  min-height: 44px;
+  align-items: center;
+}
+
+html[data-ui="ios"] input:is([type="checkbox"], [type="radio"]) {
+  width: 22px;
+  height: 22px;
+  min-height: 22px;
+  flex: none;
+  align-self: center;
+  margin-top: 0;
+}
+
+html[data-ui="ios"] .password-input input {
+  padding-right: 54px;
+}
+
+html[data-ui="ios"] .password-input button {
+  top: 2px;
+  min-height: 44px;
+  min-width: 44px;
+  color: var(--ios-secondary);
+}
+
+/* Only navigation chrome uses a translucent material. */
+html[data-ui="ios"] .topbar {
+  position: sticky;
+  top: 0;
+  z-index: 25;
+  height: auto;
+  min-height: calc(76px + env(safe-area-inset-top));
+  padding-top: calc(12px + env(safe-area-inset-top));
+  padding-bottom: 12px;
+  background: var(--ios-surface);
+  border-bottom: 1px solid var(--ios-separator);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+html[data-ui="ios"] :is(.desktop-crumb, .desktop-crumb strong, .sync-status) {
+  color: var(--ios-secondary);
+}
+
+html[data-ui="ios"] .desktop-crumb {
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+html[data-ui="ios"] .top-actions {
+  flex-shrink: 0;
+}
+
+html[data-ui="ios"] :is(.card, .stat-card, .tyre-row, .tyre-detail-summary) {
+  background: var(--ios-surface);
+  border-color: var(--ios-separator);
+  border-radius: 22px;
+  box-shadow: 0 1px 3px #19192d05;
+}
+
+html[data-ui="ios"] :is(.vehicle-card, .tyre-row, .stat-card):hover {
+  background: var(--ios-surface);
+  border-color: var(--ios-tertiary);
+  box-shadow: var(--ios-shadow);
+}
+
+html[data-ui="ios"] .inventory-card {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+html[data-ui="ios"]
+  :is(
+    .tyre-card-id,
+    .tyre-detail-brand .manufacturer-name,
+    .tyre-summary-stats strong,
+    .detail-list dd,
+    .fleet-row strong,
+    .inspection-nsd-row > div:first-child > strong,
+    .sale-tyre-count strong,
+    .report-event strong
+  ) {
+  color: var(--ios-text);
+}
+
+html[data-ui="ios"]
+  :is(
+    .stat-label,
+    .stat-foot,
+    .fleet-row small,
+    .stock-total span,
+    .stock-legend span,
+    .activity-row > div > span,
+    .activity-row small,
+    .tyre-card-brand .manufacturer-mark,
+    .tyre-card-assignment,
+    .tyre-card-distance,
+    .detail-list dt,
+    .tyre-summary-stats span,
+    .tyre-summary-stats small,
+    .vehicle-meta,
+    .vehicle-inspection-summary p,
+    .report-event span,
+    .report-event small,
+    .page-footer,
+    .login-help p,
+    .auth-foot,
+    .business-info small,
+    .team-row small,
+    .log-date,
+    .log-summary,
+    .vehicle-progress
+  ) {
+  color: var(--ios-secondary);
+}
+
+html[data-ui="ios"] .vehicle-progress strong {
+  color: var(--ios-text);
+}
+
+html[data-ui="ios"]
+  :is(
+    .stat-foot,
+    .fleet-row small,
+    .activity-row small,
+    .activity-row > div > span,
+    .tyre-card-assignment,
+    .tyre-summary-stats span,
+    .map-scroll-hint,
+    .map-legend,
+    .stock-legend span
+  ) {
+  font-size: 0.8125rem;
+}
+
+html[data-ui="ios"]
+  :is(
+    .tyre-card-footer,
+    .tyre-detail-tags,
+    .detail-list > div,
+    .activity-row,
+    .fleet-row,
+    .inspection-nsd-row
+  ) {
+  border-color: var(--ios-separator);
+}
+
+html[data-ui="ios"]
+  :is(
+    .tyre-summary-stats,
+    .activity-note,
+    .report-history > .report-event,
+    .map-scroll-hint,
+    .selected-record,
+    .sale-tyre-count,
+    .inspection-finding
+  ) {
+  background: var(--ios-elevated);
+  color: var(--ios-secondary);
+  border-color: var(--ios-separator);
+  border-radius: 14px;
+}
+
+html[data-ui="ios"]
+  :is(
+    .activity-list > .activity-row,
+    .log-list > .activity-row,
+    .dialog-body > .activity-row
+  ) {
+  background: var(--ios-surface);
+  border-color: var(--ios-separator);
+  border-radius: 16px;
+}
+
+html[data-ui="ios"] :is(.search-input, .inventory-card > .tabs) {
+  background: var(--ios-surface);
+  border-color: var(--ios-separator);
+  border-radius: 16px;
+}
+
+html[data-ui="ios"] .search-input {
+  min-height: 48px;
+  color: var(--ios-secondary);
+}
+
+html[data-ui="ios"] .search-input input {
+  font-size: 1rem;
+  background: transparent;
+  min-height: 46px;
+}
+
+html[data-ui="ios"]
+  :is(.tabs button, .filter-chips button, .segmented > button) {
+  min-width: 44px;
+  min-height: 44px;
+  color: var(--ios-secondary);
+}
+
+html[data-ui="ios"] .tabs button.selected {
+  color: var(--ios-brand);
+  border-bottom-color: var(--ios-brand);
+}
+
+html[data-ui="ios"]
+  :is(
+    .tabs button > span,
+    .vehicle-tabs button span,
+    .segmented,
+    .vehicle-tabs,
+    .filter-chips button
+  ) {
+  background: var(--ios-fill);
+  border-color: var(--ios-separator);
+  color: var(--ios-secondary);
+}
+
+html[data-ui="ios"] :is(.vehicle-tabs, .segmented) {
+  border-radius: 14px;
+}
+
+html[data-ui="ios"] :is(.vehicle-tabs button, .segmented > button) {
+  border-radius: 10px;
+}
+
+html[data-ui="ios"]
+  :is(.vehicle-tabs button.selected, .segmented > button.selected) {
+  color: var(--ios-text);
+  background: var(--ios-surface);
+  border: 0;
+  box-shadow: 0 1px 4px #00000012;
+}
+
+html[data-ui="ios"] .filter-chips button.selected {
+  background: var(--ios-selected);
+  border-color: var(--ios-brand);
+  color: var(--ios-brand);
+}
+
+html[data-ui="ios"] .construction-tag {
+  color: var(--ios-secondary);
+  background: var(--ios-fill);
+}
+
+/* Solid, vivid status colors keep meaning in both color schemes. */
+html[data-ui="ios"] .activity-icon {
+  background: var(--ios-fill);
+  color: var(--ios-secondary);
+}
+
+html[data-ui="ios"]
+  :is(
+    .badge-new,
+    .badge-stock,
+    .tyre-new,
+    .stat-icon.green,
+    .activity-fit,
+    .fleet-alert.complete,
+    .vehicle-readiness.complete
+  ) {
+  background: var(--ios-new-bg);
+  color: var(--ios-new-fg);
+}
+
+html[data-ui="ios"]
+  :is(
+    .badge-used,
+    .tyre-used,
+    .stat-icon.amber,
+    .activity-remove,
+    .fleet-alert:not(.complete),
+    .reminder-pill,
+    .maintenance-notice,
+    .advisory-banner
+  ) {
+  background: var(--ios-used-bg);
+  color: var(--ios-used-fg);
+  border-color: var(--ios-used-line);
+}
+
+html[data-ui="ios"]
+  :is(
+    .badge-remold,
+    .badge-remolding,
+    .tyre-remold,
+    .stat-icon.purple,
+    .activity-remold
+  ) {
+  background: var(--ios-remold-bg);
+  color: var(--ios-remold-fg);
+}
+
+html[data-ui="ios"]
+  :is(
+    .badge-installed,
+    .stat-icon.blue,
+    .activity-inspectVehicle,
+    .activity-measureNsd,
+    .nsd-summary
+  ) {
+  background: var(--ios-blue-bg);
+  color: var(--ios-blue-fg);
+}
+
+html[data-ui="ios"]
+  :is(
+    .badge-sold,
+    .activity-sell,
+    .sale-record,
+    .vehicle-sale-stamp,
+    .report-sold-tag
+  ) {
+  background: var(--ios-sold-bg);
+  color: var(--ios-sold-fg);
+}
+
+html[data-ui="ios"] :is(.badge-scrapped, .activity-scrap, .form-error) {
+  background: var(--ios-danger-bg);
+  color: var(--ios-danger-fg);
+  border-color: var(--ios-danger-fg);
+}
+
+html[data-ui="ios"] .danger {
+  color: var(--ios-danger-fg) !important;
+}
+
+html[data-ui="ios"] :is(.badge, .tyre-card-tags > *, .tyre-detail-tags > *) {
+  border-radius: 8px;
+  font-size: 0.8125rem;
+}
+
+html[data-ui="ios"] .wheel-new {
+  background: var(--ios-new-bg);
+  border-color: var(--ios-new-line);
+  color: var(--ios-new-fg);
+}
+
+html[data-ui="ios"] .wheel-used {
+  background: var(--ios-used-bg);
+  border-color: var(--ios-used-line);
+  color: var(--ios-used-fg);
+}
+
+html[data-ui="ios"] .wheel-remold {
+  background: var(--ios-remold-bg);
+  border-color: var(--ios-remold-line);
+  color: var(--ios-remold-fg);
+}
+
+html[data-ui="ios"] .wheel-empty {
+  background: var(--ios-elevated);
+  border-color: var(--ios-tertiary);
+  color: var(--ios-secondary);
+}
+
+html[data-ui="ios"]
+  :is(
+    .truck-cab,
+    .start-guide,
+    .empty-icon,
+    .vehicle-icon,
+    .avatar,
+    .form-info,
+    .business-info
+  ) {
+  background: var(--ios-fill);
+  color: var(--ios-secondary);
+  border-color: var(--ios-separator);
+}
+
+html[data-ui="ios"] .guide-steps b {
+  background: var(--ios-surface);
+  color: var(--ios-secondary);
+}
+
+html[data-ui="ios"] .vehicle-readiness {
+  color: var(--ios-used-fg);
+}
+
+html[data-ui="ios"] .maintenance-reminders {
+  border-left-color: var(--ios-used-line);
+}
+
+html[data-ui="ios"] .vehicle-sale-button {
+  background: var(--ios-danger-bg);
+  border-color: var(--ios-danger-fg);
+  color: var(--ios-danger-fg);
+}
+
+html[data-ui="ios"] .vehicle-sale-button:hover:not(:disabled) {
+  background: var(--ios-danger-bg);
+  border-color: var(--ios-danger-fg);
+  color: var(--ios-danger-fg);
+}
+
+html[data-ui="ios"] .truck-cab {
+  box-shadow: inset 0 -10px var(--ios-separator);
+}
+
+html[data-ui="ios"] :is(.axle-row::before, .trolley-section::before) {
+  background: var(--ios-separator);
+}
+
+html[data-ui="ios"] .trolley-section {
+  border-top-color: var(--ios-separator);
+}
+
+html[data-ui="ios"]
+  :is(.wheel-sides, .tyre-section > h3, .tyre-section > h3 span) {
+  color: var(--ios-secondary);
+}
+
+html[data-ui="ios"] .tyre-map-scroll {
+  scrollbar-color: var(--ios-tertiary) var(--ios-fill);
+}
+
+html[data-ui="ios"] :is(.stock-bar, .mini-progress, .vehicle-progress > div) {
+  background: var(--ios-fill);
+}
+
+html[data-ui="ios"] :is(.daily-card, .auth-story) {
+  background: #8e1025;
+  border-radius: 24px;
+}
+
+html[data-ui="ios"] :is(.daily-card h2, .daily-numbers strong, .story-main h1) {
+  color: #ffffff;
+}
+
+html[data-ui="ios"]
+  :is(
+    .daily-card > p,
+    .daily-card > .card-title-row > svg,
+    .date-control,
+    .daily-numbers span,
+    .daily-foot,
+    .daily-card .eyebrow,
+    .story-main > p,
+    .story-main > .eyebrow,
+    .auth-story > small
+  ) {
+  color: #ffe4eb;
+}
+
+html[data-ui="ios"] .date-control input {
+  min-height: 44px;
+  font-size: 1rem;
+  background: #ffffff14;
+  color: #ffffff;
+  border-color: #ffffff66;
+  color-scheme: dark;
+}
+
+html[data-ui="ios"] .nsd-summary p,
+html[data-ui="ios"] .sale-record p {
+  color: inherit;
+}
+
+html[data-ui="ios"] :is(.report-table thead, .import-table th) {
+  background: var(--ios-fill);
+  color: var(--ios-text);
+}
+
+html[data-ui="ios"] .report-metrics strong {
+  color: var(--ios-brand);
+}
+
+html[data-ui="ios"] .report-metrics span {
+  color: var(--ios-secondary);
+}
+
+html[data-ui="ios"] .import-summary {
+  background: var(--ios-new-bg);
+  color: var(--ios-new-fg);
+}
+
+html[data-ui="ios"] :is(.import-summary span, .import-row-error) {
+  background: var(--ios-used-bg);
+  color: var(--ios-used-fg);
+}
+
+html[data-ui="ios"] .dialog {
+  background: var(--ios-surface);
+  color: var(--ios-text);
+  border-color: var(--ios-separator);
+  border-radius: 28px;
+  box-shadow: 0 24px 80px #00000030;
+  max-height: calc(
+    100dvh - max(24px, env(safe-area-inset-top)) -
+      max(24px, env(safe-area-inset-bottom))
+  );
+  scroll-padding: 20px;
+}
+
+html[data-ui="ios"] .dialog::backdrop {
+  background: #15152266;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+html[data-ui="ios"] :is(.dialog-header, .dialog-footer) {
+  background: var(--ios-surface);
+  border-color: var(--ios-separator);
+}
+
+html[data-ui="ios"] .dialog-header h2 {
+  font-size: 1.1875rem;
+  font-weight: 700;
+}
+
+html[data-ui="ios"] .dialog-body {
+  overscroll-behavior: contain;
+}
+
+html[data-ui="ios"] .auth-page {
+  background: var(--ios-background);
+}
+
+html[data-ui="ios"] .auth-form-side {
+  background: var(--ios-background);
+  padding-top: max(32px, env(safe-area-inset-top));
+  padding-bottom: max(32px, env(safe-area-inset-bottom));
+}
+
+html[data-ui="ios"] .auth-card {
+  max-width: 420px;
+  background: var(--ios-surface);
+  border: 1px solid var(--ios-separator);
+  padding: 28px;
+  border-radius: 28px;
+  box-shadow: var(--ios-shadow);
+}
+
+html[data-ui="ios"] .auth-card h1 {
+  font-size: 1.9375rem;
+  font-weight: 750;
+}
+
+html[data-ui="ios"] .ios-install-help {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--ios-separator);
+  color: var(--ios-secondary);
+}
+
+html[data-ui="ios"] .ios-install-help .text-button {
+  gap: 10px;
+  text-align: left;
+  line-height: 1.6;
+}
+
+html[data-ui="ios"] .ios-install-steps {
+  margin: 0;
+  padding-left: 24px;
+  color: var(--ios-text);
+  line-height: 1.8;
+}
+
+html[data-ui="ios"] .ios-install-steps li {
+  padding-left: 4px;
+  margin-bottom: 16px;
+}
+
+html[data-ui="ios"] .ios-install-steps li:last-child {
+  margin-bottom: 0;
+}
+
+html[data-ui="ios"] .company-banner-login {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 8px;
+}
+
+html[data-ui="ios"] .connect-page .auth-top {
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+html[data-ui="ios"] .connection-page {
+  background: var(--ios-background);
+  padding-top: max(30px, env(safe-area-inset-top));
+  padding-bottom: max(30px, env(safe-area-inset-bottom));
+}
+
+html[data-ui="ios"] .connection-page > svg {
+  color: var(--ios-secondary);
+}
+
+html[data-ui="ios"] .connection-page > .primary {
+  background: var(--ios-primary);
+}
+
+html[data-ui="ios"] .connection-page > .text-button {
+  background: transparent;
+  color: var(--ios-brand);
+}
+
+html[data-ui="ios"] .toast {
+  background: var(--ios-text);
+  color: var(--ios-surface);
+  border-radius: 20px;
+  box-shadow: var(--ios-shadow);
+  font-size: 0.9375rem;
+  padding: 8px 10px 8px 16px;
+}
+
+html[data-ui="ios"] .toast .icon-button {
+  color: inherit;
+}
+
+html[data-ui="ios"] .toast.error {
+  background: var(--ios-danger-bg);
+  color: var(--ios-danger-fg);
+  border: 1px solid var(--ios-danger-fg);
+}
+
+/* iPad keeps a stable navigation column instead of a stretched phone tab bar. */
+@media (min-width: 701px) {
+  html[data-ui="ios"] .sidebar {
+    width: var(--ios-sidebar-width);
+    padding-top: calc(24px + env(safe-area-inset-top));
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-bottom: calc(18px + env(safe-area-inset-bottom));
+    background: var(--ios-elevated);
+    border-right: 1px solid var(--ios-separator);
+    color: var(--ios-text);
+  }
+
+  html[data-ui="ios"] .main-shell {
+    margin-left: var(--ios-sidebar-width);
+    width: calc(100% - var(--ios-sidebar-width));
+  }
+
+  html[data-ui="ios"] main {
+    max-width: 1380px;
+    padding: 32px max(24px, env(safe-area-inset-right)) 24px 24px;
+  }
+
+  html[data-ui="ios"] .topbar {
+    padding-right: max(24px, env(safe-area-inset-right));
+    padding-left: 24px;
+  }
+
+  html[data-ui="ios"] :is(.nav-items button, .profile) {
+    color: var(--ios-secondary);
+    min-height: 48px;
+    border-radius: 14px;
+  }
+
+  html[data-ui="ios"] :is(.nav-items button:hover, .profile) {
+    background: var(--ios-fill);
+  }
+
+  html[data-ui="ios"] .nav-items button.selected {
+    background: var(--ios-selected);
+    color: var(--ios-brand);
+  }
+
+  html[data-ui="ios"] .nav-indicator {
+    background: var(--ios-brand);
+  }
+
+  html[data-ui="ios"]
+    :is(
+      .support-mark,
+      .support-mark strong,
+      .support-mark span,
+      .profile small
+    ) {
+    color: var(--ios-secondary);
+  }
+
+  html[data-ui="ios"] .toast {
+    left: calc(50% + var(--ios-sidebar-width) / 2);
+  }
+}
+
+/* Include short iPhone landscape windows in the phone layout. */
+@media (max-width: 700px), (max-width: 1000px) and (max-height: 500px) {
+  html[data-ui="ios"] .sidebar {
+    display: none;
+  }
+
+  html[data-ui="ios"] .main-shell {
+    margin-left: 0;
+    width: 100%;
+    padding-bottom: calc(
+      var(--ios-tab-bar-height) + 38px + env(safe-area-inset-bottom)
+    );
+  }
+
+  html[data-ui="ios"] main {
+    padding: 28px max(16px, env(safe-area-inset-right)) 20px
+      max(16px, env(safe-area-inset-left));
+  }
+
+  html[data-ui="ios"] .topbar {
+    min-height: calc(72px + env(safe-area-inset-top));
+    padding: calc(10px + env(safe-area-inset-top))
+      max(12px, env(safe-area-inset-right)) 10px
+      max(12px, env(safe-area-inset-left));
+    gap: 8px;
+  }
+
+  html[data-ui="ios"] :is(.desktop-crumb, .sync-status) {
+    display: none;
+  }
+
+  html[data-ui="ios"] .mobile-brand {
+    display: block;
+    min-width: 0;
+  }
+
+  html[data-ui="ios"] .mobile-settings {
+    display: inline-flex;
+  }
+
+  html[data-ui="ios"] .top-actions {
+    gap: 4px;
+  }
+
+  html[data-ui="ios"] :is(.brand, .brand.compact) {
+    --brand-panel-height: 48px;
+    gap: 6px;
+  }
+
+  html[data-ui="ios"] .brand .company-logo {
+    width: 34px;
+    padding: 4px;
+  }
+
+  html[data-ui="ios"] .brand .company-wordmark {
+    width: 140px;
+    padding: 5px 7px;
+    gap: 4px;
+  }
+
+  html[data-ui="ios"] .brand .company-wordmark > img {
+    max-height: 22px;
+  }
+
+  html[data-ui="ios"] .brand .company-wordmark small {
+    font-size: 9px;
+    letter-spacing: 0.6px;
+  }
+
+  html[data-ui="ios"] .language-switch {
+    padding: 6px 8px;
+    gap: 4px;
+  }
+
+  html[data-ui="ios"] .page-heading h1 {
+    font-size: 2rem;
+  }
+
+  html[data-ui="ios"] .heading-actions > button {
+    min-height: 48px;
+    font-size: 0.875rem;
+    border-radius: 14px;
+  }
+
+  html[data-ui="ios"] .bottom-nav {
+    display: block;
+    position: fixed;
+    z-index: 30;
+    left: max(10px, calc(env(safe-area-inset-left) + 8px));
+    right: max(10px, calc(env(safe-area-inset-right) + 8px));
+    bottom: calc(10px + env(safe-area-inset-bottom));
+    max-width: 540px;
+    margin-inline: auto;
+    padding: 5px;
+    border: 1px solid var(--ios-material-border);
+    border-radius: 30px;
+    background: var(--ios-surface);
+    box-shadow:
+      var(--ios-shadow),
+      0 0 0 1px var(--ios-separator);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  html[data-ui="ios"] .mobile-nav-items {
+    height: auto;
+    min-height: calc(var(--ios-tab-bar-height) - 10px);
+    display: flex;
+    align-items: stretch;
+    padding: 0;
+    gap: 2px;
+  }
+
+  html[data-ui="ios"] .mobile-nav-items button {
+    min-width: 0;
+    min-height: 66px;
+    padding: 7px 2px;
+    flex: 1 1 0;
+    border-radius: 24px;
+    background: transparent;
+    color: var(--ios-secondary);
+    gap: 4px;
+    font-size: 0.6875rem;
+    line-height: 1.25;
+    font-weight: 550;
+    text-align: center;
+    overflow-wrap: normal;
+  }
+
+  html[data-ui="ios"] .mobile-nav-items button > span {
+    max-width: 100%;
+  }
+
+  html[data-ui="ios"] .mobile-nav-items button svg {
+    width: 22px;
+    height: 22px;
+    stroke-width: 1.8;
+  }
+
+  html[data-ui="ios"] .mobile-nav-items button.selected {
+    background: var(--ios-selected);
+    color: var(--ios-brand);
+    font-weight: 650;
+  }
+
+  html[data-ui="ios"] .mobile-nav-items button.selected::before {
+    display: none;
+    content: none;
+  }
+
+  html[data-ui="ios"] .mobile-nav-items button.selected svg {
+    stroke-width: 2.2;
+  }
+
+  html[data-ui="ios"] .dialog {
+    width: calc(100% - 24px);
+    max-width: calc(100% - 24px);
+    border-radius: 26px;
+  }
+
+  html[data-ui="ios"] :is(.dialog-header, .dialog-body) {
+    padding: 20px;
+  }
+
+  html[data-ui="ios"] .dialog-footer {
+    padding: 14px 20px;
+  }
+
+  html[data-ui="ios"] .toast {
+    left: 50%;
+    bottom: calc(
+      var(--ios-tab-bar-height) + 26px + env(safe-area-inset-bottom)
+    );
+    max-width: calc(100vw - 32px);
+  }
+
+  html[data-ui="ios"] .page-footer {
+    padding-inline: max(16px, env(safe-area-inset-left));
+  }
+
+  html[data-ui="ios"] .auth-form-side {
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+
+  html[data-ui="ios"] .auth-card {
+    padding: 24px;
+  }
+}
+
+@media (max-width: 360px) {
+  html[data-ui="ios"] .brand .company-wordmark {
+    width: 112px;
+  }
+
+  html[data-ui="ios"] .brand .company-wordmark small {
+    font-size: 8px;
+    letter-spacing: 0.4px;
+  }
+
+  html[data-ui="ios"] .auth-card {
+    padding: 20px;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  html[data-ui="ios"] {
+    color-scheme: dark;
+    --ios-background: #000000;
+    --ios-surface: #1c1c1e;
+    --ios-elevated: #262629;
+    --ios-fill: #323236;
+    --ios-text: #f5f5f7;
+    --ios-secondary: #b9b9c2;
+    --ios-tertiary: #a2a2ad;
+    --ios-separator: #424247;
+    --ios-brand: #ff8296;
+    --ios-primary: #ca1a3a;
+    --ios-selected: #48212d;
+    --ios-focus: #70b5ff;
+    --ios-focus-ring: #70b5ff33;
+    --ios-material: #242428e8;
+    --ios-material-border: #ffffff26;
+    --ios-shadow: 0 8px 32px #00000066;
+    --ios-new-bg: #103a29;
+    --ios-new-fg: #79e6a9;
+    --ios-new-line: #45d68a;
+    --ios-used-bg: #46320e;
+    --ios-used-fg: #ffda7d;
+    --ios-used-line: #dba33c;
+    --ios-remold-bg: #352049;
+    --ios-remold-fg: #d6acff;
+    --ios-remold-line: #b87aff;
+    --ios-blue-bg: #12324f;
+    --ios-blue-fg: #89c8ff;
+    --ios-sold-bg: #242f55;
+    --ios-sold-fg: #afc3ff;
+    --ios-danger-bg: #481e2a;
+    --ios-danger-fg: #ffacbb;
+  }
+}
+
+@supports (
+  (-webkit-backdrop-filter: blur(20px)) or (backdrop-filter: blur(20px))
+) {
+  html[data-ui="ios"] :is(.topbar, .bottom-nav) {
+    background: var(--ios-material);
+    -webkit-backdrop-filter: saturate(150%) blur(20px);
+    backdrop-filter: saturate(150%) blur(20px);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  html[data-ui="ios"] :is(.topbar, .bottom-nav) {
+    background: var(--ios-surface);
+    border-color: var(--ios-tertiary);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  html[data-ui="ios"] {
+    --ios-secondary: var(--ios-text);
+    --ios-tertiary: var(--ios-text);
+    --ios-separator: var(--ios-text);
+  }
+
+  html[data-ui="ios"]
+    :is(
+      .card,
+      .stat-card,
+      .tyre-row,
+      .tyre-detail-summary,
+      .badge,
+      .mobile-nav-items button.selected
+    ) {
+    border: 1px solid currentColor;
+    box-shadow: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-ui="ios"],
+  html[data-ui="ios"] *,
+  html[data-ui="ios"] *::before,
+  html[data-ui="ios"] *::after {
+    scroll-behavior: auto !important;
+    animation: none !important;
+    transition: none !important;
+  }
+}

@@ -1,4 +1,4 @@
-import { defaultSharedServer } from "../shared/defaults.js";
+import { defaultSharedServer, fleetWebsiteOrigin } from "../shared/defaults.js";
 
 export const fleetPreviewOrigin =
   "https://tyre-management-git-main-shepards.vercel.app";
@@ -27,11 +27,12 @@ export function normalizePublicOrigin(value = "") {
 export function deploymentOptions(env) {
   const vercel = env.VERCEL === "1";
   const publicOrigin = normalizePublicOrigin(
-    env.PUBLIC_ORIGIN || (vercel ? defaultSharedServer : ""),
+    env.PUBLIC_ORIGIN || (vercel ? fleetWebsiteOrigin : ""),
   );
   const fleetDeployment =
-    vercel && (!env.PUBLIC_ORIGIN || publicOrigin === defaultSharedServer);
-  const origins = [defaultSharedServer, fleetPreviewOrigin];
+    vercel && (!env.PUBLIC_ORIGIN ||
+      [fleetWebsiteOrigin, defaultSharedServer].includes(publicOrigin));
+  const origins = [fleetWebsiteOrigin, defaultSharedServer, fleetPreviewOrigin];
   if (vercel && fleetDeployment) {
     for (const host of [
       env.VERCEL_URL,

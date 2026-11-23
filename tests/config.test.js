@@ -25,7 +25,7 @@ test("the configured company origin also allows its exact main-branch preview", 
       VERCEL: "1",
       PUBLIC_ORIGIN: "https://www.shepards-tyre-management.com/",
     }).additionalPublicOrigins,
-    ["https://www.shepards-tyre-management.com", fleetPreviewOrigin],
+    ["https://www.shepards-tyre-management.com", "https://tyre-management-shepards.vercel.app", fleetPreviewOrigin],
   );
 });
 test("explicit public origin and proxy overrides take precedence over Vercel defaults", () => {
@@ -84,9 +84,9 @@ test("Vercel uses the company origin and exact platform-injected deployment host
       publicOrigin: "https://www.shepards-tyre-management.com",
       additionalPublicOrigins: [
         "https://www.shepards-tyre-management.com",
+        "https://tyre-management-shepards.vercel.app",
         "https://tyre-management-git-main-shepards.vercel.app",
         "https://tyre-management-a1b2-shepards.vercel.app",
-        "https://tyre-management-shepards.vercel.app",
       ],
     },
   );
@@ -109,7 +109,7 @@ test("Vercel uses the company origin and exact platform-injected deployment host
     assert.deepEqual(
       deploymentOptions({ VERCEL: "1", VERCEL_URL: host })
         .additionalPublicOrigins,
-      ["https://www.shepards-tyre-management.com", fleetPreviewOrigin],
+      ["https://www.shepards-tyre-management.com", "https://tyre-management-shepards.vercel.app", fleetPreviewOrigin],
     );
   }
 });
