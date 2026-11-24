@@ -1894,7 +1894,7 @@ function Inventory() {
         ? !["sold", "scrapped"].includes(tyre.status)
         : tyre.status === status) &&
       (type === "all" || tyre.type === type) &&
-      `${tyre.serial} ${tyre.brand} ${tyre.construction || ""} ${state.vehicles.find((v) => v.id === tyre.vehicleId)?.registration || ""}`
+      `${tyre.serial} ${(tyre.serialAliases || []).join(" ")} ${tyre.brand} ${tyre.construction || ""} ${state.vehicles.find((v) => v.id === tyre.vehicleId)?.registration || ""}`
         .toLowerCase()
         .includes(query.toLowerCase()),
   );

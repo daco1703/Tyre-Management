@@ -552,7 +552,7 @@ async function integratedTyreAndReports(owner, staff) {
     .locator("dialog")
     .getByRole("button", { name: t("editTyre"), exact: true })
     .click();
-  await page.locator('dialog input[name="serial"]').fill("MGMTTYRE20261124FIX");
+  await page.locator('dialog input[name="serial"]').fill("CORRECTEDTYRE2026");
   await page.locator('dialog select[name="brand"]').selectOption("Apollo");
   await page
     .locator('dialog select[name="construction"]')
@@ -565,7 +565,7 @@ async function integratedTyreAndReports(owner, staff) {
   await page.locator("dialog").waitFor({ state: "detached" });
   const changed = await state();
   const tyre = changed.tyres.find(
-    (item) => item.serial === "MGMTTYRE20261124FIX",
+    (item) => item.serial === "CORRECTEDTYRE2026",
   );
   assert.ok(tyre);
   assert.equal(tyre.brand, "Apollo");
@@ -576,6 +576,8 @@ async function integratedTyreAndReports(owner, staff) {
     costsBefore,
     "identity correction does not add a second purchase",
   );
+  assert.equal(await page.locator(".inventory-toolbar input").first().inputValue(), "MGMTTYRE20261124");
+  await page.locator(".tyre-row").filter({hasText:"CORRECTEDTYRE2026"}).waitFor();
   await nav("dashboard");
   await page.getByRole("button", { name: t("addTyre"), exact: true }).click();
   await page
@@ -607,10 +609,10 @@ async function integratedTyreAndReports(owner, staff) {
   await page
     .locator(".inventory-toolbar input")
     .first()
-    .fill("MGMTTYRE20261124FIX");
+    .fill("CORRECTEDTYRE2026");
   await page
     .locator(".tyre-row")
-    .filter({ hasText: "MGMTTYRE20261124FIX" })
+    .filter({ hasText: "CORRECTEDTYRE2026" })
     .click();
   assert.equal(
     await page
