@@ -42,6 +42,16 @@ import {
 import { DateField } from "./date-field.jsx";
 import { Reports } from "./reports.jsx";
 import { BrandMark } from "./branding.jsx";
+import { DriverManagement, DriverPicker } from "./driver-management.jsx";
+import { ReminderSettings } from "./reminder-settings.jsx";
+import { InvoiceFields } from "./invoice-fields.jsx";
+import { formatInr } from "../shared/costs.js";
+import {
+  nsdDueOn,
+  inspectionDueOn,
+  driverCheckDueOn,
+  licenseStatus,
+} from "../shared/reminders.js";
 import { displayDate, parseDisplayDate } from "../shared/dates.js";
 import {
   manufacturers,
@@ -73,12 +83,15 @@ import {
   tally,
   dailyTally,
   tyreKm,
+  tyreMatchesEvent,
   scrapReasons,
 } from "../shared/model";
 import "./style.css";
 import "./secondary-layout.css";
 import "./layout.css";
 import "./ios.css";
+import "./report-additions.css";
+import "./management-additions.css";
 import "@fontsource/inter/latin-400.css";
 import "@fontsource/inter/latin-500.css";
 import "@fontsource/inter/latin-600.css";
@@ -91,7 +104,8 @@ import "@fontsource/noto-sans-devanagari/devanagari-700.css";
 const native = Capacitor.isNativePlatform();
 const platform = applyPlatformAppearance(document, navigator, {
   nativePlatform: Capacitor.getPlatform(),
-  standalone: navigator.standalone === true ||
+  standalone:
+    navigator.standalone === true ||
     window.matchMedia("(display-mode: standalone)").matches,
 });
 const read = (key, fallback = null) => {
@@ -467,13 +481,6 @@ function App() {
             <Brand />
             <Navigation page={page} navigate={navigate} />
             <div className="sidebar-bottom">
-              <div className="support-mark">
-                <ShieldCheck size={20} />
-                <div>
-                  <strong>{t("app")}</strong>
-                  <span>{t("tagline")}</span>
-                </div>
-              </div>
               <button className="profile" onClick={() => navigate("settings")}>
                 <span className="avatar">
                   {session.user.username.slice(0, 2).toUpperCase()}
@@ -532,12 +539,15 @@ function App() {
                 <Reports
                   key={vehicleId || "all"}
                   app={value}
+                  request={request}
                   initialVehicleId={vehicleId}
                   onExport={async (name, rows) => {
                     await downloadCsv(name, rows);
                     setToast({ text: t("exportDone") });
                   }}
                 />
+              ) : page === "drivers" ? (
+                <DriverManagement app={value} />
               ) : (
                 <SettingsPage onChangeServer={configureServer} />
               )}
@@ -587,6 +597,15 @@ function Brand({ compact }) {
     </div>
   );
 }
+function vehicleDriverName(vehicle, state) {
+  if (!vehicle) return "";
+  return (
+    (vehicle.status !== "sold" &&
+      state.drivers?.find((driver) => driver.id === vehicle.driverId)?.name) ||
+    vehicle.driverName ||
+    ""
+  );
+}
 function LanguageSwitch() {
   const { lang, setLang, t } = useApp();
   return (
@@ -606,6 +625,7 @@ const navItems = [
   { id: "inventory", Icon: CircleDot },
   { id: "logbook", Icon: BookOpen },
   { id: "reports", Icon: BarChart3 },
+  { id: "drivers", Icon: UserRound },
   { id: "settings", Icon: Settings },
 ];
 function Navigation({ page, navigate, mobile }) {
@@ -616,11 +636,15 @@ function Navigation({ page, navigate, mobile }) {
       aria-label={t("navigation")}
     >
       {navItems
-        .filter((item) => !mobile || item.id !== "settings")
+        .filter((item) => !mobile || !["settings", "drivers"].includes(item.id))
         .map(({ id, Icon }) => (
           <button
             key={id}
-            className={page === id ? "selected" : ""}
+            className={
+              page === id || (mobile && page === "drivers" && id === "vehicles")
+                ? "selected"
+                : ""
+            }
             onClick={() => navigate(id)}
           >
             <Icon size={20} />
@@ -1286,6 +1310,15 @@ function Activity({ event: e }) {
             {t("driverReminder")}
           </p>
         )}
+        {e.kind === "updateTyre" && e.before && e.after && (
+          <p className="activity-note">
+            {e.before.serial} → {e.after.serial} · {e.before.brand} →{" "}
+            {e.after.brand}
+          </p>
+        )}
+        {["addDriver", "updateDriver"].includes(e.kind) && e.driverName && (
+          <p className="activity-note">{e.driverName}</p>
+        )}
         {e.inspectedOn && (
           <p className="activity-note">
             {t("inspectedOn")}: {date(e.inspectedOn)} ·{" "}
@@ -1332,13 +1365,16 @@ function Vehicles() {
     status === "sold" ? v.status === "sold" : v.status !== "sold",
   );
   const vehicles = scope.filter((v) =>
-    `${v.registration} ${v.name} ${v.driverName || ""} ${v.emissionClass || ""}`
+    `${v.registration} ${v.name} ${vehicleDriverName(v, state)} ${v.emissionClass || ""}`
       .toLowerCase()
       .includes(query.toLowerCase()),
   );
   return (
     <>
       <PageHeading title={t("vehicles")} sub={t("noVehiclesSub")}>
+        <Button secondary icon={UserRound} onClick={() => navigate("drivers")}>
+          {t("drivers")}
+        </Button>
         {session.user.role === "owner" && (
           <>
             {" "}
@@ -1420,7 +1456,7 @@ function Vehicles() {
                 </div>
                 <h2>{v.registration}</h2>
                 <p>
-                  {[v.name, v.driverName, v.emissionClass]
+                  {[v.name, vehicleDriverName(v, state), v.emissionClass]
                     .filter(Boolean)
                     .join(" · ") || t("vehicle")}
                 </p>
@@ -1497,9 +1533,10 @@ function VehicleDetail({ id }) {
   const count = tyres.filter((t) => t.slot !== "SP").length;
   const inspection = lastInspection(state, v);
   const history = vehicleEvents(state, v);
-  const dueNsd = tyres.filter(
-    (t) => !sold && t.nextNsdCheckOn && t.nextNsdCheckOn <= dayKey(),
-  );
+  const dueNsd = tyres.filter((tyre) => {
+    const due = !sold && nsdDueOn(tyre, state);
+    return due && due <= dayKey();
+  });
   const mapTileWidth = Math.max(
     112,
     ...tyres.map((tyre) => String(tyre.serial).length * 7.3 + 20),
@@ -1536,8 +1573,9 @@ function VehicleDetail({ id }) {
       <PageHeading
         title={v.registration}
         sub={
-          [v.name, v.emissionClass, v.driverName].filter(Boolean).join(" · ") ||
-          t("slotHint")
+          [v.name, v.emissionClass, vehicleDriverName(v, state)]
+            .filter(Boolean)
+            .join(" · ") || t("slotHint")
         }
         back
       >
@@ -1625,6 +1663,14 @@ function VehicleDetail({ id }) {
           {t("advisoryOnly")}
         </p>
       )}
+      {!sold &&
+        inspectionDueOn(v, state) &&
+        inspectionDueOn(v, state) <= dayKey() && (
+          <p className="maintenance-notice">
+            {t("inspectionDue")} · {date(inspectionDueOn(v, state))} ·{" "}
+            {t("advisoryOnly")}
+          </p>
+        )}
       <div className="vehicle-detail-columns">
         <section className="card wheel-map">
           <div className="card-title-row">
@@ -1727,8 +1773,15 @@ function VehicleDetail({ id }) {
               </strong>
             </p>
             <p>
-              {t("driverName")}: {v.driverName || t("notRecorded")}
+              {t("driverName")}:{" "}
+              {vehicleDriverName(v, state) || t("notRecorded")}
             </p>
+            {!sold && inspectionDueOn(v, state) && (
+              <p>
+                {t("nextInspection")}:{" "}
+                <strong>{date(inspectionDueOn(v, state))}</strong>
+              </p>
+            )}
             <p>
               {t("vehicleClass")}: {v.emissionClass || t("notRecorded")}
             </p>
@@ -2132,6 +2185,7 @@ function Logbook() {
   );
 }
 function SettingsPage({ onChangeServer }) {
+  const app = useApp();
   const {
     t,
     session,
@@ -2142,7 +2196,7 @@ function SettingsPage({ onChangeServer }) {
     setLang,
     logout,
     offline,
-  } = useApp();
+  } = app;
   const [team, setTeam] = useState([]),
     [error, setError] = useState("");
   async function load() {
@@ -2223,6 +2277,17 @@ function SettingsPage({ onChangeServer }) {
           )}
         </section>
         <div>
+          <ReminderSettings app={app} />
+          <section className="card settings-card">
+            <h2>
+              <UserRound size={20} />
+              {t("drivers")}
+            </h2>
+            <p>{t("driverDirectoryHint")}</p>
+            <Button secondary onClick={() => app.navigate("drivers")}>
+              {t("manageDrivers")}
+            </Button>
+          </section>
           <section className="card settings-card">
             <h2>
               <Settings size={20} />
@@ -2391,7 +2456,7 @@ function ModalContent({ modal, onClose }) {
 }
 function WorkbookImport({ type, onClose }) {
   const isTyre = type === "tyre";
-  const { t, n, state, action, setToast, offline } = useApp();
+  const { t, n, state, action, setToast, offline, lang } = useApp();
   const [sheets, setSheets] = useState([]);
   const [selected, setSelected] = useState(0);
   const [fileName, setFileName] = useState("");
@@ -2556,6 +2621,8 @@ function WorkbookImport({ type, onClose }) {
                         "condition",
                         "construction",
                         "previousKm",
+                        "invoiceNo",
+                        "invoiceAmount",
                         "importStatus",
                       ]
                     : [
@@ -2593,6 +2660,12 @@ function WorkbookImport({ type, onClose }) {
                             : "—"}
                         </td>
                         <td>{n(row.value.distance)}</td>
+                        <td>{row.value.invoiceNo || "—"}</td>
+                        <td>
+                          {Number.isSafeInteger(row.value.amountPaise)
+                            ? formatInr(row.value.amountPaise, lang)
+                            : "—"}
+                        </td>
                       </>
                     ) : (
                       <>
@@ -2685,10 +2758,12 @@ function TyreTags({ tyre }) {
   );
 }
 function TyreDetails({ id, onClose }) {
-  const { t, n, date, state, setModal, action, offline } = useApp();
+  const { t, n, date, state, setModal, action, offline, session, lang } =
+    useApp();
   const tyre = state.tyres.find((t) => t.id === id);
   if (!tyre) return null;
   const vehicle = state.vehicles.find((v) => v.id === tyre.vehicleId);
+  const nextNsd = nsdDueOn(tyre, state);
   return (
     <Dialog title={tyre.serial} onClose={onClose}>
       <section className="tyre-detail-summary">
@@ -2699,6 +2774,15 @@ function TyreDetails({ id, onClose }) {
           <TyreTags tyre={tyre} />
         </div>
       </section>
+      {session.user.role === "owner" && (
+        <Button
+          secondary
+          disabled={offline}
+          onClick={() => setModal({ type: "editTyre", tyreId: tyre.id })}
+        >
+          {t("editTyre")}
+        </Button>
+      )}
       <div className="detail-stats tyre-summary-stats">
         <div>
           <span>{t("currentKm")}</span>
@@ -2737,6 +2821,11 @@ function TyreDetails({ id, onClose }) {
           </>
         )}
       </dl>
+      {!!tyre.serialAliases?.length && (
+        <p className="small muted">
+          {t("previousTyreNumbers")}: {tyre.serialAliases.join(" · ")}
+        </p>
+      )}
       {tyre.remoldVendor && (
         <p className="form-info">
           {t("remoldVendor")}: {tyre.remoldVendor}
@@ -2755,10 +2844,10 @@ function TyreDetails({ id, onClose }) {
         {tyre.lastNsdOn && (
           <p>
             {t("measuredOn")}: {date(tyre.lastNsdOn)} · {t("nextNsd")}:{" "}
-            {date(tyre.nextNsdCheckOn)}
+            {date(nextNsd)}
           </p>
         )}
-        {tyre.nextNsdCheckOn && tyre.nextNsdCheckOn <= dayKey() && (
+        {nextNsd && nextNsd <= dayKey() && (
           <p className="reminder-pill">
             {t("nsdDue")} · {t("advisoryOnly")}
           </p>
@@ -2855,15 +2944,35 @@ function TyreDetails({ id, onClose }) {
           {t("sell")}
         </Button>
       )}
+      {session.user.role === "owner" &&
+        !!state.costs?.some((cost) => cost.tyreId === tyre.id) && (
+          <section className="invoice-history">
+            <h3>{t("invoiceHistory")}</h3>
+            {state.costs
+              .filter((cost) => cost.tyreId === tyre.id)
+              .slice()
+              .reverse()
+              .map((cost) => (
+                <div className="invoice-history-row" key={cost.id}>
+                  <div>
+                    <strong>{cost.invoiceNo}</strong>
+                    <small>
+                      {t(
+                        cost.kind === "purchase"
+                          ? "invoicePurchase"
+                          : "invoiceRemold",
+                      )}{" "}
+                      · {date(cost.date)}
+                    </small>
+                  </div>
+                  <strong>{formatInr(cost.amountPaise, lang)}</strong>
+                </div>
+              ))}
+          </section>
+        )}
       <h3 className="history-heading">{t("tyreHistory")}</h3>
       {state.events
-        .filter(
-          (e) =>
-            e.tyre === tyre.serial ||
-            (e.nsdMeasurements || []).some((m) => m.tyreId === tyre.id) ||
-            (e.findings || []).some((f) => f.tyreId === tyre.id) ||
-            (e.inspectedTyres || []).some((t) => t.tyreId === tyre.id),
-        )
+        .filter((event) => tyreMatchesEvent(tyre, event))
         .slice()
         .reverse()
         .map((e) => (
@@ -2873,10 +2982,27 @@ function TyreDetails({ id, onClose }) {
   );
 }
 function RecordForm({ modal: m, onClose }) {
-  const { t, n, state, action, setToast, offline } = useApp();
+  const { t, n, state, action, setToast, setModal, offline } = useApp();
+  const existingTyre = state.tyres.find((tyre) => tyre.id === m.tyreId);
+  const [expectedIdentity] = useState(() =>
+    existingTyre
+      ? {
+          serial: existingTyre.serial,
+          brand: existingTyre.brand,
+          construction: existingTyre.construction || null,
+        }
+      : null,
+  );
   const [busy, setBusy] = useState(false),
     [error, setError] = useState("");
-  const [selectedBrand, setSelectedBrand] = useState("MRF");
+  const [selectedBrand, setSelectedBrand] = useState(() =>
+    m.type === "editTyre" && existingTyre
+      ? manufacturers.some((make) => make.name === existingTyre.brand)
+        ? existingTyre.brand
+        : "other"
+      : "MRF",
+  );
+  const [selectedDriverId, setSelectedDriverId] = useState("");
   const previousVendor =
     state.tyres.find((t) => t.id === m.tyreId)?.remoldVendor || "";
   const [vendor, setVendor] = useState(
@@ -2921,8 +3047,18 @@ function RecordForm({ modal: m, onClose }) {
     const p = Object.fromEntries(new FormData(e.currentTarget));
     try {
       if (m.type === "addVehicle") p.hasSpare = p.hasSpare === "on";
-      if (m.type === "addTyre") {
+      if (["addTyre", "editTyre"].includes(m.type)) {
         if (p.brand === "other") p.brand = p.customBrand;
+      }
+      if (m.type === "editTyre") {
+        p.construction = p.construction || null;
+        p.expectedIdentity = expectedIdentity;
+      }
+      if (["addVehicle", "changeDriver"].includes(m.type)) {
+        p.driverId = selectedDriverId || null;
+        delete p.driverName;
+        if (m.type === "changeDriver" && !selectedDriverId)
+          throw { code: "chooseDriver" };
       }
       if (m.type === "measureNsd") {
         p.measuredOn = parseDisplayDate(p.measuredOn);
@@ -2943,7 +3079,7 @@ function RecordForm({ modal: m, onClose }) {
         await m.onSaved?.();
         setToast({ text: t("staffCreated") });
       } else
-        await action(m.type, {
+        await action(m.type === "editTyre" ? "updateTyre" : m.type, {
           ...p,
           ...(m.tyreId ? { tyreId: m.tyreId } : {}),
           ...(vehicleId ? { vehicleId } : {}),
@@ -2958,6 +3094,19 @@ function RecordForm({ modal: m, onClose }) {
   }
   return (
     <Dialog title={t(title)} onClose={onClose} busy={busy}>
+      {m.type === "addTyre" && (
+        <div className="add-tyre-import">
+          <p>{t("addTyreImportHint")}</p>
+          <Button
+            secondary
+            type="button"
+            icon={Upload}
+            onClick={() => setModal({ type: "importTyres" })}
+          >
+            {t("importTyres")}
+          </Button>
+        </div>
+      )}
       <form onSubmit={submit}>
         {m.type === "scrap" && tyre && (
           <div className="selected-record">
@@ -2994,8 +3143,11 @@ function RecordForm({ modal: m, onClose }) {
             />
           </>
         )}
-        {m.type === "addTyre" && (
+        {["addTyre", "editTyre"].includes(m.type) && (
           <>
+            {m.type === "editTyre" && (
+              <p className="form-info">{t("editTyreHint")}</p>
+            )}
             <Field label="serial">
               <input
                 name="serial"
@@ -3003,6 +3155,7 @@ function RecordForm({ modal: m, onClose }) {
                 maxLength={70}
                 autoCapitalize="characters"
                 placeholder="TYR-001"
+                defaultValue={m.type === "editTyre" ? existingTyre?.serial : ""}
               />
             </Field>
             <Field label="brand">
@@ -3020,13 +3173,31 @@ function RecordForm({ modal: m, onClose }) {
             </Field>
             {selectedBrand === "other" ? (
               <Field label="customBrand">
-                <input name="customBrand" required maxLength={80} />
+                <input
+                  name="customBrand"
+                  required
+                  maxLength={80}
+                  defaultValue={
+                    m.type === "editTyre" ? existingTyre?.brand : ""
+                  }
+                />
               </Field>
             ) : (
               <BrandMark brand={selectedBrand} />
             )}
             <Field label="construction">
-              <select name="construction" required defaultValue="radial">
+              <select
+                name="construction"
+                required={m.type === "addTyre"}
+                defaultValue={
+                  m.type === "editTyre"
+                    ? existingTyre?.construction || ""
+                    : "radial"
+                }
+              >
+                {m.type === "editTyre" && (
+                  <option value="">{t("notRecorded")}</option>
+                )}
                 {constructions.map((c) => (
                   <option key={c} value={c}>
                     {t(`construction_${c}`)}
@@ -3034,17 +3205,22 @@ function RecordForm({ modal: m, onClose }) {
                 ))}
               </select>
             </Field>
-            <Field label="condition">
-              <select name="type" defaultValue="new">
-                {["new", "used", "remold"].map((type) => (
-                  <option key={type} value={type}>
-                    {t(type)}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <KmInput label="previousKm" name="distance" value={0} />
-            <p className="form-info">{t("nsdStockBaseline")}</p>
+            {m.type === "addTyre" && (
+              <>
+                <Field label="condition">
+                  <select name="type" defaultValue="new">
+                    {["new", "used", "remold"].map((type) => (
+                      <option key={type} value={type}>
+                        {t(type)}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <KmInput label="previousKm" name="distance" value={0} />
+                <p className="form-info">{t("nsdStockBaseline")}</p>
+                <InvoiceFields t={t} />
+              </>
+            )}
           </>
         )}
         {m.type === "addVehicle" && (
@@ -3061,9 +3237,13 @@ function RecordForm({ modal: m, onClose }) {
             <Field label="vehicleName">
               <input name="name" maxLength={100} />
             </Field>
-            <Field label="driverName">
-              <input name="driverName" maxLength={100} />
-            </Field>
+            <DriverPicker
+              drivers={state.drivers || []}
+              value={selectedDriverId}
+              onChange={setSelectedDriverId}
+              t={t}
+              state={state}
+            />
             <Field label="vehicleClass">
               <select name="emissionClass" defaultValue="" required>
                 <option value="" disabled>
@@ -3092,16 +3272,16 @@ function RecordForm({ modal: m, onClose }) {
             </p>
             <p>
               {vehicle?.registration} · {t("currentDriver")}:{" "}
-              {vehicle?.driverName || t("notRecorded")}
+              {vehicleDriverName(vehicle, state) || t("notRecorded")}
             </p>
-            <Field label="driverName">
-              <input
-                name="driverName"
-                required
-                maxLength={100}
-                autoComplete="off"
-              />
-            </Field>
+            <DriverPicker
+              drivers={state.drivers || []}
+              value={selectedDriverId}
+              onChange={setSelectedDriverId}
+              t={t}
+              required
+              state={state}
+            />
           </>
         )}
         {m.type === "sell" && (
@@ -3333,6 +3513,7 @@ function RecordForm({ modal: m, onClose }) {
             )}
           </>
         )}
+        {m.type === "remold" && <InvoiceFields t={t} />}
         {m.type === "password" ? (
           <>
             <PasswordField label="currentPassword" name="currentPassword" />
@@ -3375,7 +3556,10 @@ function RecordForm({ modal: m, onClose }) {
   );
 }
 function stateBrand(event, state) {
-  return event.brand || state.tyres.find((t) => t.serial === event.tyre)?.brand;
+  return (
+    event.brand ||
+    state.tyres.find((tyre) => tyreMatchesEvent(tyre, event))?.brand
+  );
 }
 async function downloadCsv(name, rows) {
   const cell = (value) =>
@@ -3406,43 +3590,88 @@ function NsdInputs({ t }) {
   );
 }
 function MaintenanceReminders() {
-  const { t, state, navigate, setModal } = useApp();
-  const drivers = activeVehicles(state).filter((v) => v.pendingTyreCheck);
-  const due = state.tyres.filter(
-    (t) =>
-      t.status === "installed" &&
-      t.nextNsdCheckOn &&
-      t.nextNsdCheckOn <= dayKey(),
-  );
-  if (!drivers.length && !due.length) return null;
+  const { t, n, date, state, navigate, setModal } = useApp();
+  const today = dayKey();
+  const vehicles = activeVehicles(state);
+  const drivers = vehicles.filter((vehicle) => {
+    const due = driverCheckDueOn(vehicle, state);
+    return due && due <= today;
+  });
+  const due = state.tyres.filter((tyre) => {
+    const next = nsdDueOn(tyre, state);
+    return next && next <= today;
+  });
+  const inspections = vehicles.filter((vehicle) => {
+    const next = inspectionDueOn(vehicle, state);
+    return next && next <= today;
+  });
+  const licences = (state.drivers || [])
+    .filter((driver) => driver.active !== false)
+    .map((driver) => ({ driver, ...licenseStatus(driver, state, today) }))
+    .filter((item) => ["due", "expired"].includes(item.status))
+    .sort((a, b) => a.expiryOn.localeCompare(b.expiryOn));
+  if (!drivers.length && !due.length && !inspections.length && !licences.length)
+    return null;
   return (
     <section className="card maintenance-reminders">
       <h2>{t("maintenanceReminders")}</h2>
       <p className="small muted">{t("advisoryOnly")}</p>
       <div>
-        {drivers.map((v) => (
+        {drivers.map((vehicle) => (
           <button
             className="secondary"
-            key={v.id}
-            onClick={() => navigate("vehicles", v.id)}
+            key={`driver-${vehicle.id}`}
+            onClick={() => navigate("vehicles", vehicle.id)}
           >
-            {v.registration} · {t("driverCheckPending")}
+            {vehicle.registration} · {t("driverCheckPending")}
+          </button>
+        ))}
+        {inspections.slice(0, 10).map((vehicle) => (
+          <button
+            className="secondary"
+            key={`inspection-${vehicle.id}`}
+            onClick={() =>
+              setModal({ type: "inspectVehicle", vehicleId: vehicle.id })
+            }
+          >
+            {vehicle.registration} · {t("inspectionDue")}
           </button>
         ))}
         {due.slice(0, 10).map((tyre) => (
           <button
             className="secondary"
-            key={tyre.id}
+            key={`nsd-${tyre.id}`}
             onClick={() => setModal({ type: "measureNsd", tyreId: tyre.id })}
           >
             {tyre.serial} · {t("nsdDue")}
           </button>
         ))}
+        {licences.slice(0, 10).map((item) => (
+          <button
+            className={`secondary license-alert-${item.status}`}
+            key={`licence-${item.driver.id}`}
+            onClick={() => navigate("drivers")}
+          >
+            {item.driver.name} ·{" "}
+            {t(item.status === "expired" ? "licenseExpired" : "licenseDue")} ·{" "}
+            {date(item.expiryOn)}
+          </button>
+        ))}
       </div>
       {due.length > 10 && (
         <p>
-          {due.length} {t("nsdDue")}
+          {n(due.length)} {t("nsdDue")}
         </p>
+      )}
+      {inspections.length > 10 && (
+        <p>
+          {n(inspections.length)} {t("inspectionDue")}
+        </p>
+      )}
+      {licences.length > 10 && (
+        <button className="text-button" onClick={() => navigate("drivers")}>
+          {t("manageDrivers")} · {n(licences.length)}
+        </button>
       )}
     </section>
   );

@@ -1,10 +1,18 @@
+import { managementEn, managementHi } from "./management-i18n.js";
+import { reportsEn, reportsHi } from "./reports-i18n.js";
+import { additionsEn, additionsHi } from "./additions-i18n.js";
+
 export const en = {
   iosInstall: "Add to Home Screen",
   iosInstallIntro: "Keep Shepards within easy reach on your iPhone or iPad.",
-  iosInstallSafari: "Open this website in Safari and sign in with your usual account.",
-  iosInstallShare: "Open Safari’s Share menu (the square with an upward arrow).",
-  iosInstallAdd: "Choose Add to Home Screen, enable Open as Web App if shown, then tap Add.",
-  iosInstallData: "Your fleet records stay on the shared server. An internet connection is required.",
+  iosInstallSafari:
+    "Open this website in Safari and sign in with your usual account.",
+  iosInstallShare:
+    "Open Safari’s Share menu (the square with an upward arrow).",
+  iosInstallAdd:
+    "Choose Add to Home Screen, enable Open as Web App if shown, then tap Add.",
+  iosInstallData:
+    "Your fleet records stay on the shared server. An internet connection is required.",
   mapPanHint:
     "Swipe the diagram sideways to see both sides. Tyre numbers are shown in full.",
   importVehicles: "Import from Excel",
@@ -506,15 +514,21 @@ export const en = {
   otherManufacturer: "Custom / other",
   tyreKmHint:
     "Tyre kilometres sum recorded running distance from removals and vehicle sales in this period; they are not vehicle kilometres.",
+  ...managementEn,
+  ...reportsEn,
+  ...additionsEn,
 };
 export const hi = {
   ...en,
   iosInstall: "होम स्क्रीन पर जोड़ें",
   iosInstallIntro: "अपने iPhone या iPad पर Shepards को आसानी से खोलें।",
-  iosInstallSafari: "यह वेबसाइट Safari में खोलें और अपने मौजूदा खाते से साइन इन करें।",
+  iosInstallSafari:
+    "यह वेबसाइट Safari में खोलें और अपने मौजूदा खाते से साइन इन करें।",
   iosInstallShare: "Safari का शेयर मेनू खोलें (ऊपर तीर वाला चौकोर चिह्न)।",
-  iosInstallAdd: "होम स्क्रीन पर जोड़ें चुनें। यदि Open as Web App दिखे तो उसे चालू करें, फिर जोड़ें पर टैप करें।",
-  iosInstallData: "आपके फ्लीट रिकॉर्ड साझा सर्वर पर सुरक्षित रहते हैं। इंटरनेट कनेक्शन आवश्यक है।",
+  iosInstallAdd:
+    "होम स्क्रीन पर जोड़ें चुनें। यदि Open as Web App दिखे तो उसे चालू करें, फिर जोड़ें पर टैप करें।",
+  iosInstallData:
+    "आपके फ्लीट रिकॉर्ड साझा सर्वर पर सुरक्षित रहते हैं। इंटरनेट कनेक्शन आवश्यक है।",
   mapPanHint:
     "दोनों ओर देखने के लिए चित्र को दाएँ-बाएँ खिसकाएँ। टायर नंबर पूरे दिखाए गए हैं।",
   importVehicles: "Excel से वाहन जोड़ें",
@@ -1000,4 +1014,7 @@ export const hi = {
   otherManufacturer: "कस्टम / अन्य",
   tyreKmHint:
     "टायर किलोमीटर में इस अवधि में निकाले टायर और वाहन बिक्री पर दर्ज चली दूरी शामिल है; यह वाहन किलोमीटर नहीं है।",
+  ...managementHi,
+  ...reportsHi,
+  ...additionsHi,
 };

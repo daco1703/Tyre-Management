@@ -22,6 +22,8 @@ function fixture() {
     odometer: 100,
   });
   s = run(s, "addTyre", {
+    invoiceNo: "MAINTENANCE-PURCHASE",
+    amountPaise: 1000000,
     serial: "NSD-1",
     brand: "MRF",
     construction: "horse",
@@ -179,11 +181,21 @@ test("remolding vendor snapshots survive multiple cycles and removal km are reta
   });
   assert.equal(s.events.at(-1).vendor, "Sharvayu");
   assert.equal(s.events.at(-1).runningKm, 100);
-  s = run(s, "remold", { tyreId, vendor: "Sharvayu" });
+  s = run(s, "remold", {
+    tyreId,
+    vendor: "Sharvayu",
+    invoiceNo: "MAINTENANCE-REMOLD-1",
+    amountPaise: 150000,
+  });
   assert.equal(s.tyres[0].lastRemoldVendor, "Sharvayu");
   assert.equal(s.tyres[0].status, "stock");
   s = run(s, "sendRemold", { tyreId, vendor: "Guardex MRF" });
-  s = run(s, "remold", { tyreId, vendor: "Guardex MRF" });
+  s = run(s, "remold", {
+    tyreId,
+    vendor: "Guardex MRF",
+    invoiceNo: "MAINTENANCE-REMOLD-2",
+    amountPaise: 150000,
+  });
   s = run(s, "sendRemold", {
     tyreId,
     vendor: "other",
@@ -193,11 +205,22 @@ test("remolding vendor snapshots survive multiple cycles and removal km are reta
   assert.equal(s.events.find((e) => e.kind === "remove").vendor, "Sharvayu");
   const copy = structuredClone(s);
   assert.throws(
-    () => run(s, "remold", { tyreId, vendor: "other", customVendor: " " }),
+    () =>
+      run(s, "remold", {
+        tyreId,
+        vendor: "other",
+        customVendor: " ",
+        invoiceNo: "MAINTENANCE-REMOLD-INVALID-VENDOR",
+        amountPaise: 150000,
+      }),
     /vendorRequired/,
   );
   assert.deepEqual(s, copy);
-  s = run(s, "remold", { tyreId }); // Older installed clients remain compatible.
+  s = run(s, "remold", {
+    tyreId,
+    invoiceNo: "MAINTENANCE-REMOLD-3",
+    amountPaise: 150000,
+  }); // The saved custom vendor remains available on completion.
   assert.equal(s.events.at(-1).vendor, "Custom Works");
 });
 test("reports filter performed inspection date, class and staff and distinguish fitments from inspections", () => {

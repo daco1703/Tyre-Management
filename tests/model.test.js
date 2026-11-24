@@ -21,12 +21,16 @@ function fixture(spare = true) {
     odometer: 1000,
   });
   s = run(s, "addTyre", {
+    invoiceNo: "MODEL-PURCHASE-1",
+    amountPaise: 1000000,
     serial: "T-1",
     brand: "MRF",
     size: "295/90 R20",
     type: "new",
   });
   s = run(s, "addTyre", {
+    invoiceNo: "MODEL-PURCHASE-2",
+    amountPaise: 250000,
     serial: "T-2",
     brand: "Apollo",
     size: "295/90 R20",
@@ -110,13 +114,25 @@ test("reject double fitment and occupied positions without changing previous sta
 test("remolding and scrapping are stock-only and preserve history", () => {
   let s = fixture();
   const tyreId = s.tyres[0].id;
-  s = run(s, "remold", { tyreId });
+  s = run(s, "remold", {
+    tyreId,
+    invoiceNo: "MODEL-REMOLD-1",
+    amountPaise: 150000,
+  });
   assert.equal(s.tyres[0].remolds, 1);
   assert.equal(s.tyres[0].type, "remold");
   s = run(s, "scrap", { tyreId, scrapReason: "burst" });
   assert.equal(tally(s).total, 1);
   assert.equal(tally(s).scrapped, 1);
-  assert.throws(() => run(s, "remold", { tyreId }), /notInStock/);
+  assert.throws(
+    () =>
+      run(s, "remold", {
+        tyreId,
+        invoiceNo: "MODEL-REMOLD-2",
+        amountPaise: 150000,
+      }),
+    /notInStock/,
+  );
   assert.throws(
     () => run(s, "scrap", { tyreId, scrapReason: "burst" }),
     /notInStock/,
@@ -124,6 +140,8 @@ test("remolding and scrapping are stock-only and preserve history", () => {
   assert.throws(
     () =>
       run(s, "addTyre", {
+        invoiceNo: "MODEL-DUPLICATE",
+        amountPaise: 1000000,
         serial: "t-1",
         brand: "MRF",
         size: "R20",
@@ -176,7 +194,14 @@ test("closing tally carries forward on days with no movement", () => {
   let s = run(
     emptyState(),
     "addTyre",
-    { serial: "A", brand: "CEAT", size: "R20", type: "new" },
+    {
+      serial: "A",
+      brand: "CEAT",
+      size: "R20",
+      type: "new",
+      invoiceNo: "MODEL-TALLY",
+      amountPaise: 1000000,
+    },
     "2026-10-20",
   );
   s = run(
@@ -212,6 +237,8 @@ test("a full vehicle takes exactly 18 road tyres and one spare", () => {
   const vehicleId = s.vehicles[0].id;
   for (let i = 0; i < 17; i++)
     s = run(s, "addTyre", {
+      invoiceNo: `MODEL-EXTRA-${i}`,
+      amountPaise: 1000000,
       serial: `EXTRA-${i}`,
       brand: "MRF",
       size: "R20",
@@ -261,7 +288,11 @@ test("each removal destination records cycle and lifetime km atomically", () => 
         () => run(s, "fit", { tyreId, vehicleId, slot: "FR", odometer: 1500 }),
         /notInStock/,
       );
-      s = run(s, "remold", { tyreId });
+      s = run(s, "remold", {
+        tyreId,
+        invoiceNo: "MODEL-RETURN",
+        amountPaise: 150000,
+      });
       assert.equal(s.tyres[1].status, "stock");
       assert.equal(s.tyres[1].remolds, 2);
       assert.equal(s.tyres[1].distance, 900);

@@ -6,7 +6,7 @@ a7693f524b471ed82d51d000ca3248251c0de2afa3b1dff8b344ab80f2278ec7  Shepards-Tyre-
 7ba1ab74faba627bfba3fa32f3666892700603d02cb1fbe4ef6b3b4b26684741  Shepards-Tyre-Management-1.8-test.apk
 9f507be700c3edb553cd3dcb6af955fc589a86a38152655811e6347a7ae8b450  Shepards-Tyre-Management-1.8.2-test.apk
 6fcc6d1b03f3653d2572f9580f59762e65955f5a75c544bd879bfd6aa92faf4f  Shepards-Tyre-Management-1.9-test.apk
-fe1b4a1f6a601879ee7225dc6ed78c45fac908ccd85e487fc6321557faa257bb  Shepards-tyre-template.xlsx
+edabb5594300b88e939ff4602e63bad6ba8a9bf76f1898fe277c9b305859b19d  Shepards-tyre-template.xlsx
 1af7b8001e0debcd6e47fc610e615fd0d00a555f96493d5563914adafc769fa3  TyreSaathi-1.1-offline-test.apk
 7fb72b647ccc6c74219ef666760d9814fe7048e4fbbca2bcf79fdd8900ab15e8  TyreSaathi-1.2-excel-test.apk
 1b255f32ef4e0e1a35c61e31491a117e0a593b9faa80a52962ff2700529b20e2  TyreSaathi-vehicle-template.xlsx
@@ -14,3 +14,7 @@ fe1b4a1f6a601879ee7225dc6ed78c45fac908ccd85e487fc6321557faa257bb  Shepards-tyre-
 ca0d03bb70c12bd8d363b9442ae25c765e417ee14170000f09ee186fceaeb902  Shepards-Tyre-Management-1.10.0-bundles-SHA256SUMS.txt
 445b4cb51fb9c84ce9ee4804784fb658ecb014333cc213ad62eebb36153f833f  Shepards-Tyre-Management-1.10.0-ios-project-source.zip
 faee29050016cb4a3e5f45214585722b480a7a5ebf1e8118c744b274cfa406ee  Shepards-Tyre-Management-1.10.0-web-client.zip
+fc881548faf8d6436618a11492f0ad3ba9cd5ae9d0f5d970dea2905a9f37646d  Shepards-Tyre-Management-1.11-test.apk
+9162514e8ecacf59e03e3e141e8dad32adab68d869d1ff464ba4426c8da410c7  Shepards-Tyre-Management-1.11.0-bundles-SHA256SUMS.txt
+d1a960245a2f66d00be7320632a71114df19cd091a31cc96eeff32e16e09c5b7  Shepards-Tyre-Management-1.11.0-ios-project-source.zip
+5d7ec9fefb093cdadf3a6941874852e023afd066f1e2fab399af354e3d304112  Shepards-Tyre-Management-1.11.0-web-client.zip

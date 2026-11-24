@@ -14,6 +14,8 @@ const password = "pg-public-test-password-123";
 const publicOrigin = "https://www.shepards-tyre-management.com";
 const tyre = (serial) => ({
   serial,
+  invoiceNo: `PG-INVOICE-${serial}`,
+  amountPaise: 1000000,
   brand: "MRF",
   type: "new",
   construction: "radial",

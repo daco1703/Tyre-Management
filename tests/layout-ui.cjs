@@ -38,7 +38,9 @@ const seeded = spawnSync(
   db.prepare("INSERT INTO users (username,salt,hash,role,active) VALUES (?,?,?,?,?)").run(longUsername,'staff-layout-salt',scryptSync('staff-layout-password','staff-layout-salt',64).toString('hex'),'staff',1);
   db.prepare("INSERT INTO users (username,salt,hash,role,active) VALUES (?,?,?,?,?)").run('retired_staff_'.padEnd(40,'y'),'retired-layout-salt',scryptSync('retired-layout-password','retired-layout-salt',64).toString('hex'),'staff',0);
   let state=emptyState();const now=new Date();
-  const run=(kind,payload)=>state=applyAction(state,{kind,payload},'fleet_operator_with_long_username',now);
+  // All seeded receipt/remold fixtures are valid purchases; negative invoice tests live separately.
+  const run=(kind,payload)=>state=applyAction(state,{kind,payload:{...(['addTyre','remold'].includes(kind)?{invoiceNo:'LAYOUT-PUBLIC-INVOICE',amountPaise:1000000}:{}),...payload}},'fleet_operator_with_long_username',now);
+  run('addDriver',{name:'Ramesh Kumar Sharma / रमेश कुमार शर्मा',dob:'1980-01-01',licenseNo:'LAYOUT-PUBLIC-LICENSE',licenseExpiry:'2035-01-01'});
   const primary='MH46AF7655',secondary='MH46AF1234',soldReg='MH46AA9999';
   run('addVehicle',{registration:primary,name:'Mumbai — Pune — commercial trailer route and garage records',driverName:'Ramesh Kumar Singh / रमेश कुमार सिंह',emissionClass:'BS6',hasSpare:true,odometer:125000});
   run('addVehicle',{registration:secondary,name:'Interstate commercial fleet long vehicle route',driverName:'Shyam Singh',emissionClass:'BS4',hasSpare:false,odometer:5000});
@@ -620,8 +622,13 @@ async function main() {
       .locator("dialog input[name=name]")
       .fill("Long vehicle route name — a readability and wrapping fixture");
     await page
-      .locator("dialog input[name=driverName]")
+      .locator("dialog [data-testid=driver-picker] input[role=combobox]")
       .fill("Ramesh Kumar Sharma / रमेश कुमार शर्मा");
+    await page
+      .locator("dialog [data-testid=driver-picker]")
+      .getByRole("option")
+      .filter({ hasText: "Ramesh Kumar Sharma / रमेश कुमार शर्मा" })
+      .click();
     await checkDialog(`${language}/add vehicle form`);
     await closeDialog();
     await nav("dashboard");

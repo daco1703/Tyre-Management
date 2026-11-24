@@ -1,18 +1,18 @@
 # Website, Android and iOS downloads
 
-[Download Android APK 1.10.0](https://github.com/daco1703/Tyre-Management/blob/main/downloads/Shepards-Tyre-Management-1.10-test.apk?raw=true)
+[Download Android APK 1.11.0](https://github.com/daco1703/Tyre-Management/blob/main/downloads/Shepards-Tyre-Management-1.11-test.apk?raw=true)
 
 Install over the earlier build without uninstalling. The package ID and test signing certificate are unchanged. New installations open **https://tyre-management-shepards.vercel.app/** directly. Updates preserve a saved HTTPS server, including the company domain. The old Render default switches to the confirmed production address and requires fresh sign-in. Use admin or an assigned staff username/password. Forgot username/password displays Contact the admin.
 
 **iPhone/iPad without a Mac:** open [the website](https://tyre-management-shepards.vercel.app/) in Safari, choose **Share → Add to Home Screen**, enable **Open as Web App** if offered, then tap **Add**. The iOS interface supports English/Hindi, light/dark appearance and floating navigation. It uses the same account and fleet records and requires internet.
 
-[iOS project and shared source 1.10.0 ZIP](https://github.com/daco1703/Tyre-Management/blob/main/downloads/Shepards-Tyre-Management-1.10.0-ios-project-source.zip?raw=true) · [Compiled web client 1.10.0 ZIP](https://github.com/daco1703/Tyre-Management/blob/main/downloads/Shepards-Tyre-Management-1.10.0-web-client.zip?raw=true)
+[iOS project and shared source 1.11.0 ZIP](https://github.com/daco1703/Tyre-Management/blob/main/downloads/Shepards-Tyre-Management-1.11.0-ios-project-source.zip?raw=true) · [Compiled web client 1.11.0 ZIP](https://github.com/daco1703/Tyre-Management/blob/main/downloads/Shepards-Tyre-Management-1.11.0-web-client.zip?raw=true)
 
 The iOS ZIP contains a Swift Package Manager Xcode project and the shared source. It is **not an installable IPA**. Native iPhone builds require macOS/Xcode and Apple signing. GitHub workflows provide an unsigned simulator build and an optional manual signing path once the owner supplies Apple credentials privately. See [iOS build instructions](../docs/IOS_BUILD.md) and [release instructions](../docs/RELEASING.md). The web-client ZIP needs the existing working API; uploading static files alone does not provide login or storage.
 
 **Admin:** Team & settings → Add staff → enter a unique username, password and confirmation. Only admin can add or remove staff. Removing access retains the employee's historical log entries.
 
-All accounts share live vehicle/tyre records. Each entry includes the authenticated username and timestamp. Losing internet displays **You are offline. Please connect to the internet.** and blocks entries until reconnection. Offline login and public staff signup have been removed. Deploy server version **1.10.0** on Vercel with the existing private Neon/PostgreSQL connection. Vercel hosts both the website and API. Deployment access must be public for staff phones; the app's own login protects records. Changing the app's address does not import old records or configure DNS. Normal client updates do not reset the database.
+All accounts share live vehicle/tyre records. Each entry includes the authenticated username and timestamp. Losing internet displays **You are offline. Please connect to the internet.** and blocks entries until reconnection. Offline login and public staff signup have been removed. Deploy server version **1.11.0** on Vercel with the existing private Neon/PostgreSQL connection. Vercel hosts both the website and API. Deployment access must be public for staff phones; the app's own login protects records. Changing the app's address does not import old records or configure DNS. Normal client updates do not reset the database.
 
 Old phone-only records are not deleted or automatically uploaded to the server. Export any needed local records using the old version before upgrading. This version uses shared-server records only.
 
@@ -35,3 +35,5 @@ Version 1.8 fixes the squeezed tyre-detail header, keeps company logo/wordmark p
 Version 1.9 runs the website/API on Vercel with durable PostgreSQL storage. Shared updates poll every five seconds while visible, server failures no longer report false offline status, and account/session/fleet writes are transactional across instances. The database must be connected before sign-in works. Full SQLite/PostgreSQL backup migration tools are described in the main README; older records are not automatically copied.
 
 Version 1.10 adds the native iOS project, iPhone/iPad appearance and Safari installation help. Website, APK and iOS versions are synchronized by release scripts and checked in CI. This release has no database migration. Browser emulation and APK build/signature checks do not replace real-device verification.
+
+Version 1.11 adds separate admin reminder durations, audited admin tyre-identity corrections, Excel import from Add tyre, driver profiles and searchable vehicle assignment, mandatory per-tyre invoices, fleet purchase/remold counts and an admin-only cost report with a dynamic graph. Driver profiles can be added/edited by admin and staff. Staff financial data is filtered on the server. Existing records and unknown historical costs remain intact. Install this APK before adding tyres or completing remolding; older forms lack the required invoice fields. The sidebar shield/tagline block has been removed.

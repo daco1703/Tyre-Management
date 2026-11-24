@@ -91,6 +91,12 @@ async function main() {
   async function record(button, data) {
     await page.getByRole("button", { name: button, exact: true }).click();
     if (button === "Add tyre")
+      data = {
+        invoiceNo: `BROWSER-PURCHASE-${data.serial}`,
+        amount: "10000.00",
+        ...data,
+      };
+    if (button === "Add tyre")
       assert.deepEqual(
         await page
           .locator("dialog select[name=brand] option")
@@ -121,6 +127,16 @@ async function main() {
       }
     }
     for (const [name, value] of Object.entries(data)) {
+      if (name === "driverName") {
+        const picker = page.locator("dialog [data-testid=driver-picker]");
+        await picker.getByRole("combobox").fill(value);
+        await picker
+          .getByRole("option")
+          .filter({ hasText: value })
+          .first()
+          .click();
+        continue;
+      }
       const field = page.locator(`dialog [name="${name}"]`);
       if (typeof value === "boolean") await field.setChecked(value);
       else if (await field.evaluate((el) => el.tagName === "SELECT"))
@@ -132,6 +148,31 @@ async function main() {
       .click();
     await page.locator("dialog").waitFor({ state: "detached" });
   }
+  for (const [name, licenseNo] of [
+    ["Ram", "RJ-PUBLIC-RAM"],
+    ["Shyam", "RJ-PUBLIC-SHYAM"],
+  ]) {
+    const current = await (
+      await context.request.get(base + "/api/state")
+    ).json();
+    const driver = await context.request.post(base + "/api/actions", {
+      data: {
+        kind: "addDriver",
+        revision: current.revision,
+        payload: {
+          name,
+          dob: "1980-01-01",
+          licenseNo,
+          licenseExpiry: "2035-01-01",
+        },
+      },
+    });
+    assert.equal(driver.status(), 200);
+  }
+  await page.reload();
+  await page
+    .getByRole("heading", { name: "Your fleet, at a glance", exact: true })
+    .waitFor();
   await record("Add vehicle", {
     registration: "RJ14AB1234",
     name: "Jaipur route",
@@ -146,6 +187,8 @@ async function main() {
       brand: ["MRF", "Apollo", "CEAT"][i],
       construction: i === 1 ? "horse" : "radial",
       type,
+      invoiceNo: `BROWSER-PURCHASE-${i + 1}`,
+      amount: "10000.00",
     });
   await page
     .locator(".nav-items")
@@ -223,6 +266,8 @@ async function main() {
     await page.locator("dialog select[name=vendor]").inputValue(),
     "Sharvayu",
   );
+  await page.locator("dialog input[name=invoiceNo]").fill("BROWSER-REMOLD-1");
+  await page.locator("dialog input[name=amount]").fill("1500.00");
   await page.getByRole("button", { name: "Save record", exact: true }).click();
   await page.locator("dialog").waitFor({ state: "detached" });
   await page.getByRole("button", { name: /TYR-001/ }).click();
@@ -238,6 +283,8 @@ async function main() {
     await page.locator("dialog input[name=customVendor]").inputValue(),
     "Custom Retreads",
   );
+  await page.locator("dialog input[name=invoiceNo]").fill("BROWSER-REMOLD-2");
+  await page.locator("dialog input[name=amount]").fill("1750.00");
   await page.getByRole("button", { name: "Save record", exact: true }).click();
   await page.locator("dialog").waitFor({ state: "detached" });
   state = await (await context.request.get(base + "/api/state")).json();
@@ -409,10 +456,10 @@ async function main() {
   const workbook = await writeExcelFile(
     [
       TYRE_HEADERS,
-      ["00099", "JK Tyre", "New", "Radial", 0],
-      ["IMPORT-R", "Apollo", "Remold", "Horse", 500],
-      ["TYR-001", "MRF"],
-      ["BAD", ""],
+      ["00099", "JK Tyre", "New", "Radial", 0, "BROWSER-EXCEL-1", 10000],
+      ["IMPORT-R", "Apollo", "Remold", "Horse", 500, "BROWSER-EXCEL-2", 1500],
+      ["TYR-001", "MRF", "", "", "", "BROWSER-EXCEL-DUPLICATE", 10000],
+      ["BAD", "", "", "", "", "BROWSER-EXCEL-BAD-BRAND", 10000],
     ].map((row) =>
       row.map((value) => ({
         value,
@@ -504,6 +551,8 @@ async function main() {
     });
   for (let i = 4; i <= 32; i++)
     await apiAction("addTyre", {
+      invoiceNo: `BROWSER-LAYOUT-${i}`,
+      amount: "10000.00",
       serial: `TYR-${String(i).padStart(3, "0")}`,
       brand: ["MRF Steel Muscle", "Apollo EnduRace", "CEAT WinMile"][i % 3],
       size: "295/90 R20",
@@ -667,7 +716,10 @@ async function main() {
     .click();
   await staff.getByRole("button", { name: /^Sold/ }).click();
   await staff.getByRole("button", { name: /VSROAD/ }).click();
-  await staff.locator("dialog").getByText(/Sold with vehicle: RJ14SALE1/).waitFor();
+  await staff
+    .locator("dialog")
+    .getByText(/Sold with vehicle: RJ14SALE1/)
+    .waitFor();
   await staff
     .locator("dialog")
     .getByRole("button", { name: "Close", exact: true })

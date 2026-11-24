@@ -157,6 +157,8 @@ test("authenticated shared inventory, staff login and audit attribution", async 
       kind: "addTyre",
       revision: 0,
       payload: {
+        invoiceNo: "API-RECEIPT-X1",
+        amount: "10000.00",
         serial: "X1",
         brand: "CEAT",
         size: "R20",
@@ -174,7 +176,14 @@ test("authenticated shared inventory, staff login and audit attribution", async 
 });
 test("stale revisions and racing staff cannot overwrite records", async (t) => {
   const { req, owner } = await fixture(t);
-  const payload = { serial: "X1", brand: "CEAT", size: "R20", type: "new" };
+  const payload = {
+    serial: "X1",
+    brand: "CEAT",
+    size: "R20",
+    type: "new",
+    invoiceNo: "API-RACE",
+    amount: "10000.00",
+  };
   const results = await Promise.all([
     req("/actions", { kind: "addTyre", revision: 0, payload }, owner.cookie),
     req(
@@ -480,6 +489,8 @@ test("shared removal records mileage and scrap reason together; invalid reason r
     hasSpare: false,
   });
   await act("addTyre", {
+    invoiceNo: "API-SCRAP",
+    amount: "10000.00",
     serial: "SCRAP-1",
     brand: "MRF",
     size: "R20",
@@ -634,7 +645,14 @@ test("live updates deliver committed staff entries to concurrent users and revok
     {
       kind: "addTyre",
       revision: 0,
-      payload: { serial: "LIVE-1", brand: "CEAT", size: "R20", type: "new" },
+      payload: {
+        serial: "LIVE-1",
+        brand: "CEAT",
+        size: "R20",
+        type: "new",
+        invoiceNo: "API-LIVE",
+        amount: "10000.00",
+      },
     },
     staff.cookie,
   );
@@ -644,7 +662,12 @@ test("live updates deliver committed staff entries to concurrent users and revok
     staffWaiting,
   ]);
   assert.equal(ownerUpdate.status, 200);
-  assert.deepEqual(ownerUpdate.data, added.data);
+  assert.equal(ownerUpdate.data.revision, added.data.revision);
+  assert.deepEqual(ownerUpdate.data.tyres, added.data.tyres);
+  assert.deepEqual(
+    ownerUpdate.data.events.map((event) => event.id),
+    added.data.events.map((event) => event.id),
+  );
   assert.deepEqual(staffUpdate.data, added.data);
   assert.equal(ownerUpdate.data.events.at(-1).actor, "live_staff");
   assert.ok(ownerUpdate.data.events.at(-1).timestamp);
@@ -909,12 +932,21 @@ test("vehicle creation/import are owner-only; staff can import tyres and sell wi
       revision: 0,
       payload: {
         tyres: [
-          { serial: "0001", brand: "MRF", type: "new", construction: "radial" },
+          {
+            serial: "0001",
+            brand: "MRF",
+            type: "new",
+            construction: "radial",
+            invoiceNo: "API-IMPORT-1",
+            amount: "10000.00",
+          },
           {
             serial: "0002",
             brand: "Apollo",
             type: "remold",
             construction: "horse",
+            invoiceNo: "API-IMPORT-2",
+            amount: "2000.00",
           },
         ],
       },
@@ -932,8 +964,18 @@ test("vehicle creation/import are owner-only; staff can import tyres and sell wi
       revision: 2,
       payload: {
         tyres: [
-          { serial: "OK", brand: "MRF" },
-          { serial: "BAD", brand: "" },
+          {
+            serial: "OK",
+            brand: "MRF",
+            invoiceNo: "API-INVALID-BRAND",
+            amount: "10000.00",
+          },
+          {
+            serial: "BAD",
+            brand: "",
+            invoiceNo: "API-INVALID-BRAND",
+            amount: "10000.00",
+          },
         ],
       },
     },
@@ -1013,7 +1055,13 @@ test("only admin can sell a vehicle and fitted tyres; stale or invalid sales can
     odometer: 1000,
   });
   const vehicleId = added.data.vehicles[0].id;
-  added = await act("addTyre", { serial: "S1", brand: "MRF", type: "new" });
+  added = await act("addTyre", {
+    serial: "S1",
+    brand: "MRF",
+    type: "new",
+    invoiceNo: "API-VEHICLE-SALE",
+    amount: "10000.00",
+  });
   const tyreId = added.data.tyres[0].id;
   await act("fit", { vehicleId, tyreId, slot: "FR", odometer: 1000 });
   assert.equal(

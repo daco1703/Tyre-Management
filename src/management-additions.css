@@ -1,0 +1,83 @@
+.dialog-header .icon-button {
+  min-height: 44px;
+  min-width: 44px;
+  flex: none;
+}
+.invoice-fields {
+  min-inline-size: 0;
+  margin: 18px 0;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--paper);
+}
+.invoice-fields legend {
+  padding-inline: 6px;
+  font-weight: 650;
+}
+.invoice-fields > p {
+  margin: 8px 0 0;
+  line-height: 1.6;
+}
+.add-tyre-import {
+  padding: 0 0 20px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+.add-tyre-import p {
+  margin: 0 0 12px;
+}
+.invoice-history {
+  margin: 20px 0;
+  padding: 16px;
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+.invoice-history h3 {
+  margin: 0 0 12px;
+}
+.invoice-history-row {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+}
+.invoice-history-row > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.invoice-history-row small {
+  display: block;
+  color: var(--muted);
+}
+.maintenance-reminders .license-alert-expired {
+  color: #a21b33;
+  border-color: #f2b9c5;
+  background: #fff1f3;
+}
+.maintenance-reminders .license-alert-due {
+  color: #825100;
+  border-color: #f3d28f;
+  background: #fff6df;
+}
+html[data-ui="ios"] .invoice-fields,
+html[data-ui="ios"] .invoice-history {
+  color: var(--ios-text);
+  background: var(--ios-surface);
+  border-color: var(--ios-separator);
+}
+@media (prefers-color-scheme: dark) {
+  html[data-ui="ios"] .maintenance-reminders .license-alert-expired {
+    color: #ffacbb;
+    background: #481e2a;
+    border-color: #9e4e61;
+  }
+  html[data-ui="ios"] .maintenance-reminders .license-alert-due {
+    color: #ffda7d;
+    background: #46320e;
+    border-color: #927333;
+  }
+}

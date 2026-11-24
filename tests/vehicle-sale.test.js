@@ -32,6 +32,8 @@ function fixture() {
   const vehicleId = s.vehicles[0].id;
   for (let i = 0; i < 21; i++)
     s = run(s, "addTyre", {
+      invoiceNo: `VEHICLE-SALE-${i}`,
+      amountPaise: 1000000,
       serial: `SALE-${i}`,
       brand: i % 2 ? "Apollo" : "MRF",
       construction: "radial",
@@ -56,6 +58,8 @@ test("manufacturer dropdown contains exactly the seven requested brands and keep
   assert.equal(manufacturerFor("MRF Steel Muscle").name, "MRF");
   assert.equal(manufacturerFor("Some local brand"), undefined);
   const s = run(emptyState(), "addTyre", {
+    invoiceNo: "CUSTOM-PURCHASE",
+    amountPaise: 1000000,
     serial: "CUSTOM",
     brand: "Some local brand",
     construction: "horse",
@@ -174,7 +178,13 @@ test("empty vehicle sale keeps all garage tyres active", () => {
     hasSpare: false,
     odometer: 0,
   });
-  s = run(s, "addTyre", { serial: "STOCK", brand: "MRF", type: "new" });
+  s = run(s, "addTyre", {
+    serial: "STOCK",
+    brand: "MRF",
+    type: "new",
+    invoiceNo: "STOCK-PURCHASE",
+    amountPaise: 1000000,
+  });
   s = run(s, "sellVehicle", {
     vehicleId: s.vehicles[0].id,
     odometer: 0,

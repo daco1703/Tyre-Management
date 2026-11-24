@@ -9,6 +9,8 @@ import {
 import { normalizePublicOrigin } from "./config.js";
 import { appVersion } from "../shared/release.js";
 import { applyAction, AppError } from "../shared/model.js";
+import { stateForUser } from "../shared/state-view.js";
+import { costReportFor } from "../shared/cost-report.js";
 
 const digest = (value) => createHash("sha256").update(value).digest("hex");
 const passwordHash = (password, salt) =>
@@ -248,17 +250,25 @@ export function createApp({
   // PostgreSQL/Vercel reads authoritative committed state on every request.
   const waiting = new Set();
   const stateNow = async (tx = store) => JSON.parse(await setting(tx, "state"));
+  const visibleState = (req) =>
+    store.transaction(async (tx) => {
+      const user = await freshUser(tx, req);
+      return stateForUser(await stateNow(tx), user);
+    });
   async function finish(client) {
     if (!waiting.delete(client)) return;
     clearTimeout(client.timer);
     if (client.res.destroyed) return;
     try {
-      if (!(await sessionUser(store, client.req.user.hash)))
-        client.res.status(401).json({ error: "unauthorized" });
-      else client.res.json(await stateNow());
-    } catch {
+      client.res.json(await visibleState(client.req));
+    } catch (error) {
       if (!client.res.destroyed)
-        client.res.status(503).json({ error: "databaseUnavailable" });
+        client.res
+          .status(error instanceof AppError ? error.status : 503)
+          .json({
+            error:
+              error instanceof AppError ? error.code : "databaseUnavailable",
+          });
     }
   }
   function notify() {
@@ -272,7 +282,7 @@ export function createApp({
       !/^\d+$/.test(String(req.query.revision))
     )
       throw new AppError("invalidJson");
-    const state = await stateNow();
+    const state = await visibleState(req);
     if (revision !== state.revision || (distributed && req.query.poll === "1"))
       return res.json(state);
     if (distributed) {
@@ -288,9 +298,7 @@ export function createApp({
         res.once("close", done);
       });
       if (res.destroyed) return;
-      if (!(await sessionUser(store, req.user.hash)))
-        return res.status(401).json({ error: "unauthorized" });
-      return res.json(await stateNow());
+      return res.json(await visibleState(req));
     }
     const client = { req, res, timer: null };
     waiting.add(client);
@@ -300,14 +308,35 @@ export function createApp({
       clearTimeout(client.timer);
     });
   });
-  app.get("/api/state", auth, async (req, res) => res.json(await stateNow()));
+  app.get("/api/state", auth, async (req, res) =>
+    res.json(await visibleState(req)),
+  );
+  app.get("/api/reports/costs", auth, owner, async (req, res) => {
+    const allowed = new Set(["from", "to", "kind", "brand", "groupBy"]);
+    if (
+      Object.entries(req.query).some(
+        ([key, value]) => !allowed.has(key) || typeof value !== "string",
+      )
+    )
+      throw new AppError("invalidCostFilter");
+    const report = await store.transaction(async (tx) => {
+      await freshUser(tx, req, true);
+      return costReportFor(await stateNow(tx), req.query);
+    });
+    if (report.error) throw new AppError(report.error);
+    res.json(report);
+  });
   app.post("/api/actions", auth, async (req, res) => {
     const updated = await store.transaction(async (tx) => {
       const user = await freshUser(tx, req);
       if (
-        ["addVehicle", "importVehicles", "sellVehicle"].includes(
-          req.body.kind,
-        ) &&
+        [
+          "addVehicle",
+          "importVehicles",
+          "sellVehicle",
+          "updateReminderSettings",
+          "updateTyre",
+        ].includes(req.body.kind) &&
         user.role !== "owner"
       )
         throw new AppError("ownerOnly", 403);
@@ -316,7 +345,7 @@ export function createApp({
         throw new AppError("staleData", 409);
       const next = applyAction(state, req.body, user.username);
       await save(tx, "state", JSON.stringify(next));
-      return next;
+      return stateForUser(next, user);
     });
     notify();
     res.json(updated);

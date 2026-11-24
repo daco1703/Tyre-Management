@@ -86,9 +86,29 @@ export function reportFor(state, filters) {
   const totals = Object.fromEntries(
     keys.map((key) => [key, rows.reduce((sum, row) => sum + row[key], 0)]),
   );
+  // Garage purchases and completed retreading are fleet activities. A tyre's
+  // current fitment does not establish which vehicle incurred an earlier cost.
+  const fleetEvents =
+    vehicleId || emissionClass
+      ? null
+      : state.events.filter(
+          (event) =>
+            effectiveDay(event) >= from &&
+            effectiveDay(event) <= to &&
+            (!actor || event.actor === actor) &&
+            (event.kind === "remold" ||
+              (event.kind === "addTyre" &&
+                (event.condition ?? event.type) === "new")),
+        );
   return {
     rows,
     totals,
+    fleetTotals: fleetEvents && {
+      newPurchases: fleetEvents.filter((event) => event.kind === "addTyre")
+        .length,
+      completedRemolds: fleetEvents.filter((event) => event.kind === "remold")
+        .length,
+    },
     events: rows
       .flatMap((row) => row.events)
       .sort(

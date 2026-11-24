@@ -50,7 +50,7 @@ export function makeTyreTemplate() {
     ],
     {
       sheet: "Tyres",
-      columns: [28, 28, 32, 30, 22].map((width) => ({ width })),
+      columns: [28, 28, 32, 30, 22, 28, 24].map((width) => ({ width })),
     },
   ).toBlob();
 }

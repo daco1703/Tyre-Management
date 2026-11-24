@@ -20,15 +20,17 @@ const tyre = (serial = "0001", type = "new") => ({
   brand: "MRF",
   type,
   construction: "radial",
+  invoiceNo: "IMPORT-UNIT",
+  amountPaise: 100000,
 });
 test("tyre Excel preview preserves leading zeros, defaults, duplicates and Hindi headers", () => {
   const p = previewTyreImport([
     TYRE_HEADERS,
-    ["0001", "MRF"],
-    ["0001", "Apollo"],
-    ["used-2", "Apollo", "Used", "Horse", "1,20,000"],
-    [12, "CEAT"],
-    ["bad", "MRF", "Invalid"],
+    ["0001", "MRF", "", "", "", "IMPORT-UNIT", 1000],
+    ["0001", "Apollo", "", "", "", "IMPORT-UNIT", 1000],
+    ["used-2", "Apollo", "Used", "Horse", "1,20,000", "IMPORT-UNIT", 1000],
+    [12, "CEAT", "", "", "", "IMPORT-UNIT", 1000],
+    ["bad", "MRF", "Invalid", "", "", "IMPORT-UNIT", 1000],
   ]);
   assert.deepEqual(p.rows[0].value, { ...tyre(), distance: 0 });
   assert.deepEqual(p.rows[0].errors, []);
@@ -39,8 +41,8 @@ test("tyre Excel preview preserves leading zeros, defaults, duplicates and Hindi
   assert.ok(p.rows[4].errors.includes("invalidType"));
   assert.equal(
     previewTyreImport([
-      ["टायर आईडी", "निर्माता", "स्थिति", "टायर का प्रकार"],
-      ["T-1", "MRF", "पुराना", "Horse"],
+      ["टायर आईडी", "निर्माता", "स्थिति", "टायर का प्रकार", "बिल नंबर", "राशि"],
+      ["T-1", "MRF", "पुराना", "Horse", "IMPORT-HINDI", 1000],
     ]).rows[0].value.type,
     "used",
   );
@@ -126,7 +128,12 @@ test("one average NSD is fitted-only, accepts zero and retread completion resets
     destination: "remolding",
     vendor: "Sharvayu",
   });
-  s = run(s, "remold", { tyreId: id, vendor: "Sharvayu" });
+  s = run(s, "remold", {
+    tyreId: id,
+    vendor: "Sharvayu",
+    invoiceNo: "INVENTORY-REMOLD",
+    amountPaise: 150000,
+  });
   assert.equal(s.tyres[0].nsd.averagePercent, 100);
   assert.equal(s.tyres[0].distance, 100);
   assert.equal(

@@ -51,7 +51,8 @@ const seeded = spawnSync(
   db.prepare("INSERT INTO users (username,salt,hash,role,active) VALUES (?,?,?,?,?)")
     .run(longUsername,'ios-staff-fixture-salt',scryptSync('ios-public-staff-password','ios-staff-fixture-salt',64).toString('hex'),'staff',1);
   let state = emptyState(); const now = new Date();
-  const run = (kind,payload) => state = applyAction(state,{kind,payload},'ios_fixture_operator',now);
+  // Seed valid purchases; invoice-validation failures have dedicated unit/API coverage.
+  const run = (kind,payload) => state = applyAction(state,{kind,payload:{...(['addTyre','remold'].includes(kind)?{invoiceNo:'IOS-PUBLIC-INVOICE',amountPaise:1000000}:{}),...payload}},'ios_fixture_operator',now);
   run('addVehicle',{registration:'MH46AF7655',name:'Mumbai — Pune commercial trailer route',driverName:'Ramesh Kumar Singh / रमेश कुमार सिंह',emissionClass:'BS6',hasSpare:true,odometer:125000});
   const vehicleId = state.vehicles[0].id;
   run('addVehicle',{registration:'MH46AF1234',name:'Vehicle without spare tyre',driverName:'Shyam Singh',emissionClass:'BS4',hasSpare:false,odometer:5000});

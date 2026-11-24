@@ -166,7 +166,7 @@ async function desktop(viewport, label, settingsTitle) {
       metrics.caption.right <= metrics.caption.panelRight + 1,
     `${label}: company caption is clipped by its panel`,
   );
-  assert.equal(metrics.labels.length, 6, `${label}: missing navigation item`);
+  assert.equal(metrics.labels.length, 7, `${label}: missing navigation item`);
   for (const item of metrics.labels) {
     assert.ok(item.height >= 40, `${label}: squashed menu item ${item.text}`);
     assert.ok(!item.clipped, `${label}: clipped menu item ${item.text}`);
@@ -217,9 +217,9 @@ async function desktop(viewport, label, settingsTitle) {
   // Tab naturally scrolls each nav item and the final profile into view.
   const buttons = sidebar.locator(".nav-items button");
   await buttons.first().focus();
-  for (let i = 0; i < 7; i++) {
-    await fullyVisible(i === 6 ? profile : buttons.nth(i), `${label}/tab-${i}`);
-    if (i < 6) await page.keyboard.press("Tab");
+  for (let i = 0; i < 8; i++) {
+    await fullyVisible(i === 7 ? profile : buttons.nth(i), `${label}/tab-${i}`);
+    if (i < 7) await page.keyboard.press("Tab");
   }
   await page.keyboard.press("Enter");
   await page

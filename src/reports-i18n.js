@@ -1,0 +1,118 @@
+export const reportsEn = {
+  reportView: "Report view",
+  activityReport: "Vehicle activity",
+  costReport: "Tyre costs",
+  costReportTitle: "Tyre cost report",
+  costReportSub:
+    "Fleet-wide tyre purchases and completed remolding, based on recorded invoices.",
+  fleetTyreTally: "Fleet purchases & remolding",
+  fleetTyreTallyHint:
+    "Garage activity across the fleet for this date range. The staff filter applies.",
+  fleetTallyFilterHint:
+    "Select all vehicles and all classes to see fleet-wide garage purchases and completed remolding.",
+  newTyrePurchases: "New tyres purchased",
+  completedRemolds: "Remolding completed",
+  exportFleetTally: "Export fleet tally",
+  reportCount: "Tyres",
+  costKind: "Cost type",
+  costFilters: "Cost report filters",
+  costAllKinds: "Purchases & remolding",
+  costPurchase: "Purchase",
+  costRemold: "Remolding",
+  costAllBrands: "All brands",
+  costGroupBy: "Group by",
+  costByMonth: "Month",
+  costByDay: "Day",
+  costPurchaseTotal: "Recorded purchases",
+  costRemoldTotal: "Recorded remolding",
+  costTotal: "Recorded total",
+  costEntries: "entries",
+  costLedger: "Invoice records",
+  costInvoice: "Invoice number",
+  costAmountINR: "Amount (INR)",
+  costCondition: "Tyre condition",
+  costLoading: "Loading cost report…",
+  costRetry: "Try again",
+  costExport: "Export costs (CSV)",
+  costNoData: "No recorded invoice amounts for this selection.",
+  costMissing: "Purchase or remolding entries without recorded costs",
+  costMissingHint:
+    "Older entries without a price are excluded from totals and the graph. Their cost is unknown, not ₹0.",
+  costScopeHint:
+    "This report covers the entire fleet. Vehicle, class and staff filters from the activity report do not apply.",
+  costChartTitle: "Recorded tyre spending",
+  costChartDescription:
+    "Purchases and completed remolding by selected period. Amounts are in Indian rupees.",
+  costChartData: "View chart data",
+  costChartPanHint: "Swipe the graph sideways to see more periods.",
+  costPeriod: "Period",
+  costChartLimit:
+    "The graph shows the latest 60 periods. The table and CSV include all records.",
+  costZeroTotal:
+    "Recorded invoice amounts in the displayed periods total ₹0.00.",
+  costShowMore: "Show more records",
+  costShowing: "Records shown",
+  costRecordedOnly: "Only recorded invoice amounts are included.",
+  costSummaryIncludes:
+    "Purchase totals include new, used and remolded tyres. Remolding totals count completed work only.",
+  invalidCostFilter: "Choose a valid cost type, brand and grouping.",
+};
+
+export const reportsHi = {
+  reportView: "रिपोर्ट का प्रकार",
+  activityReport: "वाहन की गतिविधि",
+  costReport: "टायर की लागत",
+  costReportTitle: "टायर की लागत रिपोर्ट",
+  costReportSub:
+    "दर्ज बिलों के आधार पर पूरे बेड़े की टायर खरीद और पूरी हुई रीमोल्डिंग।",
+  fleetTyreTally: "बेड़े की खरीद और रीमोल्डिंग",
+  fleetTyreTallyHint:
+    "इस तारीख सीमा में पूरे बेड़े की गैराज गतिविधि। चुने हुए कर्मचारी का फ़िल्टर लागू होता है।",
+  fleetTallyFilterHint:
+    "पूरे बेड़े की गैराज खरीद और पूरी हुई रीमोल्डिंग देखने के लिए सभी वाहन और सभी श्रेणियाँ चुनें।",
+  newTyrePurchases: "खरीदे गए नए टायर",
+  completedRemolds: "पूरी हुई रीमोल्डिंग",
+  exportFleetTally: "बेड़े की गिनती निर्यात करें",
+  reportCount: "टायर",
+  costKind: "लागत का प्रकार",
+  costFilters: "लागत रिपोर्ट के फ़िल्टर",
+  costAllKinds: "खरीद और रीमोल्डिंग",
+  costPurchase: "खरीद",
+  costRemold: "रीमोल्डिंग",
+  costAllBrands: "सभी ब्रांड",
+  costGroupBy: "समूह बनाएँ",
+  costByMonth: "महीने के अनुसार",
+  costByDay: "दिन के अनुसार",
+  costPurchaseTotal: "दर्ज खरीद की लागत",
+  costRemoldTotal: "दर्ज रीमोल्डिंग की लागत",
+  costTotal: "दर्ज कुल लागत",
+  costEntries: "प्रविष्टियाँ",
+  costLedger: "बिल के रिकॉर्ड",
+  costInvoice: "बिल नंबर",
+  costAmountINR: "राशि (₹)",
+  costCondition: "टायर की स्थिति",
+  costLoading: "लागत रिपोर्ट लोड हो रही है…",
+  costRetry: "फिर कोशिश करें",
+  costExport: "लागत निर्यात करें (CSV)",
+  costNoData: "इस चयन के लिए बिल की कोई राशि दर्ज नहीं है।",
+  costMissing: "खरीद या रीमोल्डिंग की प्रविष्टियाँ जिनकी लागत दर्ज नहीं है",
+  costMissingHint:
+    "बिना कीमत वाली पुरानी प्रविष्टियाँ कुल और ग्राफ में शामिल नहीं हैं। उनकी लागत अज्ञात है, ₹0 नहीं।",
+  costScopeHint:
+    "यह रिपोर्ट पूरे बेड़े की है। गतिविधि रिपोर्ट के वाहन, श्रेणी और कर्मचारी फ़िल्टर यहाँ लागू नहीं होते।",
+  costChartTitle: "दर्ज टायर खर्च",
+  costChartDescription:
+    "चुनी हुई अवधि के अनुसार खरीद और पूरी हुई रीमोल्डिंग। राशि भारतीय रुपये में है।",
+  costChartData: "ग्राफ का डेटा देखें",
+  costChartPanHint: "और अवधियाँ देखने के लिए ग्राफ को दाएँ-बाएँ खिसकाएँ।",
+  costPeriod: "अवधि",
+  costChartLimit:
+    "ग्राफ में नवीनतम 60 अवधियाँ हैं। तालिका और CSV में सभी रिकॉर्ड हैं।",
+  costZeroTotal: "दिखाई गई अवधियों में दर्ज बिलों की कुल राशि ₹0.00 है।",
+  costShowMore: "और रिकॉर्ड दिखाएँ",
+  costShowing: "दिखाए गए रिकॉर्ड",
+  costRecordedOnly: "केवल दर्ज बिल की राशियाँ शामिल हैं।",
+  costSummaryIncludes:
+    "खरीद की लागत में नए, पुराने और रीमोल्ड टायर शामिल हैं। रीमोल्डिंग की लागत में केवल पूरा हुआ काम शामिल है।",
+  invalidCostFilter: "लागत का सही प्रकार, ब्रांड और समूह चुनें।",
+};

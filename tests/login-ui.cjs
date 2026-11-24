@@ -314,6 +314,8 @@ async function main() {
       kind: "addTyre",
       revision: state.revision,
       payload: {
+        invoiceNo: "LOGIN-LIVE-STAFF",
+        amount: "10000.00",
         serial: "LIVE-STAFF-1",
         brand: "MRF",
         size: "R20",

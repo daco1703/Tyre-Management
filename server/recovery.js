@@ -17,7 +17,7 @@ import { isDeepStrictEqual } from "node:util";
 import { defaultOwner } from "./default-owner.js";
 import { createPostgresStore } from "./storage/postgres.js";
 import { defaultFleetName } from "../shared/defaults.js";
-import { emptyState } from "../shared/model.js";
+import { emptyState, validateManagementState } from "../shared/model.js";
 
 export const RECOVERY_MARKER_KEY = "databaseImport";
 const FORMAT = "shepards-database-backup";
@@ -122,6 +122,9 @@ export function validateDatabaseBackup(backup) {
     )
   )
     invalid();
+  // These fields are additive to version-1 backups. Validate present data, but
+  // preserve the original state string and accept older backups without them.
+  if (validateManagementState(state).error) invalid();
   return {
     format: FORMAT,
     version: 1,

@@ -7,7 +7,46 @@ import { vehicleClasses } from "../shared/catalogue.js";
 import { averageNsd } from "../shared/nsd.js";
 import { BrandMark } from "./branding.jsx";
 import { DateField } from "./date-field.jsx";
-export function Reports({ app, initialVehicleId, onExport }) {
+import { CostReport } from "./cost-report.jsx";
+
+export function Reports({ app, initialVehicleId, onExport, request }) {
+  const [view, setView] = useState("activity");
+  const owner = app.session?.user?.role === "owner";
+  return (
+    <>
+      {owner && (
+        <div
+          className="report-view-switch"
+          role="group"
+          aria-label={app.t("reportView")}
+        >
+          {["activity", "costs"].map((key) => (
+            <button
+              key={key}
+              className={view === key ? "selected" : ""}
+              aria-pressed={view === key}
+              onClick={() => setView(key)}
+            >
+              {app.t(key === "activity" ? "activityReport" : "costReport")}
+            </button>
+          ))}
+        </div>
+      )}
+      <div hidden={owner && view === "costs"}>
+        <ActivityReport
+          app={app}
+          initialVehicleId={initialVehicleId}
+          onExport={onExport}
+        />
+      </div>
+      {owner && view === "costs" && (
+        <CostReport app={app} onExport={onExport} request={request} />
+      )}
+    </>
+  );
+}
+
+function ActivityReport({ app, initialVehicleId, onExport }) {
   const { t, n, date, state } = app;
   const [exportError, setExportError] = useState("");
   const initial = presetRange("thisMonth");
@@ -87,6 +126,22 @@ export function Reports({ app, initialVehicleId, onExport }) {
       );
     } catch (e) {
       setExportError(e.code || "serverError");
+    }
+  }
+  async function exportFleetTally() {
+    if (!result.fleetTotals) return;
+    setExportError("");
+    try {
+      await onExport(`Shepards-fleet-tally-${from}-${to}.csv`, [
+        [t("fromDate"), displayDate(from)],
+        [t("toDate"), displayDate(to)],
+        [t("by"), actor || t("allStaff")],
+        [t("activity"), t("reportCount")],
+        [t("newTyrePurchases"), result.fleetTotals.newPurchases],
+        [t("completedRemolds"), result.fleetTotals.completedRemolds],
+      ]);
+    } catch (error) {
+      setExportError(error.code || "serverError");
     }
   }
   return (
@@ -222,6 +277,37 @@ export function Reports({ app, initialVehicleId, onExport }) {
               </div>
             ))}
           </div>
+          {result.fleetTotals ? (
+            <section
+              className="card fleet-tally-report"
+              aria-labelledby="fleet-tally-title"
+            >
+              <div className="card-title-row">
+                <h2 id="fleet-tally-title">{t("fleetTyreTally")}</h2>
+                <button className="secondary" onClick={exportFleetTally}>
+                  <Download size={17} />
+                  {t("exportFleetTally")}
+                </button>
+              </div>
+              <p className="small muted">
+                {date(from)} – {date(to)} · {t("fleetTyreTallyHint")}
+              </p>
+              <div className="fleet-tally-metrics">
+                <div>
+                  <strong>{n(result.fleetTotals.newPurchases)}</strong>
+                  <span>{t("newTyrePurchases")}</span>
+                </div>
+                <div>
+                  <strong>{n(result.fleetTotals.completedRemolds)}</strong>
+                  <span>{t("completedRemolds")}</span>
+                </div>
+              </div>
+            </section>
+          ) : (
+            <p className="fleet-tally-filter-note">
+              {t("fleetTallyFilterHint")}
+            </p>
+          )}
           <section className="card">
             <h2>{t("vehicleSummary")}</h2>
             <p className="small muted">

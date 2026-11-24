@@ -1,0 +1,449 @@
+.management-section {
+  --management-surface: #ffffff;
+  --management-fill: #f6f7fa;
+  --management-text: #252631;
+  --management-muted: #626775;
+  --management-line: #dfe3eb;
+  --management-focus: #1868d0;
+  min-width: 0;
+  margin-block: 22px;
+}
+.management-section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+.management-section-heading > div {
+  min-width: 0;
+}
+.management-section-heading h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 8px;
+  line-height: 1.45;
+}
+.management-section-heading h2 svg {
+  flex: none;
+}
+.management-section-heading p {
+  margin: 0;
+  color: var(--management-muted);
+  line-height: 1.65;
+}
+.management-section :is(button, input, select),
+.driver-form-dialog :is(button, input),
+.driver-picker :is(button, input) {
+  min-height: 44px;
+}
+.management-section button,
+.driver-form-dialog button,
+.driver-picker button {
+  min-width: 44px;
+}
+.management-section :is(input, select),
+.driver-form-dialog input,
+.driver-picker input {
+  font-size: 16px;
+  min-width: 0;
+}
+.management-section :is(input, select):focus-visible,
+.driver-picker input:focus-visible {
+  outline: 2px solid var(--management-focus, #1868d0);
+  outline-offset: 2px;
+}
+.management-section :is(input, select) {
+  color: var(--management-text);
+  background: var(--management-surface);
+  border-color: var(--management-line);
+}
+.driver-search {
+  position: relative;
+  margin-bottom: 12px;
+}
+.driver-search > svg {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--management-muted);
+  pointer-events: none;
+}
+.driver-search input {
+  width: 100%;
+  padding-left: 42px;
+}
+.driver-filter-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.driver-filter-tabs button {
+  padding: 9px 13px;
+  border: 1px solid var(--management-line);
+  border-radius: 11px;
+  background: var(--management-surface);
+  color: var(--management-muted);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.driver-filter-tabs button.selected {
+  color: #a30f25;
+  border-color: #edb5c1;
+  background: #fff0f3;
+  font-weight: 650;
+}
+.driver-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 16px;
+}
+.driver-record {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid var(--management-line);
+  border-radius: 16px;
+  background: var(--management-surface);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+}
+.driver-record-heading {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  min-width: 0;
+  width: 100%;
+}
+.driver-record h3 {
+  margin: 0;
+  color: var(--management-text);
+  font-size: 18px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.driver-inactive {
+  padding: 4px 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  border-radius: 7px;
+  background: var(--management-fill);
+  color: var(--management-muted);
+}
+.driver-license-badge {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 6px;
+  max-width: 100%;
+  padding: 7px 9px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  font-size: 13px;
+  line-height: 1.55;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.driver-license-badge svg {
+  flex: none;
+  margin-top: 2px;
+}
+.driver-license-expired {
+  background: #fff0f0;
+  border-color: #ffc4c4;
+  color: #ae1725;
+}
+.driver-license-due {
+  background: #fff3cf;
+  border-color: #eac56b;
+  color: #855000;
+}
+.driver-license-valid {
+  background: #e9f8ef;
+  border-color: #b2dfc5;
+  color: #17653d;
+}
+.driver-license-unknown {
+  background: #eff1f6;
+  border-color: #d7dce7;
+  color: #525e73;
+}
+.driver-record-details {
+  width: 100%;
+  margin: 0;
+  display: grid;
+  gap: 12px;
+}
+.driver-record-details > div {
+  min-width: 0;
+}
+.driver-record-details dt {
+  color: var(--management-muted);
+  font-size: 13px;
+  line-height: 1.5;
+  margin-bottom: 3px;
+}
+.driver-record-details dd {
+  margin: 0;
+  color: var(--management-text);
+  font-size: 15px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.driver-edit-button {
+  margin-top: auto;
+  width: 100%;
+}
+.driver-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+  padding: 30px 15px;
+  color: var(--management-muted);
+}
+.driver-empty p {
+  margin: 0;
+  line-height: 1.65;
+  max-width: 420px;
+}
+.driver-form-dialog {
+  width: min(560px, calc(100vw - 24px));
+}
+.driver-form-fields,
+.reminder-settings-fields {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.driver-form-fields {
+  display: grid;
+  gap: 16px;
+}
+.driver-form-fields .field {
+  margin: 0;
+}
+.driver-active-field {
+  min-width: 0;
+}
+.driver-active-field .checkbox-field {
+  min-height: 44px;
+  align-items: center;
+  margin: 0;
+}
+.driver-active-field p {
+  margin: 5px 0 0;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.driver-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 24px;
+}
+.driver-form-actions > button {
+  flex: 1 1 130px;
+}
+.driver-picker {
+  min-width: 0;
+}
+.driver-picker > label {
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.driver-picker-control {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+.driver-picker-control input {
+  width: 100%;
+  padding-right: 50px;
+}
+.driver-picker-control > button {
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  background: transparent;
+}
+.driver-picker > small {
+  display: block;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.driver-picker-list {
+  display: grid;
+  gap: 4px;
+  max-height: 300px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--management-line, #dfe3eb);
+  background: var(--management-surface, #fff);
+  border-radius: 12px;
+  padding: 6px;
+  margin-top: 6px;
+  min-width: 0;
+}
+.driver-picker-list > button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  width: 100%;
+  padding: 10px;
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--management-text, #252631);
+  white-space: normal;
+  line-height: 1.5;
+}
+.driver-picker-list > button.highlighted {
+  background: var(--management-fill, #f0f3f8);
+  border-color: var(--management-line, #dfe3eb);
+}
+.driver-picker-list > button[aria-selected="true"] {
+  border-color: #ca7889;
+}
+.driver-picker-list strong,
+.driver-picker-list small {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.driver-picker-list strong {
+  font-size: 15px;
+}
+.driver-picker-list small {
+  font-size: 13px;
+}
+.driver-picker-empty {
+  margin: 0;
+  padding: 12px;
+  font-size: 14px;
+  line-height: 1.65;
+}
+.reminder-setting-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(200px, 0.8fr);
+  gap: 20px;
+  align-items: start;
+  padding-block: 18px;
+  border-bottom: 1px solid var(--management-line);
+}
+.reminder-setting-row:first-child {
+  padding-top: 0;
+}
+.reminder-setting-description {
+  min-width: 0;
+}
+.reminder-setting-description h3 {
+  margin: 0 0 6px;
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--management-text);
+}
+.reminder-setting-description p {
+  margin: 0;
+  color: var(--management-muted);
+  font-size: 14px;
+  line-height: 1.65;
+}
+.reminder-interval-fields {
+  display: grid;
+  grid-template-columns: minmax(70px, 0.8fr) minmax(100px, 1.2fr);
+  gap: 10px;
+  min-width: 0;
+}
+.reminder-interval-fields .field {
+  min-width: 0;
+  margin: 0;
+}
+.reminder-interval-fields :is(input, select) {
+  width: 100%;
+}
+.reminder-settings-note {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--management-muted);
+}
+.reminder-settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+}
+.reminder-settings-actions > span {
+  flex: 1 1 100%;
+  font-size: 13px;
+  color: var(--management-muted);
+  min-height: 1.6em;
+}
+.reminder-settings-actions > button {
+  flex: 1 1 150px;
+}
+html[data-ui="ios"]
+  :is(.management-section, .driver-picker, .driver-form-dialog) {
+  --management-surface: var(--ios-surface);
+  --management-fill: var(--ios-fill);
+  --management-text: var(--ios-text);
+  --management-muted: var(--ios-secondary);
+  --management-line: var(--ios-separator);
+  --management-focus: var(--ios-focus);
+}
+html[data-ui="ios"] .driver-filter-tabs button.selected {
+  background: var(--ios-selected);
+  color: var(--ios-brand);
+  border-color: var(--ios-brand);
+}
+html[data-ui="ios"] .driver-license-expired {
+  color: var(--ios-danger-fg);
+  background: var(--ios-danger-bg);
+  border-color: var(--ios-danger-fg);
+}
+html[data-ui="ios"] .driver-license-due {
+  color: var(--ios-used-fg);
+  background: var(--ios-used-bg);
+  border-color: var(--ios-used-line);
+}
+html[data-ui="ios"] .driver-license-valid {
+  color: var(--ios-new-fg);
+  background: var(--ios-new-bg);
+  border-color: var(--ios-new-line);
+}
+html[data-ui="ios"] .driver-license-unknown {
+  color: var(--ios-secondary);
+  background: var(--ios-fill);
+  border-color: var(--ios-separator);
+}
+@media (max-width: 760px) {
+  .management-section-heading {
+    flex-direction: column;
+    gap: 14px;
+  }
+  .management-section-heading > .primary {
+    width: 100%;
+  }
+  .reminder-setting-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .driver-picker * {
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,0 +1,439 @@
+.report-view-switch,
+.cost-report,
+.fleet-tally-report,
+.fleet-tally-filter-note {
+  --report-surface: var(--ios-surface, #fff);
+  --report-fill: var(--ios-elevated, #f5f7fb);
+  --report-text: var(--ios-text, #263244);
+  --report-muted: var(--ios-secondary, #667085);
+  --report-border: var(--ios-separator, #dfe5ee);
+  --report-accent: var(--ios-brand, #b5162b);
+  --report-purchase: #1677d2;
+  --report-remold: #8a3fe8;
+}
+
+.report-view-switch {
+  display: flex;
+  gap: 4px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 5px;
+  margin-bottom: 24px;
+  border: 1px solid var(--report-border);
+  border-radius: 14px;
+  background: var(--report-fill);
+}
+.report-view-switch button {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 10px 18px;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--report-muted);
+  font-size: 14px;
+  line-height: 1.6;
+  font-weight: 600;
+}
+.report-view-switch button.selected {
+  color: var(--report-accent);
+  background: var(--report-surface);
+  box-shadow: 0 1px 4px #172b4910;
+}
+.fleet-tally-report {
+  margin-bottom: 24px;
+}
+.fleet-tally-report > .card-title-row {
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 14px;
+}
+.fleet-tally-report > p {
+  margin-top: 12px;
+  line-height: 1.7;
+}
+.fleet-tally-report .secondary {
+  max-width: 100%;
+}
+.fleet-tally-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+.fleet-tally-metrics > div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 6px;
+  padding: 18px;
+  border: 1px solid var(--report-border);
+  border-radius: 14px;
+  background: var(--report-fill);
+}
+.fleet-tally-metrics strong {
+  color: var(--report-purchase);
+  font-size: 28px;
+  font-variant-numeric: tabular-nums;
+}
+.fleet-tally-metrics > div:last-child strong {
+  color: var(--report-remold);
+}
+.fleet-tally-metrics span {
+  color: var(--report-muted);
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.fleet-tally-filter-note {
+  margin-bottom: 24px;
+  padding: 14px 16px;
+  border: 1px solid var(--report-border);
+  border-radius: 12px;
+  background: var(--report-fill);
+  color: var(--report-muted);
+  font-size: 14px;
+  line-height: 1.7;
+}
+.cost-report {
+  min-width: 0;
+}
+.cost-report .page-heading > .secondary {
+  flex-shrink: 0;
+  max-width: 100%;
+}
+.cost-report .cost-scope-note {
+  margin: 0 0 22px;
+  padding: 14px 16px;
+  border-left: 3px solid var(--report-purchase);
+  border-radius: 10px;
+  background: var(--report-fill);
+  color: var(--report-muted);
+  font-size: 14px;
+  line-height: 1.7;
+}
+.cost-report-filters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px 14px;
+  margin-bottom: 24px;
+}
+.cost-report-filters .field {
+  min-width: 0;
+  margin: 0;
+}
+.cost-report .cost-report-filters :is(input, select) {
+  min-width: 0;
+  min-height: 46px;
+  font-size: 16px;
+}
+.cost-totals {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.cost-total {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 10px;
+}
+.cost-total > span,
+.cost-total > small {
+  color: var(--report-muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.cost-total > strong {
+  color: var(--report-text);
+  font-size: clamp(20px, 2.2vw, 28px);
+  line-height: 1.4;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.cost-report .cost-report-caption {
+  margin: 10px 0 18px;
+  color: var(--report-muted);
+  font-size: 14px;
+  line-height: 1.7;
+}
+.cost-unpriced {
+  margin: 22px 0;
+  padding: 18px;
+  background: var(--ios-used-bg, #fff6dc);
+  border: 1px solid var(--ios-used-line, #dfac42);
+  border-radius: 16px;
+  color: var(--ios-used-fg, #83540d);
+  line-height: 1.7;
+}
+.cost-unpriced strong {
+  font-size: 15px;
+}
+.cost-report .cost-unpriced p {
+  margin-top: 8px;
+  color: inherit;
+  font-size: 14px;
+  line-height: 1.7;
+}
+.cost-chart-card,
+.cost-ledger {
+  margin-top: 24px;
+}
+.cost-ledger > .card-title-row {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.cost-chart-legend {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin: 16px 0;
+  color: var(--report-text);
+  font-size: 14px;
+}
+.cost-chart-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.cost-chart-legend i {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex: none;
+}
+.cost-purchase-key {
+  background: var(--report-purchase);
+}
+.cost-remold-key {
+  background: var(--report-remold);
+}
+.cost-chart-scroll,
+.cost-table-scroll {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--report-muted) var(--report-fill);
+  border: 1px solid var(--report-border);
+  border-radius: 12px;
+}
+.cost-chart-scroll:focus-visible,
+.cost-table-scroll:focus-visible {
+  outline: 3px solid var(--ios-focus, #2563eb);
+  outline-offset: 3px;
+}
+.cost-chart-scroll > svg {
+  display: block;
+  max-width: none;
+}
+.cost-chart-axis {
+  font-family: inherit;
+  font-size: 12px;
+  fill: var(--report-muted);
+}
+.cost-chart-grid {
+  stroke: var(--report-border);
+  stroke-width: 1;
+}
+.cost-chart-purchase {
+  fill: var(--report-purchase);
+}
+.cost-chart-remold {
+  fill: var(--report-remold);
+}
+.cost-chart-data {
+  margin-top: 18px;
+  border-top: 1px solid var(--report-border);
+}
+.cost-chart-data > summary {
+  min-height: 44px;
+  padding: 14px 0;
+  cursor: pointer;
+  color: var(--report-accent);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.6;
+}
+.cost-chart-data > summary:focus-visible {
+  outline: 3px solid var(--ios-focus, #2563eb);
+  outline-offset: 3px;
+  border-radius: 5px;
+}
+.cost-table {
+  min-width: 900px;
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  color: var(--report-text);
+  font-size: 14px;
+}
+.cost-chart-data .cost-table {
+  min-width: 580px;
+}
+.cost-table caption {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.cost-table :is(th, td) {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--report-border);
+  line-height: 1.6;
+  vertical-align: top;
+}
+.cost-table thead {
+  color: var(--report-muted);
+  background: var(--report-fill);
+}
+.cost-table tbody tr:last-child > * {
+  border-bottom: 0;
+}
+.cost-table :is(.cost-money, .cost-serial) {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.cost-table .cost-money {
+  text-align: right;
+  font-weight: 600;
+}
+.cost-table .cost-serial {
+  font-size: 13px;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+.cost-table :is(.cost-invoice, .cost-actor) {
+  min-width: 140px;
+  max-width: 220px;
+  overflow-wrap: anywhere;
+}
+.cost-table .manufacturer-mark {
+  min-width: 140px;
+  max-width: 220px;
+}
+.cost-table .manufacturer-mark > img {
+  width: 60px;
+  height: 34px;
+}
+.cost-kind {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.cost-kind-purchase {
+  color: var(--ios-blue-fg, #075ca8);
+  background: var(--ios-blue-bg, #e1f0ff);
+}
+.cost-kind-remold {
+  color: var(--ios-remold-fg, #6d27b0);
+  background: var(--ios-remold-bg, #f0e5ff);
+}
+.cost-report .cost-empty-state {
+  padding: 24px 18px;
+  margin: 18px 0;
+  border-radius: 14px;
+  background: var(--report-fill);
+  color: var(--report-muted);
+  text-align: center;
+  line-height: 1.7;
+}
+.cost-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 0;
+}
+.cost-load-error {
+  margin: 20px 0;
+}
+.cost-more {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 18px;
+}
+.cost-more p {
+  font-size: 14px;
+}
+@media (max-width: 1100px) {
+  .cost-totals {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .cost-total:last-child {
+    grid-column: 1 / -1;
+  }
+  .cost-report-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .cost-report-filters > .field:first-child,
+  .cost-report-filters > .field:last-child {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 560px) {
+  .report-view-switch {
+    width: 100%;
+  }
+  .report-view-switch button {
+    flex: 1;
+    min-width: 0;
+    padding-inline: 10px;
+  }
+  .fleet-tally-metrics {
+    gap: 10px;
+  }
+  .fleet-tally-metrics > div {
+    padding: 14px;
+  }
+  .fleet-tally-metrics strong {
+    font-size: 25px;
+  }
+  .cost-report-filters {
+    padding: 18px;
+    gap: 16px 12px;
+  }
+  .cost-report-filters > .field:first-child,
+  .cost-report-filters > .field:nth-child(n + 4) {
+    grid-column: 1 / -1;
+  }
+  .cost-report .page-heading > .secondary {
+    width: 100%;
+  }
+  .cost-totals {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .cost-total {
+    padding: 18px;
+    gap: 6px;
+  }
+  .cost-total > strong {
+    font-size: 25px;
+  }
+  .cost-chart-card,
+  .cost-ledger {
+    padding: 18px;
+  }
+}
+@media (prefers-color-scheme: dark) {
+  html[data-ui="ios"] :is(.cost-report, .fleet-tally-report) {
+    --report-purchase: #74baff;
+    --report-remold: #c69aff;
+  }
+}
+@media (prefers-contrast: more) {
+  html[data-ui="ios"]
+    :is(.cost-total, .cost-unpriced, .cost-chart-scroll, .cost-table-scroll) {
+    border: 1px solid currentColor;
+  }
+}

@@ -1,4 +1,5 @@
 import { constructions } from "./catalogue.js";
+import { normalizeInvoice } from "./costs.js";
 export const MAX_TYRE_IMPORT_ROWS = 200;
 export const TYRE_HEADERS = [
   "Tyre ID",
@@ -6,6 +7,8 @@ export const TYRE_HEADERS = [
   "Condition (New/Used/Remold)",
   "Tyre Type (Radial/Horse)",
   "Previous km",
+  "Invoice No",
+  "Amount (INR)",
 ];
 const key = (v) =>
   String(v ?? "")
@@ -32,7 +35,23 @@ const aliases = {
     "टायर का प्रकार",
   ],
   distance: ["Previous km", "Previous KM Driven", "Distance", "कुल किमी"],
+  invoiceNo: [
+    "Invoice No",
+    "Invoice Number",
+    "Invoice",
+    "बिल नंबर",
+    "इनवॉइस नंबर",
+  ],
+  amount: ["Amount (INR)", "Amount", "Cost", "Amount ₹", "राशि", "राशि रुपये"],
 };
+export const reservedTyreSerials = (existing) =>
+  new Set(
+    existing.flatMap((tyre) =>
+      [tyre.serial, ...(tyre.serialAliases || [])]
+        .filter((value) => typeof value === "string")
+        .map((value) => value.trim().toUpperCase()),
+    ),
+  );
 export function normalizeTyre(record) {
   const errors = [];
   const serial =
@@ -72,7 +91,26 @@ export function normalizeTyre(record) {
     distance > 99999999
   )
     errors.push("invalidKm");
-  return { value: { serial, brand, type, construction, distance }, errors };
+  const invoice = normalizeInvoice(record);
+  if (invoice.error) errors.push(invoice.error);
+  return {
+    value: {
+      serial,
+      brand,
+      type,
+      construction,
+      distance,
+      ...(invoice.error
+        ? {
+            invoiceNo:
+              typeof record.invoiceNo === "string"
+                ? record.invoiceNo.trim()
+                : "",
+          }
+        : invoice),
+    },
+    errors,
+  };
 }
 export function previewTyreImport(matrix, existing = []) {
   if (!Array.isArray(matrix)) return { error: "importUnreadable", rows: [] };
@@ -98,7 +136,7 @@ export function previewTyreImport(matrix, existing = []) {
   if (!data.length) return { error: "importEmpty", rows: [] };
   if (data.length > MAX_TYRE_IMPORT_ROWS)
     return { error: "importTooMany", rows: [] };
-  const seen = new Set(existing.map((t) => t.serial.toUpperCase()));
+  const seen = reservedTyreSerials(existing);
   return {
     rows: data.map(({ row, number }) => {
       const record = Object.fromEntries(
@@ -119,7 +157,7 @@ export function validateTyreBatch(records, existing = []) {
     records.length > MAX_TYRE_IMPORT_ROWS
   )
     return { error: "importInvalidBatch" };
-  const seen = new Set(existing.map((t) => t.serial.toUpperCase())),
+  const seen = reservedTyreSerials(existing),
     tyres = [];
   for (const record of records) {
     if (!record || typeof record !== "object" || Array.isArray(record))

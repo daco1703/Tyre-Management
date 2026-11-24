@@ -4,10 +4,18 @@ import {
   defaultTyreSize,
   inspectionIssues,
 } from "./catalogue.js";
-import { isDay, addCalendarMonths } from "./dates.js";
-import { validateTyreBatch } from "./tyre-import.js";
+import { isDay } from "./dates.js";
+import { validateTyreBatch, reservedTyreSerials } from "./tyre-import.js";
 import { averageNsd } from "./nsd.js";
 import { validateVehicleBatch } from "./vehicle-import.js";
+import { MAX_AMOUNT_PAISE, normalizeInvoice } from "./costs.js";
+import { normalizeDriver, driverLicenseKey } from "./drivers.js";
+import {
+  reminderSettings,
+  normalizeReminderSettings,
+  addReminderInterval,
+  nsdDueOn,
+} from "./reminders.js";
 
 export class AppError extends Error {
   constructor(code, status = 400) {
@@ -88,15 +96,19 @@ function resetNsd(tyre, day) {
   tyre.nsdBaselineOn = day;
   tyre.lastNsdOn = null;
   tyre.nextNsdCheckOn = null;
+  tyre.nsdFirstFittedOn = null;
 }
-function saveNsd(tyre, values, measuredOn) {
+function saveNsd(tyre, values, measuredOn, state) {
   if (
     (!tyre.lastNsdOn || measuredOn >= tyre.lastNsdOn) &&
     (!tyre.nsdBaselineOn || measuredOn >= tyre.nsdBaselineOn)
   ) {
     tyre.lastNsdOn = measuredOn;
     tyre.nsd = values;
-    tyre.nextNsdCheckOn = addCalendarMonths(measuredOn, 2);
+    tyre.nextNsdCheckOn = addReminderInterval(
+      measuredOn,
+      reminderSettings(state).nsd,
+    );
   }
   return { tyreId: tyre.id, tyre: tyre.serial, slot: tyre.slot, ...values };
 }
@@ -114,6 +126,9 @@ export const emptyState = () => ({
   vehicles: [],
   tyres: [],
   events: [],
+  drivers: [],
+  costs: [],
+  reminderSettings: reminderSettings(),
 });
 export function dayKey(date = new Date()) {
   return new Intl.DateTimeFormat("en-CA", {
@@ -144,6 +159,188 @@ const km = (value) => {
     throw new AppError("invalidKm");
   return n;
 };
+
+const record = (value) =>
+  value !== null && typeof value === "object" && !Array.isArray(value);
+const identifier = (value) =>
+  typeof value === "string" && !!value.trim() && value.length <= 100;
+const timestamp = (value) =>
+  typeof value === "string" &&
+  /^\d{4}-\d{2}-\d{2}T/.test(value) &&
+  isDay(value.slice(0, 10)) &&
+  Number.isFinite(Date.parse(value));
+const serialKey = (value) =>
+  typeof value === "string" ? value.trim().toUpperCase() : "";
+
+// Old version-1 snapshots legitimately lack these additive fields. A malformed
+// present ledger must never be replaced with an empty list during a write.
+export function validateManagementState(state, { today = dayKey() } = {}) {
+  if (!record(state)) return { error: "invalidDriverData" };
+  const vehicles = Array.isArray(state.vehicles) ? state.vehicles : [];
+  if (state.drivers !== undefined) {
+    if (!Array.isArray(state.drivers)) return { error: "invalidDriverData" };
+    const ids = new Set(),
+      licenses = new Set();
+    for (const driver of state.drivers) {
+      if (
+        !record(driver) ||
+        !identifier(driver.id) ||
+        ids.has(driver.id) ||
+        normalizeDriver(driver, { today }).error
+      )
+        return { error: "invalidDriverData" };
+      const license = driverLicenseKey(driver.licenseNo);
+      if (licenses.has(license)) return { error: "invalidDriverData" };
+      ids.add(driver.id);
+      licenses.add(license);
+    }
+    if (
+      vehicles.some(
+        (vehicle) =>
+          vehicle.driverId !== undefined &&
+          vehicle.driverId !== null &&
+          !ids.has(vehicle.driverId),
+      )
+    )
+      return { error: "invalidDriverData" };
+  } else if (vehicles.some((vehicle) => vehicle.driverId)) {
+    return { error: "invalidDriverData" };
+  }
+  if (
+    state.reminderSettings !== undefined &&
+    normalizeReminderSettings(state.reminderSettings).error
+  )
+    return { error: "invalidReminderSettings" };
+  if (state.costs !== undefined) {
+    if (!Array.isArray(state.costs)) return { error: "invalidCostData" };
+    const ids = new Set(),
+      eventIds = new Set();
+    const tyres = new Map(
+      (Array.isArray(state.tyres) ? state.tyres : []).map((tyre) => [
+        tyre.id,
+        tyre,
+      ]),
+    );
+    const events = new Map(
+      (Array.isArray(state.events) ? state.events : []).map((event) => [
+        event.id,
+        event,
+      ]),
+    );
+    for (const cost of state.costs) {
+      if (
+        !record(cost) ||
+        !identifier(cost.id) ||
+        ids.has(cost.id) ||
+        !identifier(cost.eventId) ||
+        eventIds.has(cost.eventId) ||
+        !identifier(cost.tyreId) ||
+        !tyres.has(cost.tyreId) ||
+        !["purchase", "remold"].includes(cost.kind) ||
+        !tyreTypes.includes(cost.condition) ||
+        typeof cost.tyreSerial !== "string" ||
+        !cost.tyreSerial.trim() ||
+        cost.tyreSerial.length > 70 ||
+        typeof cost.brand !== "string" ||
+        !cost.brand.trim() ||
+        cost.brand.length > 80 ||
+        !isDay(cost.date) ||
+        !timestamp(cost.timestamp) ||
+        typeof cost.invoiceNo !== "string" ||
+        !cost.invoiceNo.trim() ||
+        cost.invoiceNo.trim().length > 100 ||
+        !Number.isSafeInteger(cost.amountPaise) ||
+        cost.amountPaise < 0 ||
+        cost.amountPaise > MAX_AMOUNT_PAISE ||
+        !identifier(cost.actor)
+      )
+        return { error: "invalidCostData" };
+      const event = events.get(cost.eventId);
+      if (
+        !event ||
+        event.kind !== (cost.kind === "purchase" ? "addTyre" : "remold") ||
+        !tyreMatchesEvent(tyres.get(cost.tyreId), event) ||
+        event.actor !== cost.actor ||
+        event.date !== cost.date ||
+        serialKey(event.tyre) !== serialKey(cost.tyreSerial) ||
+        (event.costId !== undefined && event.costId !== cost.id)
+      )
+        return { error: "invalidCostData" };
+      ids.add(cost.id);
+      eventIds.add(cost.eventId);
+    }
+  }
+  return {};
+}
+
+// New receipts use stable IDs; serial aliases retain access to older logs after
+// an admin corrects an identification number. An explicit different ID wins.
+export function tyreMatchesEvent(tyre, event) {
+  if (!tyre || !record(event)) return false;
+  const matches = (entry) => {
+    if (!record(entry)) return false;
+    if (identifier(entry.tyreId)) return entry.tyreId === tyre.id;
+    if (entry.kind === "addTyre" && entry.id === tyre.id) return true;
+    return reservedTyreSerials([tyre]).has(serialKey(entry.tyre));
+  };
+  if (matches(event)) return true;
+  if (identifier(event.tyreId)) return false;
+  return ["nsdMeasurements", "findings", "inspectedTyres", "soldTyres"].some(
+    (key) => Array.isArray(event[key]) && event[key].some(matches),
+  );
+}
+
+function managementState(previous, now) {
+  const checked = validateManagementState(previous, { today: dayKey(now) });
+  if (checked.error) throw new AppError(checked.error);
+  const state = structuredClone(previous);
+  state.drivers ??= [];
+  state.costs ??= [];
+  state.reminderSettings = reminderSettings(state);
+  return state;
+}
+
+const tyreIdentity = (tyre) => ({
+  serial: tyre.serial,
+  brand: tyre.brand,
+  construction: tyre.construction || null,
+});
+
+function linkedDriver(state, payload) {
+  if (
+    payload.driverId === undefined ||
+    payload.driverId === null ||
+    payload.driverId === ""
+  )
+    return { driverId: null, driverName: text(payload.driverName) };
+  if (typeof payload.driverId !== "string") throw new AppError("driverMissing");
+  const driver = state.drivers.find((item) => item.id === payload.driverId);
+  if (!driver) throw new AppError("driverMissing");
+  if (driver.active === false) throw new AppError("driverInactive");
+  return { driverId: driver.id, driverName: driver.name };
+}
+
+function recordCost(state, tyre, event, kind, payload) {
+  const invoice = normalizeInvoice(payload);
+  if (invoice.error) throw new AppError(invoice.error);
+  const costId = crypto.randomUUID();
+  state.costs.push({
+    id: costId,
+    eventId: event.id,
+    tyreId: tyre.id,
+    tyreSerial: tyre.serial,
+    kind,
+    condition: tyre.type,
+    brand: tyre.brand,
+    date: event.date,
+    timestamp: event.timestamp,
+    invoiceNo: invoice.invoiceNo,
+    amountPaise: invoice.amountPaise,
+    actor: event.actor,
+  });
+  event.costId = costId;
+  event.invoiceNo = invoice.invoiceNo;
+}
 export function tally(state) {
   return {
     total: state.tyres.filter((t) => !["scrapped", "sold"].includes(t.status))
@@ -180,10 +377,10 @@ export function tyreKm(tyre, state) {
   );
 }
 export function applyAction(previous, action, actor, now = new Date()) {
+  let state = managementState(previous, now);
   if (action.kind === "importTyres") {
     const result = validateTyreBatch(action.payload?.tyres, previous.tyres);
     if (result.error) throw new AppError(result.error);
-    let state = structuredClone(previous);
     for (const tyre of result.tyres)
       state = applySingleAction(
         state,
@@ -199,12 +396,16 @@ export function applyAction(previous, action, actor, now = new Date()) {
       previous.vehicles,
     );
     if (result.error) throw new AppError(result.error);
-    const state = structuredClone(previous);
     const timestamp = now.toISOString();
     const counts = tally(state);
     for (const vehicle of result.vehicles) {
       const id = crypto.randomUUID();
-      state.vehicles.push({ id, ...vehicle, createdAt: timestamp });
+      state.vehicles.push({
+        id,
+        ...vehicle,
+        driverId: null,
+        createdAt: timestamp,
+      });
       state.events.push({
         id,
         timestamp,
@@ -213,13 +414,14 @@ export function applyAction(previous, action, actor, now = new Date()) {
         actor,
         note: "Excel import",
         vehicle: vehicle.registration,
+        vehicleId: id,
         tally: { ...counts },
       });
       state.revision++;
     }
     return state;
   }
-  return applySingleAction(structuredClone(previous), action, actor, now);
+  return applySingleAction(state, action, actor, now);
 }
 function applySingleAction(state, action, actor, now) {
   const p = action.payload || {};
@@ -235,12 +437,14 @@ function applySingleAction(state, action, actor, now) {
   const tyre = () => {
     const t = state.tyres.find((t) => t.id === p.tyreId);
     if (!t) throw new AppError("tyreMissing");
+    event.tyreId = t.id;
     return t;
   };
   const vehicle = (id) => {
     const v = state.vehicles.find((v) => v.id === id);
     if (!v) throw new AppError("vehicleMissing");
     if (v.status === "sold") throw new AppError("vehicleAlreadySold");
+    event.vehicleId = v.id;
     return v;
   };
   const setOdo = (v) => {
@@ -250,6 +454,155 @@ function applySingleAction(state, action, actor, now) {
     event.odometer = n;
   };
   switch (action.kind) {
+    case "updateReminderSettings": {
+      const patch = p.settings ?? p.reminderSettings;
+      if (!record(patch) || !Object.keys(patch).length)
+        throw new AppError("invalidReminderSettings");
+      const before = reminderSettings(state);
+      const result = normalizeReminderSettings({ ...before, ...patch });
+      if (result.error) throw new AppError(result.error);
+      state.reminderSettings = result.settings;
+      event.before = before;
+      event.after = structuredClone(result.settings);
+      break;
+    }
+    case "addDriver": {
+      const result = normalizeDriver(p, { today: event.date });
+      if (result.error) throw new AppError(result.error);
+      if (
+        state.drivers.some(
+          (driver) =>
+            driverLicenseKey(driver.licenseNo) ===
+            driverLicenseKey(result.value.licenseNo),
+        )
+      )
+        throw new AppError("duplicateLicense", 409);
+      state.drivers.push({
+        id,
+        ...result.value,
+        createdAt: event.timestamp,
+        createdBy: actor,
+      });
+      event.driverId = id;
+      event.driverName = result.value.name;
+      event.after = structuredClone(result.value);
+      break;
+    }
+    case "updateDriver": {
+      const driver = state.drivers.find((item) => item.id === p.driverId);
+      if (!driver) throw new AppError("driverMissing");
+      const before = {
+        name: driver.name,
+        dob: driver.dob,
+        licenseNo: driver.licenseNo,
+        licenseExpiry: driver.licenseExpiry,
+        active: driver.active === undefined ? true : driver.active,
+      };
+      if (
+        p.expectedDriver !== undefined &&
+        (!record(p.expectedDriver) ||
+          Object.keys(before).some(
+            (key) => p.expectedDriver[key] !== before[key],
+          ))
+      )
+        throw new AppError("driverChanged", 409);
+      const result = normalizeDriver(p, {
+        previous: driver,
+        today: event.date,
+      });
+      if (result.error) throw new AppError(result.error);
+      if (
+        state.drivers.some(
+          (other) =>
+            other.id !== driver.id &&
+            driverLicenseKey(other.licenseNo) ===
+              driverLicenseKey(result.value.licenseNo),
+        )
+      )
+        throw new AppError("duplicateLicense", 409);
+      Object.assign(driver, result.value, {
+        updatedAt: event.timestamp,
+        updatedBy: actor,
+      });
+      // The same driver's corrected name updates current assignments. Archived
+      // vehicle snapshots and all previous log entries retain their old names.
+      for (const v of state.vehicles)
+        if (v.driverId === driver.id && v.status !== "sold")
+          v.driverName = driver.name;
+      event.driverId = driver.id;
+      event.driverName = driver.name;
+      event.before = before;
+      event.after = structuredClone(result.value);
+      break;
+    }
+    case "updateTyre": {
+      const t = tyre();
+      const before = tyreIdentity(t);
+      if (
+        (p.expectedSerial !== undefined &&
+          serialKey(p.expectedSerial) !== serialKey(t.serial)) ||
+        (p.expectedIdentity !== undefined &&
+          (!record(p.expectedIdentity) ||
+            Object.keys(before).some(
+              (key) => p.expectedIdentity[key] !== before[key],
+            )))
+      )
+        throw new AppError("tyreChanged", 409);
+      const serial = p.serial === undefined ? t.serial : p.serial;
+      const brand = p.brand === undefined ? t.brand : p.brand;
+      if (
+        typeof serial !== "string" ||
+        !serial.trim() ||
+        serial.trim().length > 70
+      )
+        throw new AppError("invalidTyreSerial");
+      if (
+        typeof brand !== "string" ||
+        !brand.trim() ||
+        brand.trim().length > 80
+      )
+        throw new AppError("invalidTyreBrand");
+      const construction =
+        p.construction === undefined ? t.construction || null : p.construction;
+      if (
+        p.construction !== undefined &&
+        construction !== null &&
+        !constructions.includes(construction)
+      )
+        throw new AppError("invalidConstruction");
+      const after = {
+        serial: serialKey(serial),
+        brand: brand.trim(),
+        construction,
+      };
+      if (
+        reservedTyreSerials(
+          state.tyres.filter((other) => other.id !== t.id),
+        ).has(after.serial)
+      )
+        throw new AppError("duplicateTyre", 409);
+      if (Object.keys(before).every((key) => before[key] === after[key]))
+        throw new AppError("noTyreChanges");
+      const aliases = new Set(
+        (Array.isArray(t.serialAliases) ? t.serialAliases : []).map(serialKey),
+      );
+      if (after.serial !== before.serial) aliases.add(serialKey(before.serial));
+      aliases.delete(after.serial);
+      Object.assign(t, after, {
+        serialAliases: [...aliases].filter(Boolean),
+        updatedAt: event.timestamp,
+        updatedBy: actor,
+      });
+      event.tyre = t.serial;
+      event.before = before;
+      event.after = after;
+      if (t.vehicleId) {
+        const v = state.vehicles.find((item) => item.id === t.vehicleId);
+        event.vehicleId = t.vehicleId;
+        event.vehicle = v?.registration || null;
+      }
+      break;
+    }
     case "addVehicle": {
       if (typeof p.hasSpare !== "boolean") throw new AppError("required");
       const registration = required(p.registration, 30)
@@ -263,7 +616,7 @@ function applySingleAction(state, action, actor, now) {
         id,
         registration,
         name: text(p.name),
-        driverName: text(p.driverName),
+        ...linkedDriver(state, p),
         emissionClass: p.emissionClass || null,
         hasSpare: p.hasSpare,
         odometer: km(p.odometer),
@@ -271,6 +624,9 @@ function applySingleAction(state, action, actor, now) {
       };
       state.vehicles.push(v);
       event.vehicle = registration;
+      event.vehicleId = v.id;
+      event.driverId = v.driverId;
+      event.driverName = v.driverName;
       break;
     }
     case "addTyre": {
@@ -278,7 +634,7 @@ function applySingleAction(state, action, actor, now) {
       if (p.construction && !constructions.includes(p.construction))
         throw new AppError("invalidConstruction");
       const serial = required(p.serial, 70).toUpperCase();
-      if (state.tyres.some((t) => t.serial === serial))
+      if (reservedTyreSerials(state.tyres).has(serial))
         throw new AppError("duplicateTyre");
       const t = {
         id,
@@ -295,11 +651,18 @@ function applySingleAction(state, action, actor, now) {
         slot: null,
         fittedAt: null,
       };
+      // Invoice amounts belong only to the private ledger. A missing amount is
+      // never inferred as zero from a new receipt or an old inventory record.
+      recordCost(state, t, event, "purchase", p);
       state.tyres.push(t);
       if (t.type === "new" || t.type === "remold") resetNsd(t, dayKey(now));
       // Stock receives baseline values only; staff measure fitted tyres.
       event.tyre = serial;
+      event.tyreId = t.id;
       event.type = p.type;
+      event.condition = p.type;
+      event.brand = t.brand;
+      event.construction = t.construction;
       break;
     }
     case "measureNsd": {
@@ -314,7 +677,7 @@ function applySingleAction(state, action, actor, now) {
         vehicleId: v?.id || null,
         vehicle: v?.registration || null,
         measuredOn: p.measuredOn,
-        nsdMeasurements: [saveNsd(t, values, p.measuredOn)],
+        nsdMeasurements: [saveNsd(t, values, p.measuredOn, state)],
       });
       break;
     }
@@ -411,16 +774,25 @@ function applySingleAction(state, action, actor, now) {
     }
     case "changeDriver": {
       const v = vehicle(p.vehicleId);
-      const driverName = required(p.driverName, 100);
-      if (driverName === v.driverName) throw new AppError("sameDriver");
+      const assignment = linkedDriver(state, p);
+      const driverName = required(assignment.driverName, 100);
+      if (
+        assignment.driverId
+          ? assignment.driverId === v.driverId && driverName === v.driverName
+          : driverName === v.driverName
+      )
+        throw new AppError("sameDriver");
       Object.assign(event, {
         vehicleId: v.id,
         vehicle: v.registration,
         fromDriverName: v.driverName || "",
+        fromDriverId: v.driverId || null,
+        driverId: assignment.driverId,
         driverName,
       });
       Object.assign(v, {
         driverName,
+        driverId: assignment.driverId,
         driverChangedAt: event.timestamp,
         driverChangeId: id,
         pendingTyreCheck: true,
@@ -507,7 +879,7 @@ function applySingleAction(state, action, actor, now) {
             t.id === reading.tyreId,
         );
         if (!tyre) throw new AppError("inspectionTyreChanged");
-        return saveNsd(tyre, readNsd(reading), p.inspectedOn);
+        return saveNsd(tyre, readNsd(reading), p.inspectedOn, state);
       });
       if (
         !p.allTyresChecked &&
@@ -572,7 +944,7 @@ function applySingleAction(state, action, actor, now) {
       )
         throw new AppError("slotOccupied");
       setOdo(v);
-      if (!t.lastNsdOn) t.nextNsdCheckOn = addCalendarMonths(dayKey(now), 2);
+      if (!t.nsdFirstFittedOn) t.nsdFirstFittedOn = dayKey(now);
       Object.assign(t, {
         status: "installed",
         vehicleId: v.id,
@@ -636,6 +1008,8 @@ function applySingleAction(state, action, actor, now) {
       const t = tyre();
       if (!["stock", "remolding"].includes(t.status))
         throw new AppError("notInStock");
+      const invoice = normalizeInvoice(p);
+      if (invoice.error) throw new AppError(invoice.error);
       t.status = "stock";
       t.remoldVendor = event.vendor = remoldVendor(p, t.remoldVendor);
       t.lastRemoldVendor = event.vendor;
@@ -643,6 +1017,11 @@ function applySingleAction(state, action, actor, now) {
       resetNsd(t, dayKey(now));
       t.remolds++;
       event.tyre = t.serial;
+      event.type = t.type;
+      event.condition = t.type;
+      event.brand = t.brand;
+      event.construction = t.construction || null;
+      recordCost(state, t, event, "remold", invoice);
       break;
     }
     case "sell": {
@@ -681,6 +1060,21 @@ function applySingleAction(state, action, actor, now) {
   }
   event.tally = tally(state);
   state.events.push(event);
+  // Retain this old display field for installed clients, but derive it from
+  // actual readings/fitments so a settings change does not shift the anchor.
+  if (action.kind === "updateReminderSettings") {
+    for (const t of state.tyres)
+      if (t.status === "installed") t.nextNsdCheckOn = nsdDueOn(t, state);
+  } else if (
+    ["fit", "measureNsd", "remold", "inspectVehicle"].includes(action.kind)
+  ) {
+    const ids = new Set([
+      event.tyreId,
+      ...(event.nsdMeasurements || []).map((reading) => reading.tyreId),
+    ]);
+    for (const t of state.tyres)
+      if (ids.has(t.id)) t.nextNsdCheckOn = nsdDueOn(t, state);
+  }
   state.revision++;
   return state;
 }
