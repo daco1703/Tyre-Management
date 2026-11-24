@@ -576,8 +576,14 @@ async function integratedTyreAndReports(owner, staff) {
     costsBefore,
     "identity correction does not add a second purchase",
   );
-  assert.equal(await page.locator(".inventory-toolbar input").first().inputValue(), "MGMTTYRE20261124");
-  await page.locator(".tyre-row").filter({hasText:"CORRECTEDTYRE2026"}).waitFor();
+  assert.equal(
+    await page.locator(".inventory-toolbar input").first().inputValue(),
+    "MGMTTYRE20261124",
+  );
+  await page
+    .locator(".tyre-row")
+    .filter({ hasText: "CORRECTEDTYRE2026" })
+    .waitFor();
   await nav("dashboard");
   await page.getByRole("button", { name: t("addTyre"), exact: true }).click();
   await page
@@ -630,6 +636,177 @@ async function integratedTyreAndReports(owner, staff) {
   checks.push(
     "owner tyre correction/add-dialog Excel entry/cost report; staff finance/edit restrictions",
   );
+}
+
+async function nativeAndroidBack() {
+  const canonical = "https://www.shepards-tyre-management.com";
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true,
+    userAgent:
+      "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36",
+    serviceWorkers: "block",
+  });
+  await context.addInitScript((server) => {
+    window.CapacitorCustomPlatform = { name: "android" };
+    localStorage.setItem("ts-server", JSON.stringify(server));
+    localStorage.setItem("ts-lang", JSON.stringify("en"));
+    localStorage.removeItem("ts-token");
+    const app = (window.androidAppTest = {
+      listeners: new Map(),
+      registered: 0,
+      emitted: 0,
+      exitCalls: 0,
+    });
+    // Exercise the real Capacitor proxy's listener registration. Only the
+    // platform bridge is mocked; no navigation or dialog behavior lives here.
+    window.Capacitor = {
+      PluginHeaders: [
+        {
+          name: "App",
+          methods: [
+            { name: "addListener", rtype: "callback" },
+            { name: "removeListener", rtype: "promise" },
+            { name: "exitApp", rtype: "promise" },
+          ],
+        },
+      ],
+      nativeCallback(plugin, method, options, callback) {
+        if (plugin !== "App" || method !== "addListener")
+          throw new Error("Unexpected native callback in test");
+        const id = String(++app.registered);
+        app.listeners.set(id, { event: options.eventName, callback });
+        return id;
+      },
+      nativePromise(plugin, method, options) {
+        if (plugin !== "App")
+          throw new Error("Unexpected native promise in test");
+        if (method === "removeListener")
+          app.listeners.delete(options.callbackId);
+        else if (method === "exitApp") app.exitCalls++;
+        return Promise.resolve();
+      },
+    };
+    window.emitAndroidBack = () => {
+      const listener = [...app.listeners.values()].find(
+        (item) => item.event === "backButton",
+      );
+      if (!listener)
+        throw new Error("The application did not register Android Back");
+      app.emitted++;
+      listener.callback({ canGoBack: false });
+    };
+  }, canonical);
+  const unexpected = [],
+    traffic = [];
+  await context.route("**/api/**", async (route) => {
+    const request = route.request(),
+      url = new URL(request.url());
+    if (url.origin !== canonical) {
+      unexpected.push(request.url());
+      return route.abort();
+    }
+    const cors = {
+      "access-control-allow-origin": base,
+      "access-control-allow-headers": "content-type, authorization",
+      "access-control-allow-methods": "GET, POST, OPTIONS",
+    };
+    if (request.method() === "OPTIONS")
+      return route.fulfill({ status: 204, headers: cors });
+    traffic.push({
+      path: url.pathname,
+      authorization: request.headers().authorization,
+    });
+    try {
+      const response = await context.request.fetch(
+        base + url.pathname + url.search,
+        {
+          method: request.method(),
+          headers: {
+            "content-type": "application/json",
+            origin: "https://localhost",
+            cookie: "",
+            ...(request.headers().authorization
+              ? { authorization: request.headers().authorization }
+              : {}),
+          },
+          ...(request.postData() ? { data: request.postData() } : {}),
+        },
+      );
+      await route.fulfill({
+        response,
+        headers: { ...response.headers(), ...cors },
+      });
+    } catch {
+      // Context closure legitimately cancels the application's long poll.
+      await route.abort().catch(() => {});
+    }
+  });
+  page = await context.newPage();
+  page.on("pageerror", (error) => errors.push(error.message));
+  locale = "en";
+  await page.goto(base);
+  await page.locator("input[name=username]").fill("management_owner");
+  await page.locator("input[name=password]").fill(password);
+  await page
+    .getByRole("button", { name: t("submitLogin"), exact: true })
+    .click();
+  await page
+    .getByRole("heading", { name: t("fleetOverview"), exact: true })
+    .waitFor();
+  const registrations = await page.evaluate(
+    () => window.androidAppTest.registered,
+  );
+  await nav("drivers");
+  await page.waitForFunction(
+    (previous) =>
+      window.androidAppTest.registered >= previous + 2 &&
+      window.androidAppTest.listeners.size === 1,
+    registrations,
+  );
+  await page.getByTestId("add-driver").click();
+  await page.locator("dialog[open] [data-testid=driver-form]").waitFor();
+  await page
+    .locator('dialog input[name="name"]')
+    .fill("Unsaved Android Back fixture");
+  await page.evaluate(() => window.emitAndroidBack());
+  await page.locator("dialog").waitFor({ state: "detached" });
+  assert.equal(
+    await page.getByTestId("driver-management").isVisible(),
+    true,
+    "native Android Back closes the local driver dialog and retains Drivers",
+  );
+  assert.equal(
+    await page
+      .getByRole("heading", { name: t("fleetOverview"), exact: true })
+      .count(),
+    0,
+  );
+  assert.equal(await page.evaluate(() => window.androidAppTest.exitCalls), 0);
+  assert.equal(await page.evaluate(() => window.androidAppTest.emitted), 1);
+  assert.notEqual(
+    await page.evaluate(() => document.body.style.overflow),
+    "hidden",
+  );
+  assert.ok(
+    traffic.some(
+      (request) =>
+        request.path === "/api/state" &&
+        /^Bearer [a-f0-9]{64}$/.test(request.authorization || ""),
+    ),
+    "native fixture authenticates with a bearer token, without website cookies",
+  );
+  assert.deepEqual(
+    unexpected,
+    [],
+    "native fixture never contacts an external backend",
+  );
+  await screenshot("native-android-driver-dialog-back");
+  checks.push(
+    "native Android Back closes the local driver dialog and retains Drivers",
+  );
+  await context.close();
 }
 
 async function viewMatrix(target, ios) {
@@ -687,6 +864,14 @@ async function main() {
     headless: true,
     args: ["--no-sandbox"],
   });
+  if (process.env.MANAGEMENT_NATIVE_BACK_ONLY === "1") {
+    await nativeAndroidBack();
+    assert.deepEqual(errors, []);
+    console.log(
+      "PASS: native Android bridge Back closes the local driver dialog without navigation or exit.",
+    );
+    return;
+  }
   const owner = await signin("management_owner");
   assert.equal(
     await owner.page.locator(".sidebar .support-mark").count(),
@@ -732,6 +917,7 @@ async function main() {
   await viewMatrix(owner, false);
   const ios = await signin("management_owner", true);
   await viewMatrix(ios, true);
+  await nativeAndroidBack();
   assert.deepEqual(errors, []);
   writeFileSync(
     path.join(artifacts, "coverage.json"),

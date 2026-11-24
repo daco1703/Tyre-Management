@@ -168,12 +168,11 @@ function App() {
   useEffect(() => {
     if (!platform.isAndroid) return;
     const listener = NativeApp.addListener("backButton", () => {
-      if (modal) {
-        document
-          .querySelector("dialog[open]")
-          ?.dispatchEvent(
-            new Event("cancel", { cancelable: true, bubbles: true }),
-          );
+      const openDialog = document.querySelector("dialog[open]");
+      if (openDialog) {
+        openDialog.dispatchEvent(
+          new Event("cancel", { cancelable: true, bubbles: true }),
+        );
       } else if (vehicleId) {
         setVehicleId(null);
         setPage("vehicles");

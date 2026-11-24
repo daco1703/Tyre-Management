@@ -14,7 +14,7 @@ edabb5594300b88e939ff4602e63bad6ba8a9bf76f1898fe277c9b305859b19d  Shepards-tyre-
 ca0d03bb70c12bd8d363b9442ae25c765e417ee14170000f09ee186fceaeb902  Shepards-Tyre-Management-1.10.0-bundles-SHA256SUMS.txt
 445b4cb51fb9c84ce9ee4804784fb658ecb014333cc213ad62eebb36153f833f  Shepards-Tyre-Management-1.10.0-ios-project-source.zip
 faee29050016cb4a3e5f45214585722b480a7a5ebf1e8118c744b274cfa406ee  Shepards-Tyre-Management-1.10.0-web-client.zip
-71b4c6cb161b12a5724d6d77837e3f68e9db6e69963c31560740757cb9024c3c  Shepards-Tyre-Management-1.11-test.apk
-fa038913e1325941ff7c802291e97db96305697ba48a76c369df959cd2ad9060  Shepards-Tyre-Management-1.11.0-bundles-SHA256SUMS.txt
-03f16a4fcb09b5eaa1996ee1add0748ffed5d0a83d7718bb3229a0915ac785d3  Shepards-Tyre-Management-1.11.0-ios-project-source.zip
-feb6c8e2560af074c029d9652968a9bd8cb864e086844b546b39d9564235d6ff  Shepards-Tyre-Management-1.11.0-web-client.zip
+005aeb3ca52e080e6d794134747136f0b6b8c0b70e7685adb9cade15e4f683d6  Shepards-Tyre-Management-1.11-test.apk
+fab90183d510723e68222d92734a47eb62b6f5b57bfeba19c8c1464a4a932ed0  Shepards-Tyre-Management-1.11.0-bundles-SHA256SUMS.txt
+90b98d1334f06be08fda21d6170f7a7462c34cca0f81a448054d93690c3b53d6  Shepards-Tyre-Management-1.11.0-ios-project-source.zip
+7161553d5490cf97250a4a84a1603657d124c64d780b246e7e65fc96c831796f  Shepards-Tyre-Management-1.11.0-web-client.zip
