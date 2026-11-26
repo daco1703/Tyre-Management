@@ -1,6 +1,6 @@
 {
   "name": "tyresaathi",
-  "version": "1.11.0",
+  "version": "1.12.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -33,7 +33,8 @@
     "capacitor:update:after": "node scripts/ios-spm-compat.js",
     "test:ios": "node tests/ios-ui.cjs",
     "bundle:release": "npm run check:versions && npm run build && cap sync android && cap sync ios && node scripts/bundle-release.js",
-    "test:management": "node tests/management-ui.cjs"
+    "test:management": "node tests/management-ui.cjs",
+    "test:notifications": "node tests/notifications-ui.cjs"
   },
   "dependencies": {
     "@capacitor/android": "7.6.9",
@@ -41,6 +42,8 @@
     "@capacitor/core": "7.6.9",
     "@capacitor/filesystem": "7.1.9",
     "@capacitor/ios": "7.6.9",
+    "@capacitor/local-notifications": "7.0.7",
+    "@capacitor/push-notifications": "7.0.7",
     "@capacitor/share": "7.0.4",
     "@fontsource/inter": "^5.2.5",
     "@fontsource/noto-sans-devanagari": "^5.2.5",
@@ -50,6 +53,7 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "read-excel-file": "9.3.12",
+    "web-push": "4.0.0",
     "write-excel-file": "4.1.1"
   },
   "devDependencies": {

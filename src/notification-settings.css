@@ -1,0 +1,277 @@
+.card.notification-settings {
+  --notification-surface: #fff;
+  --notification-fill: #f6f7fa;
+  --notification-text: #252631;
+  --notification-muted: #626775;
+  --notification-line: #dfe3eb;
+  --notification-accent: #b5162b;
+  min-width: 0;
+  margin-block: 22px;
+  padding: 22px;
+  container-type: inline-size;
+}
+.notification-settings-heading {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+.notification-settings-heading > svg {
+  flex: none;
+  margin-top: 3px;
+  color: var(--notification-text);
+}
+.notification-settings-heading > div {
+  min-width: 0;
+}
+.notification-settings-heading h2 {
+  margin: 0 0 8px;
+  line-height: 1.45;
+  color: var(--notification-text);
+}
+.notification-settings-heading p {
+  margin: 0;
+  color: var(--notification-muted);
+  font-size: 14px;
+  line-height: 1.7;
+}
+.notification-device-status {
+  min-width: 0;
+  border: 1px solid var(--notification-line);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 20px;
+  background: var(--notification-fill);
+}
+.notification-device-status p {
+  margin: 9px 0 0;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--notification-text);
+  overflow-wrap: anywhere;
+}
+.notification-delivery-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 100%;
+  padding: 6px 9px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.55;
+  background: #e7eaf0;
+  color: #515968;
+}
+.notification-delivery-label > svg {
+  flex: none;
+}
+.notification-device-status.local .notification-delivery-label {
+  color: #1951a8;
+  background: #e5efff;
+}
+.notification-device-status.remote .notification-delivery-label {
+  color: #17603c;
+  background: #e0f3e9;
+}
+.notification-device-status.cleanup .notification-delivery-label {
+  color: #855000;
+  background: #fff0c6;
+}
+.notification-device-status .notification-delivery-detail,
+.notification-device-status .notification-record-summary {
+  color: var(--notification-muted);
+  font-size: 13px;
+}
+.notification-record-summary time {
+  font-variant-numeric: tabular-nums;
+}
+.notification-notice {
+  padding: 12px;
+  border: 1px solid #e5cb82;
+  border-radius: 10px;
+  background: #fff6dc;
+  color: #805000;
+  font-size: 14px;
+  line-height: 1.65;
+}
+.notification-install-help {
+  margin-block: 18px;
+  padding: 15px;
+  border: 1px solid var(--notification-line);
+  border-radius: 12px;
+  background: var(--notification-fill);
+}
+.notification-install-help h3 {
+  margin: 0 0 10px;
+  font-size: 16px;
+  line-height: 1.55;
+}
+.notification-install-help ol {
+  margin: 0;
+  padding-left: 22px;
+}
+.notification-install-help li {
+  padding-left: 3px;
+  margin-bottom: 9px;
+  line-height: 1.7;
+  font-size: 14px;
+}
+.notification-install-help li:last-child {
+  margin-bottom: 0;
+}
+.notification-category-fields {
+  min-width: 0;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+.notification-category-fields legend {
+  margin-bottom: 12px;
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--notification-text);
+  line-height: 1.5;
+}
+.notification-category-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+.notification-category {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+  min-height: 64px;
+  border: 1px solid var(--notification-line);
+  border-radius: 12px;
+  background: var(--notification-surface);
+  padding: 13px;
+  cursor: pointer;
+  min-width: 0;
+}
+.notification-category.selected {
+  border-color: #dca2af;
+  background: #fff8fa;
+}
+.notification-category input {
+  width: 22px;
+  height: 22px;
+  min-height: 22px;
+  margin: 2px 0 0;
+  accent-color: var(--notification-accent);
+  font-size: 16px;
+}
+.notification-category > span {
+  min-width: 0;
+}
+.notification-category strong {
+  display: block;
+  font-size: 15px;
+  line-height: 1.55;
+  font-weight: 650;
+  color: var(--notification-text);
+  overflow-wrap: anywhere;
+}
+.notification-category small {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--notification-muted);
+  overflow-wrap: anywhere;
+}
+.notification-category-fields:disabled .notification-category {
+  cursor: default;
+  opacity: 0.7;
+}
+.notification-category:focus-within {
+  outline: 2px solid #1d67cf;
+  outline-offset: 2px;
+}
+.notification-selection-note {
+  margin: 12px 0 0;
+  color: var(--notification-muted);
+  font-size: 13px;
+  line-height: 1.65;
+}
+.notification-settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+}
+.notification-settings .notification-settings-actions > button {
+  flex: 1 1 180px;
+}
+.notification-settings button {
+  min-height: 44px;
+  min-width: 44px;
+  font-size: 15px;
+  line-height: 1.5;
+  white-space: normal;
+}
+.notification-device-test {
+  border-top: 1px solid var(--notification-line);
+  margin-top: 20px;
+  padding-top: 18px;
+}
+.notification-device-test button {
+  width: 100%;
+}
+.notification-device-test p {
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--notification-muted);
+  margin: 10px 0 0;
+}
+html[data-ui="ios"] .card.notification-settings {
+  --notification-surface: var(--ios-surface);
+  --notification-fill: var(--ios-fill);
+  --notification-text: var(--ios-text);
+  --notification-muted: var(--ios-secondary);
+  --notification-line: var(--ios-separator);
+  --notification-accent: var(--ios-brand);
+}
+html[data-ui="ios"] .notification-category.selected {
+  background: var(--ios-selected);
+  border-color: var(--ios-brand);
+}
+html[data-ui="ios"] .notification-delivery-label {
+  background: var(--ios-fill);
+  color: var(--ios-secondary);
+}
+html[data-ui="ios"]
+  .notification-device-status.local
+  .notification-delivery-label {
+  color: var(--ios-blue-fg);
+  background: var(--ios-blue-bg);
+}
+html[data-ui="ios"]
+  .notification-device-status.remote
+  .notification-delivery-label {
+  color: var(--ios-new-fg);
+  background: var(--ios-new-bg);
+}
+html[data-ui="ios"]
+  .notification-device-status.cleanup
+  .notification-delivery-label,
+html[data-ui="ios"] .notification-notice {
+  color: var(--ios-used-fg);
+  background: var(--ios-used-bg);
+  border-color: var(--ios-used-line);
+}
+@container (min-width: 520px) {
+  .notification-category-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 480px) {
+  .card.notification-settings {
+    padding: 18px;
+  }
+  .notification-device-status {
+    padding: 13px;
+  }
+}

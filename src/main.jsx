@@ -44,6 +44,8 @@ import { Reports } from "./reports.jsx";
 import { BrandMark } from "./branding.jsx";
 import { DriverManagement, DriverPicker } from "./driver-management.jsx";
 import { ReminderSettings } from "./reminder-settings.jsx";
+import { createNotificationController } from "./notifications.js";
+import { NotificationSettings } from "./notification-settings.jsx";
 import { InvoiceFields } from "./invoice-fields.jsx";
 import { formatInr } from "../shared/costs.js";
 import {
@@ -133,6 +135,14 @@ const request = createApiRequest({
   getServer: () => server,
   getToken: () => read("ts-token", ""),
 });
+let notificationStorage;
+try { notificationStorage = window.localStorage; } catch {}
+const notifications = createNotificationController({
+  request,
+  nativePlatform: Capacitor.getPlatform(),
+  storage: notificationStorage,
+  onNavigate: () => window.dispatchEvent(new Event("fleet-reminders-open")),
+});
 const Context = React.createContext();
 const useApp = () => React.useContext(Context);
 function App() {
@@ -141,6 +151,7 @@ function App() {
   const [lang, setLang] = useState(read("ts-lang", "en"));
   const [session, setSession] = useState(null),
     [state, setState] = useState(null);
+  const [resettingSession, setResettingSession] = useState(false);
   const branding = {
     logo: "/branding/shepards-logo.png",
     banner: "/branding/shepards-banner.png",
@@ -189,20 +200,35 @@ function App() {
       return () => clearTimeout(id);
     }
   }, [toast]);
-  function resetSession() {
-    ++initVersion.current;
-    store("ts-session", null);
-    store("ts-state", null);
-    store("ts-token", null);
+  async function resetSession() {
+    const version = ++initVersion.current;
+    setResettingSession(true);
+    const cleanup = notifications.cleanup();
     setSession(null);
     setState(null);
     stateRef.current = null;
     setModal(null);
     setPage("dashboard");
     setVehicleId(null);
+    // Keep the old origin and credentials until its device has been removed.
+    await cleanup;
+    if (version !== initVersion.current) return;
+    store("ts-session", null);
+    store("ts-state", null);
+    store("ts-token", null);
+    setResettingSession(false);
   }
-  function configureServer() {
-    resetSession();
+  async function configureServer() {
+    // A cold/offline launch may have a saved device binding before sync has
+    // populated status. Revoke it before changing the request's origin/token.
+    setResettingSession(true);
+    const cleaned = await notifications.cleanup();
+    if (cleaned.reason === "cleanupPending") {
+      setResettingSession(false);
+      setToast({ text: t("notificationReason_cleanupPending"), error: true });
+      return;
+    }
+    await resetSession();
     setOffline(false);
     setBootError("");
     setNeedsServer(true);
@@ -232,7 +258,7 @@ function App() {
         receiveState(data);
       } catch (e) {
         if (version !== initVersion.current) return;
-        if (e.status === 401) resetSession();
+        if (e.status === 401) await resetSession();
         else throw e;
       }
     } catch (e) {
@@ -256,7 +282,7 @@ function App() {
     } catch (e) {
       if (version !== initVersion.current) return null;
       if (e.status === 401) {
-        resetSession();
+        await resetSession();
         setOffline(false);
         setBootError("");
         setToast({ text: t("unauthorized"), error: true });
@@ -337,7 +363,7 @@ function App() {
           if (controller.signal.aborted || version !== initVersion.current)
             return;
           if (e.status === 401) {
-            resetSession();
+            await resetSession();
             setToast({ text: t("unauthorized"), error: true });
           } else {
             setOffline(e.code === "offlineHint" || !navigator.onLine);
@@ -386,7 +412,7 @@ function App() {
         e.code = "connectionLost";
         await refresh();
       }
-      if (e.status === 401) resetSession();
+      if (e.status === 401) await resetSession();
       throw e;
     }
   }
@@ -418,13 +444,59 @@ function App() {
     window.scrollTo(0, 0);
   }
   async function logout() {
+    setResettingSession(true);
     try {
+      await notifications.cleanup();
       await request("/logout", {});
-      resetSession();
+      await resetSession();
     } catch (e) {
+      setResettingSession(false);
       setToast({ text: t(e.code), error: true });
     }
   }
+  useEffect(() => {
+    if (!session?.user || !state || !pageVisible) return;
+    notifications.sync({
+      state,
+      user: session.user,
+      server: native ? server : window.location.origin,
+      lang,
+      online: !offline && !bootError,
+      fresh: !offline && !bootError,
+    }).catch(() => {});
+  }, [session?.user?.id, state?.revision, lang, offline, bootError, pageVisible]);
+  useEffect(() => {
+    const openReminders = () => {
+      navigate("dashboard");
+      requestAnimationFrame(() =>
+        document.querySelector(".maintenance-reminders")?.scrollIntoView(),
+      );
+    };
+    const fromWorker = event => {
+      if (event.data?.type === "fleet-reminders-open") openReminders();
+      if (event.data?.type === "fleet-push-subscription-changed" && session)
+        notifications.sync({
+          state,
+          user: session.user,
+          server: native ? server : window.location.origin,
+          lang,
+          online: !offline && !bootError,
+          fresh: !offline && !bootError,
+        }).catch(() => {});
+    };
+    window.addEventListener("fleet-reminders-open", openReminders);
+    navigator.serviceWorker?.addEventListener("message", fromWorker);
+    if (session && new URLSearchParams(window.location.search).has("reminders")) {
+      openReminders();
+      const url = new URL(window.location.href);
+      url.searchParams.delete("reminders");
+      window.history.replaceState(null, "", url.pathname + url.search + url.hash);
+    }
+    return () => {
+      window.removeEventListener("fleet-reminders-open", openReminders);
+      navigator.serviceWorker?.removeEventListener("message", fromWorker);
+    };
+  }, [session, state, lang, offline, bootError]);
   const value = {
     lang,
     setLang,
@@ -441,10 +513,17 @@ function App() {
     setToast,
     logout,
     branding,
+    notificationServer: native ? server : window.location.origin,
   };
   return (
     <Context.Provider value={value}>
-      {offline || bootError ? (
+      {resettingSession ? (
+        <div className="connection-page" aria-busy="true">
+          <Brand />
+          <RefreshCw className="spin" />
+          <p>{t("reconnecting")}</p>
+        </div>
+      ) : offline || bootError ? (
         <div className="connection-page">
           <Brand />
           <LanguageSwitch />
@@ -2276,6 +2355,7 @@ function SettingsPage({ onChangeServer }) {
           )}
         </section>
         <div>
+          <NotificationSettings app={app} controller={notifications} />
           <ReminderSettings app={app} />
           <section className="card settings-card">
             <h2>

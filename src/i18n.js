@@ -1,6 +1,7 @@
 import { managementEn, managementHi } from "./management-i18n.js";
 import { reportsEn, reportsHi } from "./reports-i18n.js";
 import { additionsEn, additionsHi } from "./additions-i18n.js";
+import { notificationEn, notificationHi } from "./notification-i18n.js";
 
 export const en = {
   iosInstall: "Add to Home Screen",
@@ -517,6 +518,7 @@ export const en = {
   ...managementEn,
   ...reportsEn,
   ...additionsEn,
+  ...notificationEn,
 };
 export const hi = {
   ...en,
@@ -1017,4 +1019,5 @@ export const hi = {
   ...managementHi,
   ...reportsHi,
   ...additionsHi,
+  ...notificationHi,
 };

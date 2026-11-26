@@ -31,6 +31,7 @@ export function createRuntime({
       ? { store }
       : { dbPath: env.DATABASE_PATH || "./data/tyresaathi.sqlite" }),
     serverless,
+    notifications: { env },
     production: serverless || env.NODE_ENV === "production",
     ...deploymentOptions(env),
   });

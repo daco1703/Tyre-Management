@@ -4,8 +4,11 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "functions": {
-    "api/index.js": { "maxDuration": 30 }
+    "api/index.js": { "maxDuration": 300 }
   },
+  "crons": [
+    { "path": "/api/notifications/dispatch", "schedule": "30 3 * * *" }
+  ],
   "headers": [
     {
       "source": "/(.*)",

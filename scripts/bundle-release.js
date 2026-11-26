@@ -64,6 +64,9 @@ const forbiddenParts = new Set([
   "Pods",
   "DerivedData",
   "xcuserdata",
+  "credentials",
+  ".credentials",
+  "private-credentials",
 ]);
 function safeSource(name) {
   const parts = name.split("/"),
@@ -76,7 +79,8 @@ function safeSource(name) {
     !/\.(?:sqlite3?(?:-[a-z]+)?|db(?:-[a-z]+)?|pem|p8|p12|pfx|key|jks|keystore|keychain(?:-db)?|mobileprovision|provisionprofile|cer|cert|crt|xcuserstate|apk|ipa|log)$/i.test(
       basename,
     ) &&
-    !["local.properties", "google-services.json", ".DS_Store"].includes(
+    !/(?:firebase-adminsdk|service[-_]?account).*\.json$/i.test(basename) &&
+    !["local.properties", "google-services.json", "GoogleService-Info.plist", ".DS_Store"].includes(
       basename,
     )
   );

@@ -8,5 +8,14 @@
   "android": {
     "backgroundColor": "#f6f7f2",
     "adjustMarginsForEdgeToEdge": "auto"
+  },
+  "plugins": {
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_tyre",
+      "iconColor": "#BD1018"
+    },
+    "PushNotifications": {
+      "presentationOptions": ["badge", "sound", "alert"]
+    }
   }
 }

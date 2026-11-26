@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="notification_accent">#BD1018</color>
+    <string name="notification_channel_name">Fleet reminders</string>
+    <string name="notification_channel_description">Tyre checks, driver licence expiry and vehicle reminders</string>
+</resources>

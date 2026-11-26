@@ -2,6 +2,8 @@
 
 The React client and `shared/` business rules serve all three platforms. They use the same Vercel API and existing private Neon database. Releasing a client must not reset or replace that database.
 
+Reminder notifications use native LocalNotifications plus optional Web Push/FCM/APNs. See [PUSH_SETUP.md](PUSH_SETUP.md) for the daily cron secret, provider setup and actual device verification. Builds without native push credentials retain scheduled local alerts; compiling a provider plugin does not establish remote delivery. Notification device registrations and private VAPID keys are excluded from recovery exports, and restored deployments require device re-enrollment. Fleet/account backups retain their existing behavior.
+
 Use Node 24 and `npm ci`. `shared/release.js` owns the version and numeric build number. Both Android and iOS use the same values, and package/lock versions match them.
 
 ```sh
@@ -77,5 +79,7 @@ The **Build signed iOS IPA manually** workflow runs only through `workflow_dispa
 | `IOS_SIGNING_IDENTITY`         | Matching signing certificate identity, such as an Apple Distribution identity.                                          |
 
 Use `release-testing` for an Ad Hoc profile or `debugging` for a development profile. The certificate and profile must support the selected method. Registered-device distribution generally needs an Apple Developer membership and the target devices in its provisioning profile. Without the required signing setup, this workflow cannot produce an installable device IPA.
+
+The App target enables Push Notifications. Regenerate profiles after enabling that capability on Apple's bundle ID. The manual workflow selects Debug/development APNs for `debugging`, or Release/production APNs for `release-testing`, and rejects a mismatched profile before archiving. Configure the backend's `APNS_ENVIRONMENT` to match the actual device build.
 
 The workflow uses Xcode 16 or later, installs its profile in Xcode's current provisioning directory and scopes signing settings to the App target so Swift package targets receive no provisioning overrides. It restores the original project afterward, removes its temporary profile/keychain and retains only the IPA artifact for seven days. Restrict repository/workflow access because an IPA is signed software. It never uploads to App Store Connect or TestFlight and never publishes automatically. Confirm an actual signed build and installation on an authorized iPhone before claiming device validation.

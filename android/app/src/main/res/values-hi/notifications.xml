@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="notification_channel_name">बेड़े के रिमाइंडर</string>
+    <string name="notification_channel_description">टायर जाँच, ड्राइवर लाइसेंस की समाप्ति और वाहन के रिमाइंडर</string>
+</resources>

@@ -32,6 +32,8 @@ if (process.platform !== "darwin" || missing.length) {
   process.exit(1);
 }
 const method = process.env.IOS_EXPORT_METHOD || "release-testing";
+const configuration = method === "debugging" ? "Debug" : "Release";
+const pushEnvironment = method === "debugging" ? "development" : "production";
 if (
   !["release-testing", "debugging"].includes(method) ||
   !/^[A-Z0-9]{10}$/.test(process.env.IOS_TEAM_ID)
@@ -154,6 +156,15 @@ try {
     throw new Error(
       "The provisioning profile must match the Apple team and in.tyresaathi.logbook bundle ID.",
     );
+  const profilePushEnvironment = run(
+    "/usr/libexec/PlistBuddy",
+    ["-c", "Print :Entitlements:aps-environment", plist],
+    true,
+  );
+  if (profilePushEnvironment !== pushEnvironment)
+    throw new Error(
+      `The provisioning profile must enable Push Notifications with the ${pushEnvironment} APNs environment for ${method}.`,
+    );
   const profileDirectory = path.join(
     homedir(),
     "Library/Developer/Xcode/UserData/Provisioning Profiles",
@@ -201,7 +212,7 @@ try {
     "-scheme",
     "App",
     "-configuration",
-    "Release",
+    configuration,
     "-destination",
     "generic/platform=iOS",
     "-archivePath",

@@ -34,6 +34,7 @@ jobs:
       - run: npm run test:login
       - run: npm run test:ios
       - run: npm run test:management
+      - run: npm run test:notifications
       - uses: actions/upload-artifact@v6
         with:
           name: web-client-${{ github.sha }}
@@ -61,6 +62,14 @@ jobs:
       - run: npm run check:versions
       - name: Install Android SDK packages
         run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0"'
+      - name: Add optional private Firebase app configuration
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        env:
+          FIREBASE_ANDROID_CONFIG: ${{ secrets.ANDROID_GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$FIREBASE_ANDROID_CONFIG" ]; then
+            printf '%s' "$FIREBASE_ANDROID_CONFIG" > android/app/google-services.json
+          fi
       - run: npm run android:sync
       - run: bash android/gradlew -p android --no-daemon assembleDebug
       - uses: actions/upload-artifact@v6

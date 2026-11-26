@@ -26,3 +26,13 @@ ios/App/App/capacitor.config.json
 *.key
 *.mobileprovision
 *.ipa
+**/google-services.json
+**/GoogleService-Info.plist
+**/*firebase-adminsdk*.json
+**/*service-account*.json
+.credentials/
+credentials/
+*.pfx
+*.cer
+*.cert
+*.crt

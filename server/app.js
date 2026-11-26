@@ -11,8 +11,14 @@ import { appVersion } from "../shared/release.js";
 import { applyAction, AppError } from "../shared/model.js";
 import { stateForUser } from "../shared/state-view.js";
 import { costReportFor } from "../shared/cost-report.js";
+import { createNotificationService } from "./notifications.js";
 
 const digest = (value) => createHash("sha256").update(value).digest("hex");
+const requestSessionToken = (req) =>
+  req.get("authorization")?.match(/^Bearer ([a-f0-9]{64})$/)?.[1] ||
+  req
+    .get("cookie")
+    ?.match(/(?:^|;\s*)tyresaathi_session=([a-f0-9]{64})(?:;|$)/)?.[1];
 const passwordHash = (password, salt) =>
   scryptSync(password, salt, 64).toString("hex");
 const validPassword = (p) =>
@@ -44,6 +50,7 @@ export function createApp({
   additionalPublicOrigins = [],
   store: providedStore = null,
   serverless = false,
+  notifications: notificationOptions = {},
 } = {}) {
   if (serverless && !providedStore)
     throw new Error("Serverless hosting requires external database storage");
@@ -53,6 +60,10 @@ export function createApp({
       .filter(Boolean),
   );
   const store = providedStore || createSqliteStore(dbPath);
+  const notifications = createNotificationService({
+    store,
+    ...notificationOptions,
+  });
   const distributed = serverless || store.kind === "postgres";
   const app = express();
   app.disable("x-powered-by");
@@ -130,13 +141,7 @@ export function createApp({
     next();
   };
   const auth = async (req, res, next) => {
-    const bearer = req
-      .get("authorization")
-      ?.match(/^Bearer ([a-f0-9]{64})$/)?.[1];
-    const cookie = req
-      .get("cookie")
-      ?.match(/(?:^|;\s*)tyresaathi_session=([a-f0-9]{64})(?:;|$)/)?.[1];
-    const token = bearer || cookie;
+    const token = requestSessionToken(req);
     if (!token) return res.status(401).json({ error: "unauthorized" });
     const user = await sessionUser(store, digest(token));
     if (!user) return res.status(401).json({ error: "unauthorized" });
@@ -234,8 +239,12 @@ export function createApp({
   );
   app.post("/api/logout", auth, async (req, res) => {
     await store.transaction(async (tx) => {
-      await freshUser(tx, req);
+      const user = await freshUser(tx, req);
       await tx.run("DELETE FROM sessions WHERE hash=?", req.user.hash);
+      await notifications.cleanupBindings(tx, {
+        userId: user.id,
+        sessionHash: req.user.hash,
+      });
     });
     res.clearCookie("tyresaathi_session", {
       path: "/",
@@ -245,6 +254,45 @@ export function createApp({
     });
     res.json({ ok: true });
   });
+
+  app.get("/api/notifications/status", auth, async (req, res) =>
+    res.json(await notifications.status((tx) => freshUser(tx, req))),
+  );
+  app.post("/api/notifications/devices", auth, async (req, res) =>
+    res.json(
+      await notifications.enroll({
+        authorize: (tx) => freshUser(tx, req),
+        payload: req.body,
+        sessionHash: req.user.hash,
+        origin: req.get("origin") || `${req.protocol}://${req.get("host")}`,
+      }),
+    ),
+  );
+  app.post("/api/notifications/unsubscribe", async (req, res) => {
+    const token = requestSessionToken(req);
+    if (!token) throw new AppError("unauthorized", 401);
+    const sessionHash = digest(token);
+    // This is the only expiry exception: possession of the original token may
+    // revoke its exact enrolled binding, never read state or enroll/test devices.
+    res.json(
+      await notifications.revokeBySessionHash({
+        deviceId: req.body.deviceId,
+        sessionHash,
+        activeUser: (tx) => sessionUser(tx, sessionHash),
+      }),
+    );
+  });
+  app.post("/api/notifications/test", auth, async (req, res) =>
+    res.json(
+      await notifications.test({
+        authorize: (tx) => freshUser(tx, req),
+        deviceId: req.body.deviceId,
+      }),
+    ),
+  );
+  app.get("/api/notifications/dispatch", async (req, res) =>
+    res.json(await notifications.dispatch(req.get("authorization"))),
+  );
 
   // Long-running SQLite installations retain immediate in-process updates.
   // PostgreSQL/Vercel reads authoritative committed state on every request.
@@ -263,12 +311,9 @@ export function createApp({
       client.res.json(await visibleState(client.req));
     } catch (error) {
       if (!client.res.destroyed)
-        client.res
-          .status(error instanceof AppError ? error.status : 503)
-          .json({
-            error:
-              error instanceof AppError ? error.code : "databaseUnavailable",
-          });
+        client.res.status(error instanceof AppError ? error.status : 503).json({
+          error: error instanceof AppError ? error.code : "databaseUnavailable",
+        });
     }
   }
   function notify() {
@@ -387,6 +432,7 @@ export function createApp({
       );
       if (!result.changes) throw new AppError("userMissing");
       await tx.run("DELETE FROM sessions WHERE user_id=?", Number(req.body.id));
+      await notifications.cleanupBindings(tx, { userId: Number(req.body.id) });
     });
     notify();
     res.json({ ok: true });
@@ -421,6 +467,10 @@ export function createApp({
         user.id,
         req.user.hash,
       );
+      await notifications.cleanupBindings(tx, {
+        userId: user.id,
+        exceptSessionHash: req.user.hash,
+      });
     });
     notify();
     res.json({ ok: true });

@@ -1,0 +1,2 @@
+6156692a2cca889d8f21aebcc1a3b9b787ae1af4d4fdd5cd9dc6fa26ace8469b  Shepards-Tyre-Management-1.12.0-web-client.zip
+8461b998792a4417a8829616582aa2b7c078e288e393a6bde2a4173849fad2a0  Shepards-Tyre-Management-1.12.0-ios-project-source.zip

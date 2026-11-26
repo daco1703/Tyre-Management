@@ -18,8 +18,25 @@ if (!destination || !existsSync(source) || existsSync(destination)) {
 mkdirSync(path.dirname(destination), { recursive: true });
 const db = new DatabaseSync(source, { readOnly: true });
 try {
-  await backup(db, destination);
+  const previousMask = process.umask(0o077);
+  try {
+    await backup(db, destination);
+  } finally {
+    process.umask(previousMask);
+  }
   chmodSync(destination, 0o600);
+  // Strip notification credentials and consent only from the completed COPY.
+  // The source database, fleet records and accounts are never changed here.
+  const copy = new DatabaseSync(destination);
+  try {
+    copy.exec("PRAGMA secure_delete=ON");
+    copy
+      .prepare("DELETE FROM settings WHERE key=?")
+      .run("notificationRegistry");
+    copy.exec("VACUUM; PRAGMA wal_checkpoint(TRUNCATE)");
+  } finally {
+    copy.close();
+  }
   console.log(
     "Database backup completed. Store it outside the server as well.",
   );

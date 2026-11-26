@@ -20,6 +20,7 @@ import { defaultFleetName } from "../shared/defaults.js";
 import { emptyState, validateManagementState } from "../shared/model.js";
 
 export const RECOVERY_MARKER_KEY = "databaseImport";
+const PRIVATE_NOTIFICATION_KEY = "notificationRegistry";
 const FORMAT = "shepards-database-backup";
 const isObject = (value) =>
   value !== null && typeof value === "object" && !Array.isArray(value);
@@ -87,18 +88,20 @@ export function validateDatabaseBackup(backup) {
   });
   if (!activeOwner) invalid();
   const keys = new Set();
-  const settings = backup.settings.map((setting) => {
-    if (
-      !isObject(setting) ||
-      typeof setting.key !== "string" ||
-      !setting.key.length ||
-      keys.has(setting.key) ||
-      typeof setting.value !== "string"
-    )
-      invalid();
-    keys.add(setting.key);
-    return { key: setting.key, value: setting.value };
-  });
+  const settings = backup.settings
+    .filter((setting) => setting?.key !== PRIVATE_NOTIFICATION_KEY)
+    .map((setting) => {
+      if (
+        !isObject(setting) ||
+        typeof setting.key !== "string" ||
+        !setting.key.length ||
+        keys.has(setting.key) ||
+        typeof setting.value !== "string"
+      )
+        invalid();
+      keys.add(setting.key);
+      return { key: setting.key, value: setting.value };
+    });
   if (!keys.has("state") || !keys.has("fleetName")) invalid();
   const fleetName = settings.find(
     (setting) => setting.key === "fleetName",
@@ -143,7 +146,10 @@ export async function createDatabaseBackup(store) {
       users: await tx.all(
         "SELECT id,username,salt,hash,role,active FROM users ORDER BY id",
       ),
-      settings: await tx.all("SELECT key,value FROM settings ORDER BY key"),
+      settings: await tx.all(
+        "SELECT key,value FROM settings WHERE key<>? ORDER BY key",
+        PRIVATE_NOTIFICATION_KEY,
+      ),
     }),
   );
 }
@@ -216,7 +222,9 @@ export function readSqliteBackup(source) {
           "SELECT id,username,salt,hash,role,active FROM users ORDER BY id",
         )
         .all(),
-      settings: db.prepare("SELECT key,value FROM settings ORDER BY key").all(),
+      settings: db
+        .prepare("SELECT key,value FROM settings WHERE key<>? ORDER BY key")
+        .all(PRIVATE_NOTIFICATION_KEY),
     });
     db.exec("COMMIT");
     return backup;
@@ -229,7 +237,10 @@ async function requirePristineTarget(tx) {
   const users = await tx.all(
     "SELECT id,username,salt,hash,role,active FROM users ORDER BY id",
   );
-  const settings = await tx.all("SELECT key,value FROM settings ORDER BY key");
+  const settings = await tx.all(
+    "SELECT key,value FROM settings WHERE key<>? ORDER BY key",
+    PRIVATE_NOTIFICATION_KEY,
+  );
   let state;
   try {
     state = JSON.parse(settings.find((row) => row.key === "state")?.value);

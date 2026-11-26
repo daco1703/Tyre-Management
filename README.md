@@ -2,6 +2,14 @@
 
 English/Hindi tyre logbook for Shepards Shipping Services. Website, Android and iOS use one shared server and require internet. Fresh native installations default to the confirmed production server **https://tyre-management-shepards.vercel.app/**; updates retain an explicitly saved HTTPS server. This is an original implementation, inspired by the requested tyre-management workflows.
 
+## Reminder notifications (1.12)
+
+**Team & settings → Notifications** lets each signed-in admin or staff member enable this device and separately choose NSD, inspection, driver-change and driving-licence reminders. Alerts use the admin's reminder intervals and English/Hindi preference. Lock screens show generic counts; tapping opens the dashboard. Sign-out, changing servers and removing staff revoke the relevant devices.
+
+Installed Android/iOS apps can schedule alerts from their last synced records without a Firebase account. Local schedules include a rolling 30-day daily window and known later deadlines, up to 50 pending alerts; reopening refreshes them. They cannot learn about work recorded on another phone while closed. Real remote push uses the latest shared database: Web Push for browsers/Home Screen apps, Firebase for Android and APNs for signed iOS apps. Each device must grant permission. iPhone/iPad browser push requires adding the website to the Home Screen first.
+
+The daily server job is prepared for around 9 AM India time (Vercel Hobby timing can vary). **The owner must add `CRON_SECRET` privately in Vercel and redeploy to activate daily remote delivery.** Android additionally requires Firebase app configuration and a service account; native iOS requires Apple signing and APNs credentials. Settings distinguish local alerts, remote delivery and missing setup. [Notification setup](docs/PUSH_SETUP.md) lists exact private configuration and device checks. Test alerts target only the requesting user's own device. No production records or accounts are replaced by this release.
+
 ## Reminder, driver and cost controls (1.11)
 
 - **Admin → Team & settings → Reminder settings** independently controls NSD checks, periodic vehicle inspections, licence-expiry warnings and checks after a driver change. Each uses days, weeks or calendar months. Defaults are two months for NSD, two months for the new recurring inspections, one month before licence expiry and immediate checking after a driver change. Changing an interval recalculates due dates from the original measurement/inspection/fitment, rather than postponing them from the settings-change date. Reminders remain advisory; expired licences remain red.
